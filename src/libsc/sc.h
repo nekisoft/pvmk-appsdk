@@ -1,0 +1,1 @@
+../../../sysimg/shared/libraries/libsc/include/sc.h

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#Variable definitions for PVMK toolchain wrappers
+#Bryan E. Topp <betopp@betopp.com> 2023
+
+SYSROOT=$(readlink -f $(dirname $0)/..)
+
