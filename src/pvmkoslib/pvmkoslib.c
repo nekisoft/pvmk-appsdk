@@ -2,6 +2,8 @@
 //OS support library for picolibc when running under PVMK
 //Bryan E. Topp <betopp@betopp.com> 2024
 
+#define _POSIX_C_SOURCE 200809L
+
 //PVMK system call definitions
 #include <sc.h>
 
@@ -10,10 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
-
-//For picolibc...
-#undef errno
-extern __thread int errno;
+#include <string.h>
 
 //Translates a PVMK system-call error return into a picolibc errno value
 static int _pvmk_sysret_errno(int sysret)
@@ -68,35 +67,108 @@ static int _pvmk_sysret_errno(int sysret)
 	}
 }
 
-int open(const char *fn, int flag, ...)
+//Non-variadic version of openat.
+static int _openatm(int fd, const char *path, int flags, mode_t mode)
 {
+	if(fd == AT_FDCWD)
+		fd = -1;
+	
+	int fd_ret = -ENOSYS;
+	
+	//If they didn't specify a type of file, default to a "regular file" mode.
+	if((mode & S_IFMT) == 0)
+		mode |= S_IFREG;
+	
+	
 	//Translate "flag" from picolibc definition to PVMK system call definition
-	int sysflag = 0;
-	if(flag & O_CLOEXEC ) sysflag |= _SC_OPEN_CLOEXEC;
-	if(flag & O_EXCL    ) sysflag |= _SC_OPEN_EXCL;
-	if(flag & O_CREAT   ) sysflag |= _SC_OPEN_CREAT;
-	if(flag & O_RDONLY  ) sysflag |= _SC_OPEN_R;
-	if(flag & O_WRONLY  ) sysflag |= _SC_OPEN_W;
-	if(flag & O_EXEC    ) sysflag |= _SC_OPEN_X;
-	if(flag & O_NOFOLLOW) sysflag |= _SC_OPEN_NOFOLLOW;
+	int sysflags = 0;
+	if(flags & O_CLOEXEC ) sysflags |= _SC_OPEN_CLOEXEC;
+	if(flags & O_EXCL    ) sysflags |= _SC_OPEN_EXCL;
+	if(flags & O_CREAT   ) sysflags |= _SC_OPEN_CREAT;
+	if(flags & O_RDONLY  ) sysflags |= _SC_OPEN_R;
+	if(flags & O_WRONLY  ) sysflags |= _SC_OPEN_W;
+	if(flags & O_EXEC    ) sysflags |= _SC_OPEN_X;
+	if(flags & O_NOFOLLOW) sysflags |= _SC_OPEN_NOFOLLOW;
 	
-	int mode = 0;
-	if(flag & O_CREAT)
+	fd_ret = _sc_open(fd, path, sysflags, mode, 0);
+	if(fd_ret < 0)
 	{
-		va_list ap;
-		va_start(ap, flag);
-		mode = va_arg(ap, int);
-		va_end(ap);
-	}
-	
-	int result = _sc_open(-1, fn, sysflag, mode, 0);
-	if(result < 0)
-	{
-		errno = _pvmk_sysret_errno(result);
+		errno = _pvmk_sysret_errno(fd_ret);
 		return -1;
 	}
 	
-	return result;
+	//Alright, we've got the file open.
+	
+	//Set our user-level nonblocking flag for it.
+	//if(fd_ret >= 0 && fd_ret < FD_NONBLOCKING_MAX)
+	//	_fd_nonblocking[fd_ret] = (flags & O_NONBLOCK) ? 1 : 0;
+	
+	//If we only wanted to open a directory, make sure it is.
+	if(flags & O_DIRECTORY)
+	{
+		_sc_stat_t st = {0};
+		int st_err = _sc_stat(fd_ret, &st, sizeof(st));
+		if(st_err < 0)
+		{
+			//Failed to stat the file we just opened...?
+			errno = _pvmk_sysret_errno(st_err);
+			_sc_close(fd_ret);
+			fd_ret = -1;
+		}
+		
+		if(!S_ISDIR(st.mode))
+		{
+			//Wanted to only open a directory, but this isn't one.
+			errno = ENOTDIR;
+			_sc_close(fd_ret);
+			fd_ret = -1;
+		}
+	}
+	
+	//If we wanted to append, go to the end of the file
+	if(flags & O_APPEND)
+	{
+		_sc_seek(fd_ret, 0, SEEK_END);
+	}
+			
+	return fd_ret;
+}
+
+//Non-variadic version of open.
+int _openm(const char *path, int flags, mode_t mode)
+{
+	//open is equivalent to openat with fd of AT_FDCWD
+	return _openatm(AT_FDCWD, path, flags, mode);
+}
+
+int open(const char *path, int flags, ...)
+{
+	//Kill variadic parameter and call non-variadic version.
+	mode_t mode = 0;
+	if(flags & O_CREAT)
+	{
+		va_list ap;
+		va_start(ap, flags);
+		mode = va_arg(ap, mode_t);
+		va_end(ap);
+	}
+	
+	return _openm(path, flags, mode);
+}
+
+int openat(int fd, const char *path, int flags, ...)
+{
+	//Kill variadic parameter and call non-variadic version.
+	mode_t mode = 0;
+	if(flags & O_CREAT)
+	{
+		va_list ap;
+		va_start(ap, flags);
+		mode = va_arg(ap, mode_t);
+		va_end(ap);
+	}
+	
+	return _openatm(fd, path, flags, mode);
 }
 
 int close(int fd)
@@ -227,5 +299,82 @@ void *sbrk(ptrdiff_t nbytes)
 	}
 	
 	return (void*)result;
+}
+
+int fstat(int fd, struct stat *out)
+{
+	//Performing a stat on an open file is the way our kernel works natively.
+	_sc_stat_t _sc_stat_buf = {0};
+	int stat_err = _sc_stat(fd, &_sc_stat_buf, sizeof(_sc_stat_buf));
+	if(stat_err < 0)
+	{
+		errno = -stat_err;
+		return -1;
+	}
+	
+	//Convert kernel stat struct to libc struct.
+	//Todo - is it worth defining these to be the same?
+	//Seems like there might be reasons not to, but I can't come up with any.
+	memset(out, 0, sizeof(*out));
+	out->st_dev = _sc_stat_buf.part;
+	out->st_ino = _sc_stat_buf.ino;
+	out->st_mode = _sc_stat_buf.mode;
+	out->st_size = _sc_stat_buf.size;
+	out->st_rdev = _sc_stat_buf.rdev;
+	out->st_blocks = _sc_stat_buf.used / 512;
+	
+	return 0;
+}
+
+int faccessat(int fd, const char *path, int mode, int flag)
+{
+	int check_access = 0;
+	if(mode & R_OK)
+		check_access |= O_RDONLY;
+	if(mode & W_OK)
+		check_access |= O_WRONLY;
+	if(mode & X_OK)
+		check_access |= O_EXEC;
+	
+	int testfd = _openatm(fd, path, check_access | flag | O_CLOEXEC, 0);
+	if(testfd < 0)
+		return -1; //_openatm sets error
+	
+	close(testfd);
+	return 0;
+}
+
+int access(const char *path, int mode)
+{
+	return faccessat(AT_FDCWD, path, mode, 0);
+}
+
+int eaccess(const char *path, int mode)
+{
+	return faccessat(AT_FDCWD, path, mode, AT_EACCESS);
+}
+
+int mkdirat(int fd, const char *path, mode_t mode)
+{
+	//Make "mode" refer to the given mode, as a directory.
+	//Make sure no conflicting mode bits were set.
+	mode |= S_IFDIR;
+	if(!S_ISDIR(mode))
+	{
+		errno = EINVAL;
+		return -1;
+	}
+	
+	int made = _openatm(fd, path, O_CLOEXEC | O_CREAT | O_EXCL, mode);
+	if(made == -1)
+		return -1;
+	
+	close(made);
+	return 0;
+}
+
+int mkdir(const char *path, mode_t mode)
+{
+	return mkdirat(AT_FDCWD, path, mode);
 }
 
