@@ -86,12 +86,24 @@ static int _openatm(int fd, const char *path, int flags, mode_t mode)
 	if(flags & O_CLOEXEC ) sysflags |= _SC_OPEN_CLOEXEC;
 	if(flags & O_EXCL    ) sysflags |= _SC_OPEN_EXCL;
 	if(flags & O_CREAT   ) sysflags |= _SC_OPEN_CREAT;
-	if(flags & O_RDONLY  ) sysflags |= _SC_OPEN_R;
-	if(flags & O_WRONLY  ) sysflags |= _SC_OPEN_W;
 	if(flags & O_EXEC    ) sysflags |= _SC_OPEN_X;
 	if(flags & O_NOFOLLOW) sysflags |= _SC_OPEN_NOFOLLOW;
 	
-	fd_ret = _sc_open(fd, path, sysflags, mode, 0);
+	if( (flags & O_ACCMODE) == O_RDONLY) sysflags |= _SC_OPEN_R;
+	if( (flags & O_ACCMODE) == O_WRONLY) sysflags |= _SC_OPEN_W;
+	if( (flags & O_ACCMODE) == O_RDWR  ) sysflags |= _SC_OPEN_R | _SC_OPEN_W;
+	
+	//Translate "mode" from picolibc definition to PVMK system call definition
+	int sysmode = mode & 0777;
+	switch(mode & S_IFMT)
+	{
+		case S_IFREG: sysmode |= _SC_S_IFREG; break;
+		case S_IFDIR: sysmode |= _SC_S_IFDIR; break;
+		case S_IFLNK: sysmode |= _SC_S_IFLNK; break;
+		default: errno = EINVAL; return -1;
+	}
+	
+	fd_ret = _sc_open(fd, path, sysflags, sysmode, 0);
 	if(fd_ret < 0)
 	{
 		errno = _pvmk_sysret_errno(fd_ret);
@@ -344,7 +356,11 @@ ssize_t write(int fd, const void *buf, size_t nbyte)
 	const char *bufb = (const char*)buf;
 	while(nbyte > 0)
 	{
-		ssize_t result = _sc_write(fd, bufb, nbyte);
+		size_t to_write = nbyte;
+		if(to_write > 65536)
+			to_write = 65536;
+		
+		ssize_t result = _sc_write(fd, bufb, to_write);
 		if(result == -_SC_EAGAIN)
 		{
 			_sc_pause();
