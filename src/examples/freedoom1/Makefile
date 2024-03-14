@@ -24,7 +24,7 @@ CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -O2
 
 #Flags to use when linking
-LINKFLAGS += -Wl,--gc-sections --oslib=pvmkoslib
+LINKFLAGS += -Wl,--gc-sections
 
 #Build information provided to compiler
 BUILDVERSION := $(shell git describe --abbrev=4 --dirty --always --tags)

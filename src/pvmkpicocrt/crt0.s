@@ -38,20 +38,20 @@ _start:
 _start.initial:
 	
 	//Make a system call to allocate space for BSS
-	//.extern _DATA_END //Where the memory space will end, after loading
-	//.extern _LINK_END //Where we want the memory space to end
-	//mov r0, #0x40 //sbrk
-	//ldr r1, =_LINK_END
-	//ldr r2, =_DATA_END
-	//sub r1, r2
-	//svc 0x92
+	.extern _DATA_END //Where the memory space will end, after loading
+	.extern _LINK_END //Where we want the memory space to end
+	mov r0, #0x40 //sbrk
+	ldr r1, =_LINK_END
+	ldr r2, =_DATA_END
+	sub r1, r2
+	svc 0x92
 	
 	//Use initial stack
 	ldr sp, =_stack.top
 	
 	//Call libc to get argv/envp set up and call main
-	.extern main
-	ldr r7, =main
+	.extern _pvmk_callmain
+	ldr r7, =_pvmk_callmain
 	bx r7
 
 	.ltorg	
@@ -141,14 +141,6 @@ longjmp:
 	b siglongjmp
 
 .ltorg
-	
-//Returns TLS location
-.global __aeabi_read_tp
-__aeabi_read_tp:
-	ldr r0, =_tls
-	bx lr
-
-.ltorg
 
 .section .bss
 	
@@ -165,11 +157,5 @@ _stack.top:
 _sigstack:
 	.space 65536
 _sigstack.top:
-
-//Space for TLS
-.balign 4096
-.global _tls
-_tls:
-	.space 4096
 
 

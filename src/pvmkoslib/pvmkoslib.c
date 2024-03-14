@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
 //Translates a PVMK system-call error return into a picolibc errno value
 static int _pvmk_sysret_errno(int sysret)
@@ -133,6 +134,126 @@ static int _openatm(int fd, const char *path, int flags, mode_t mode)
 			
 	return fd_ret;
 }
+
+
+//argenv buffer - aligned enough to refer to a char*, but ultimately storing strings
+static char *argenv_buffer[4096 / sizeof(void*)];
+
+//Called from crt0 to call main
+void _pvmk_callmain(void)
+{
+	//Tell kernel about what system-call interface we expect
+	//Todo - handle older versions if we lack some system-calls or something
+	int32_t our_version = 1;
+	int32_t version_to_use = _sc_version(our_version);
+	(void)version_to_use;
+	
+	//Default arguments/environments if something goes wrong
+	int argc = 1;
+	char **argv = (char*[]){ "argv0",         NULL };
+	char **envp = (char*[]){ "PVMK=external", NULL };
+	
+	//Try to load arguments/environment
+	int nread = _sc_env_load(argenv_buffer, sizeof(argenv_buffer));
+	if(nread > 0)
+	{
+		//Ensure we're NUL-terminated
+		((char*)argenv_buffer)[sizeof(argenv_buffer)-1] = 0;
+		
+		//Run through the strings we read. Count them and make sure there's room to build pointer arrays.
+		//Each of the two pointer arrays ends, when a zero-length string is encountered.
+		int nstrings = 0;
+		int zerolen = 0;
+		char *remaining = (char*)argenv_buffer;
+		char *stop = ((char*)argenv_buffer) + sizeof(argenv_buffer);
+		while(zerolen < 2 && remaining < stop)
+		{
+			if(strlen(remaining) == 0)
+				zerolen++;
+
+			nstrings++;
+			remaining += strlen(remaining) + 1;
+		}
+		
+		//See if we have enough room...
+		int ptr_idx = (nread + (sizeof(void*)) - 1) / sizeof(void*); //Array index
+		int ptr_capacity = sizeof(argenv_buffer) / sizeof(argenv_buffer[0]);
+		if(ptr_idx + nstrings < ptr_capacity)
+		{
+			//Alright, have room for the pointers
+			remaining = (char*)argenv_buffer;
+			argv = &(argenv_buffer[ptr_idx]);
+			argc = 0;
+			while(remaining < stop)
+			{
+				if(remaining[0] == '\0')
+				{
+					argenv_buffer[ptr_idx] = NULL;
+					ptr_idx++;
+					
+					remaining++;
+					break;
+				}
+				else
+				{
+					argenv_buffer[ptr_idx] = remaining;
+					ptr_idx++;
+					
+					remaining += strlen(remaining) + 1;
+					argc++;
+				}
+			}
+			
+			envp = &(argenv_buffer[ptr_idx]);
+			while(remaining < stop)
+			{
+				if(remaining[0] == '\0')
+				{
+					argenv_buffer[ptr_idx] = NULL;
+					ptr_idx++;
+					
+					remaining++;
+					break;
+				}
+				else
+				{
+					argenv_buffer[ptr_idx] = remaining;
+					ptr_idx++;
+					
+					remaining += strlen(remaining) + 1;
+				}
+			}
+		}
+	}
+		
+	//Set aside initial environment location
+	extern char **environ;
+	environ = envp;
+	
+	//Set signal actions to default
+	//for(int ss = 0; ss < 64; ss++)
+	//{
+	//	signal(ss, SIG_DFL);
+	//}
+	//_sc_sig_mask(SIG_SETMASK, 0); //none masked
+	
+	//Call constructors
+	//extern void _init();
+	//_init();
+	
+	//Call main
+	extern int main();
+	int main_returned = main(argc, argv, envp);
+	
+	//If main returns, call exit with its return value.
+	exit(main_returned);
+	
+	//Exit shouldn't return
+	_exit(main_returned);
+	abort();
+	while(1){}
+}
+
 
 //Non-variadic version of open.
 int _openm(const char *path, int flags, mode_t mode)
