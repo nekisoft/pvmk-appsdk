@@ -27,6 +27,6 @@ done
 AR=../../out/bin/pvmk-ar
 OUTDIR="../../out/picolibc/arm-none-eabi"
 mkdir -p ${OUTDIR}/lib/
-${AR} -r ${OUTDIR}/lib/libunwind.a *.o
+${AR} -r ${OUTDIR}/lib/libc++.a *.o
 
 popd

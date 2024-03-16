@@ -2,4 +2,4 @@
 #Toolchain wrapper for PVMK
 #Bryan E. Topp <betopp@betopp.com> 2023
 source $(dirname $0)/pvmk-vars
-arm-none-eabi-g++ --specs=${SYSROOT}/picolibc/arm-none-eabi/lib/pvmk.specs $@
+arm-none-eabi-g++ --picolibc-prefix=${SYSROOT} --specs=${SYSROOT}/picolibc/arm-none-eabi/lib/pvmkpp.specs $@

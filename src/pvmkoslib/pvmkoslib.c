@@ -15,6 +15,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+//Define this to placate cxx things that expect dynamic linking
+int __dso_handle = 0;
+
 //Translates a PVMK system-call error return into a picolibc errno value
 static int _pvmk_sysret_errno(int sysret)
 {
