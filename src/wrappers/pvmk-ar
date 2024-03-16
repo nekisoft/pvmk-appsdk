@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#Toolchain wrapper for PVMK
+#Bryan E. Topp <betopp@betopp.com> 2023
+source $(dirname $0)/pvmk-vars
+arm-none-eabi-ar $@

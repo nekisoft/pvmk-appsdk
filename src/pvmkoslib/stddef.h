@@ -4,11 +4,33 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H
 
-#define NULL ((void*)(0))
-#define offsetof(type, memberdesignator) ((size_t)(&(((type*)0)->memberdesignator)))
+#if defined(__cplusplus)
+	#define NULL nullptr
+	typedef decltype(nullptr) nullptr_t;
+	#define offsetof(type, memberdesignator) __builtin_offsetof(type, memberdesignator)
+#else
+	#define NULL ((void*)(0))
+	#define offsetof(type, memberdesignator) ((size_t)(&(((type*)0)->memberdesignator)))
+#endif
+
+
+
 typedef __SIZE_TYPE__ size_t;
 typedef __PTRDIFF_TYPE__ ptrdiff_t;
 typedef __WINT_TYPE__ wint_t;
+
+#ifndef __cplusplus
 typedef __WCHAR_TYPE__ wchar_t;
+#endif
+
+typedef __UINT64_TYPE__ max_align_t __attribute__((aligned(16)));
 
 #endif //_STDDEF_H
+
+#undef __need_size_t
+#undef __need_ptrdiff_t
+#undef __need_wint_t
+#undef __need_wchar_t
+#undef __need_max_align_t
+#undef __need_NULL
+#undef __need_mbstate_t

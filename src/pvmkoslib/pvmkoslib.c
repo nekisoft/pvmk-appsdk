@@ -463,6 +463,11 @@ int fstat(int fd, struct stat *out)
 	return 0;
 }
 
+int lstat(const char *path, struct stat *out)
+{
+	return fstatat(AT_FDCWD, path, out, AT_SYMLINK_NOFOLLOW);
+}
+
 int faccessat(int fd, const char *path, int mode, int flag)
 {
 	int check_access = 0;

@@ -34,4 +34,15 @@
 #define DBL_MIN (1E-37)
 #define LDBL_MIN (1E-37) 
 
+#define FLT_MANT_DIG 24
+#define FLT_MIN_EXP -125
+#define DBL_MANT_DIG 53
+#define DBL_MIN_EXP -1021
+#define LDBL_MANT_DIG 53
+#define LDBL_MIN_EXP -1021
+
+//#define LDBL_MANT_DIG 64
+//#define LDBL_MIN_EXP -16381
+
+
 #endif //_FLOAT_H

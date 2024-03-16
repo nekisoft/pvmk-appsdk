@@ -10,11 +10,11 @@ AR="arm-none-eabi-ar"
 
 OUTDIR="out/picolibc/arm-none-eabi"
 
-#Copy stdarg.h and stddef.h to target
+#Copy headers that picolibc doesn't provide
 mkdir -p ${OUTDIR}/include/
-cp src/pvmkoslib/stdarg.h ${OUTDIR}/include
-cp src/pvmkoslib/stddef.h ${OUTDIR}/include
-cp src/pvmkoslib/float.h ${OUTDIR}/include
+mkdir -p ${OUTDIR}/include/sys
+cp src/pvmkoslib/*.h   ${OUTDIR}/include/
+cp src/pvmkoslib/sys/*.h ${OUTDIR}/include/sys/
 
 #Compile library objects
 mkdir -p obj/pvmkoslib
