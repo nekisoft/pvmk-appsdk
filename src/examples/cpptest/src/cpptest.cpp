@@ -9,7 +9,8 @@
 
 class example_exception : public std::exception
 {
-	virtual const char *what() const throw()
+public:
+	virtual const char *what() const noexcept override
 	{
 		return "example_exception";
 	}
@@ -26,9 +27,9 @@ int main(void)
 	{
 		std::cout << "Uh oh, I think I'm gonna be sick..." << std::endl;
 		std::flush(std::cout);
-		throw new example_exception();
+		throw example_exception();
 	}
-	catch(std::exception e)
+	catch(std::exception &e)
 	{
 		std::cout << "This is the catch block for: " << e.what() << std::endl;
 		std::flush(std::cout);

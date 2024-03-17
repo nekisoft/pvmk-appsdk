@@ -154,14 +154,6 @@ static int _openatm(int fd, const char *path, int flags, mode_t mode)
 //argenv buffer - aligned enough to refer to a char*, but ultimately storing strings
 static char *argenv_buffer[4096 / sizeof(void*)];
 
-//Constructors
-typedef void (*init_entry)(void);
-extern init_entry _init_array_start[];
-extern init_entry _init_array_end[];
-init_entry _init_array_start[1] __attribute__ ((used, section(".init_array"), aligned(sizeof(init_entry)))) = { 0 };
-init_entry _fini_array_start[1] __attribute__ ((used, section(".fini_array"), aligned(sizeof(init_entry)))) = { 0 };
-
-
 //Called from crt0 to call main
 void _pvmk_callmain(void)
 {
@@ -275,6 +267,12 @@ void _pvmk_callmain(void)
 	_exit(main_returned);
 	abort();
 	while(1){}
+}
+
+int __aeabi_atexit (void *arg, void (*func) (void *), void *d)
+{
+	extern int __cxa_atexit();
+	return __cxa_atexit (func, arg, d);
 }
 
 
