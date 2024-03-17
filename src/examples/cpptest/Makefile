@@ -4,6 +4,7 @@
 #Toolchain location
 PVMKSDK=../..
 CC     =$(PVMKSDK)/bin/pvmk-cc
+CXX    =$(PVMKSDK)/bin/pvmk-cxx
 OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy
 
 #Directories used locally
@@ -15,12 +16,20 @@ CARDROOT=./cardroot
 
 #C source files and resulting objects
 CSRC:=$(shell find -L $(SRCDIR) -name "*.c")
-COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
+COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.c.o, $(CSRC))
 
-#Flags to use when compiling
+#C++ source files and resulting objects
+CXXSRC:=$(shell find -L $(SRCDIR) -name "*.cpp")
+CXXOBJ:=$(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.cpp.o, $(CXXSRC))
+
+#Flags to use when compiling C
 CFLAGS += -std=c99 -pedantic
 CFLAGS += -Wall -Werror -Wextra
 CFLAGS += -O2
+
+#Flags to use when compiling C++
+CXXFLAGS += -std=c++20 
+CXXFLAGS += -Werror
 
 #Flags to use when linking
 LINKFLAGS += 
@@ -34,6 +43,11 @@ CFLAGS += -DBUILDVERSION=\"$(BUILDVERSION)\"
 CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 CFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
+
+CXXFLAGS += -DBUILDVERSION=\"$(BUILDVERSION)\"
+CXXFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
+CXXFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
+CXXFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
 
 #Name of ISO image to build
 GAMEIMG=$(IMGDIR)/game.iso
@@ -62,14 +76,19 @@ $(BINDIR)/boot.nne : $(BINDIR)/boot.elf
 	$(OBJCOPY) -O binary $< $@
 
 #Link stage target - ELF made from linking all objects
-$(BINDIR)/boot.elf : $(COBJ)
+$(BINDIR)/boot.elf : $(COBJ) $(CXXOBJ)
 	mkdir -p $(@D)
-	$(CC) $(LINKFLAGS) $^ -o $@
+	$(CXX) $(LINKFLAGS) $^ -o $@
 
 #Compile targets - object for each C file
-$(OBJDIR)/%.o : $(SRCDIR)/%.c
+$(OBJDIR)/%.c.o : $(SRCDIR)/%.c
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+#Compile targets - object for each C++ file
+$(OBJDIR)/%.cpp.o : $(SRCDIR)/%.cpp
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 	
 #Cleanup target
 clean:

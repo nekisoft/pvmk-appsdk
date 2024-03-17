@@ -24,6 +24,8 @@ cat <<EOF > ${SITECFG}
 #define _LIBCPP_ABI_NAMESPACE LIBCPPV1
 #define _LIBCPP_ABI_VERSION 1
 #define _LIBCPP_PROVIDES_DEFAULT_RUNE_TABLE 1
+#define _GNU_SOURCE
+#define timespec_get localtime
 #ifndef _LIBCPPABI_VERSION 
 #define _LIBCPPABI_VERSION 15000
 #endif
@@ -45,9 +47,7 @@ CFLAGS+="-Ilibcxx-17.0.1.src/src/ "
 CFLAGS+="-Ilibcxxabi-17.0.1.src/include/ "
 CFLAGS+="-I../libunwind/libunwind-17.0.1.src/include/ "
 CFLAGS+="-I../../out/picolibc/arm-none-eabi/include/ "
-CFLAGS+="-Dtimespec_get=localtime "
 
-CFLAGS+="-D_GNU_SOURCE=1 "
 CFLAGS+="-D_LIBCPP_BUILDING_LIBRARY "
 CFLAGS+="-DLIBCXX_BUILDING_LIBCXXABI "
 CFLAGS+="-D__rtems__ "
@@ -60,7 +60,7 @@ for CXXFILE in ${CXXSRC}
 do
 	echo ${CXXFILE}
 	mkdir -p $(dirname ${CXXFILE})
-	clang++14 -target arm-none-eabi -std=c++20 ${CFLAGS} libcxx-17.0.1.src/src/${CXXFILE} -c -o ${CXXFILE}.o
+	clang++14 -target arm-none-eabi -march=armv5t -std=c++20 ${CFLAGS} libcxx-17.0.1.src/src/${CXXFILE} -c -o ${CXXFILE}.o
 done
 
 AR=../../out/bin/pvmk-ar

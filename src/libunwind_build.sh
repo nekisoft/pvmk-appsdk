@@ -17,7 +17,7 @@ do
 	../../out/bin/pvmk-cxx -nostdinc libunwind-17.0.1.src/src/${CXXFILE} ${CFLAGS} -c -o ${CXXFILE}.o
 done
 
-CSRC="UnwindLevel1.c UnwindLevel1-gcc-ext.c Unwind-sjlj.c"
+CSRC="UnwindLevel1.c UnwindLevel1-gcc-ext.c Unwind-sjlj.c UnwindRegistersSave.S UnwindRegistersRestore.S "
 for CFILE in ${CSRC}
 do
 	echo ${CFILE}

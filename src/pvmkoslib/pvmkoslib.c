@@ -154,6 +154,14 @@ static int _openatm(int fd, const char *path, int flags, mode_t mode)
 //argenv buffer - aligned enough to refer to a char*, but ultimately storing strings
 static char *argenv_buffer[4096 / sizeof(void*)];
 
+//Constructors
+typedef void (*init_entry)(void);
+extern init_entry _init_array_start[];
+extern init_entry _init_array_end[];
+init_entry _init_array_start[1] __attribute__ ((used, section(".init_array"), aligned(sizeof(init_entry)))) = { 0 };
+init_entry _fini_array_start[1] __attribute__ ((used, section(".fini_array"), aligned(sizeof(init_entry)))) = { 0 };
+
+
 //Called from crt0 to call main
 void _pvmk_callmain(void)
 {
@@ -253,8 +261,8 @@ void _pvmk_callmain(void)
 	//_sc_sig_mask(SIG_SETMASK, 0); //none masked
 	
 	//Call constructors
-	//extern void _init();
-	//_init();
+	extern void __libc_init_array();
+	__libc_init_array();
 	
 	//Call main
 	extern int main();
@@ -464,6 +472,26 @@ int fstat(int fd, struct stat *out)
 	out->st_blocks = _sc_stat_buf.used / 512;
 	
 	return 0;
+}
+
+int fstatat(int at_fd, const char *path, struct stat *out, int flag)
+{
+	//Our kernel has the concept of "open for stat", without needing permission for read nor write nor exec.
+	//Try to open the given path for stat.
+	int oflag = O_CLOEXEC;
+	if(flag & AT_SYMLINK_NOFOLLOW)
+		oflag |= O_NOFOLLOW;
+	
+	int fd = _openatm(at_fd, path, oflag, 0);
+	if(fd < 0)
+		return -1; //_openatm sets errno
+	
+	//Got the file open for stat. Stat it.
+	int fstat_err = fstat(fd, out); //can set errno on failure
+
+	//Either success or failure, just close the file and return what happened.
+	_sc_close(fd);
+	return fstat_err;
 }
 
 int lstat(const char *path, struct stat *out)

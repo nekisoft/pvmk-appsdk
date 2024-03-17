@@ -140,6 +140,27 @@ setjmp:
 longjmp:
 	b siglongjmp
 
+
+//For C++...? Why doesn't libcxxabi define this?
+.global __cxa_get_globals
+.global __cxa_get_globals_fast
+__cxa_get_globals:
+__cxa_get_globals_fast:
+	ldr r0, =__cxa_globals_storage
+	bx lr
+
+//I guess these don't exist in libgcc? clang seems to emit them while compiling libcxx.
+//type __sync_val_compare_and_swap (type *ptr, type oldval, type newval, ...)
+.global __sync_val_compare_and_swap_1
+__sync_val_compare_and_swap_1:
+	ldrb r3, [r0] //Load current value from pointer
+	cmp r3, r1 //Compare with expected old value
+	bne __sync_val_compare_and_swap_1.done //If they're not equal, do nothing
+	strb r2, [r0] //Store new value to pointer
+	__sync_val_compare_and_swap_1.done:
+	mov r0, r3 //Return old contents
+	bx lr
+
 .ltorg
 
 .section .bss
@@ -158,4 +179,8 @@ _sigstack:
 	.space 65536
 _sigstack.top:
 
+//Space for exception handling from C++ (why doesn't libcxxabi define this?)
+.balign 64
+__cxa_globals_storage:
+	.space 64
 
