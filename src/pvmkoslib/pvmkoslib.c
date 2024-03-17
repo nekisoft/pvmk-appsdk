@@ -549,3 +549,18 @@ int mkdir(const char *path, mode_t mode)
 	return mkdirat(AT_FDCWD, path, mode);
 }
 
+int usleep(int microsec)
+{
+	int at_entry = _sc_getticks();
+	int target = at_entry + ( (microsec+999) / 1000 );
+	while(_sc_getticks() < target) { _sc_pause(); }
+	return 0;
+}
+
+unsigned sleep(unsigned sec)
+{
+	int at_entry = _sc_getticks();
+	int target = at_entry + ( sec * 1000 );
+	while(_sc_getticks() < target) { _sc_pause(); }
+	return 0;	
+}

@@ -1,0 +1,6 @@
+#info.txt
+NAME:System Update
+VERS:0
+DESC:Installs System Update (version 0)
+DEVR:Bryan E. Topp
+PUBR:Nekisoft
