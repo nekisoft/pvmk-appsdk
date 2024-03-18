@@ -343,7 +343,7 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 	    cmd->buttons |= i<<BT_WEAPONSHIFT; 
 	    break; 
 	}
-    
+	
     // mouse
     if (mousebuttons[mousebforward]) 
 	forward += forwardmove[speed];
@@ -765,6 +765,17 @@ void G_InitPlayer (int player)
 } 
  
  
+//Clamps value for making save password
+static int clampval(int val, int min, int max)
+{
+	if(val < min)
+		return min;
+	if(val > max)
+		return max;
+	
+	return val;
+}
+
 
 //
 // G_PlayerFinishLevel
@@ -1132,6 +1143,92 @@ void G_DoCompleted (void)
 	memcpy (statcopy, &wminfo, sizeof(wminfo));
 	
     WI_Start (&wminfo); 
+    
+
+    // ========================================
+    // Password Save System - Generate Password
+    // ========================================
+	player_t *p = &players[consoleplayer]; 	
+
+	//64-bit value for arithmetic encoding of player state
+	uint64_t password_first = 0;
+	password_first = (password_first * 201) + clampval(p->health,                       0, 200);
+	password_first = (password_first * 201) + clampval(p->armorpoints,                  0, 200);
+	password_first = (password_first * 401) + clampval(p->ammo[am_clip],                0, 400);
+	password_first = (password_first * 101) + clampval(p->ammo[am_shell],               0, 100);
+	password_first = (password_first * 601) + clampval(p->ammo[am_cell],                0, 600);
+	password_first = (password_first * 101) + clampval(p->ammo[am_misl],                0, 100);
+	password_first = (password_first *   2) + clampval(p->backpack,                     0, 1);
+	password_first = (password_first *   2) + clampval(p->didsecret,                    0, 1);
+	password_first = (password_first *   3) + clampval(p->armortype,                    0, 2);
+	password_first = (password_first *   2) + clampval(p->weaponowned[wp_shotgun],      0, 1);
+	password_first = (password_first *   2) + clampval(p->weaponowned[wp_chaingun],     0, 1);
+	password_first = (password_first *   2) + clampval(p->weaponowned[wp_missile],      0, 1);
+	password_first = (password_first *   2) + clampval(p->weaponowned[wp_plasma],       0, 1);
+	password_first = (password_first *   2) + clampval(p->weaponowned[wp_bfg],          0, 1);
+	password_first = (password_first *   2) + clampval(p->weaponowned[wp_chainsaw],     0, 1);
+	password_first = (password_first *   2) + clampval(p->weaponowned[wp_supershotgun], 0, 1);
+	password_first = (password_first *  10) + clampval(p->readyweapon,                  0, 9);
+	password_first = (password_first *   2) + clampval(p->cheats & CF_GODMODE,          0, 1);
+
+	//8-bit value for next map and difficulty
+	uint32_t password_second = 0;
+	password_second = (wminfo.epsd * 10) + wminfo.next; //0 to 31 for doom2, 0 to 38 for doomu
+	password_second = (password_second * 5) + clampval(gameskill, 0, 4);
+
+	//8-bit checksum
+	uint8_t password_cksum = password_second;
+	for(int bb = 0; bb < 8; bb++)
+	{
+		password_cksum ^= password_first >> (8 * bb);
+	}
+
+	//Split into bytes
+	uint8_t password_bytes[10] =
+	{
+		(password_first  >>  0) & 0xFF,
+		(password_first  >>  8) & 0xFF,
+		(password_first  >> 16) & 0xFF,
+		(password_first  >> 24) & 0xFF,
+		(password_second >>  0) & 0xFF,
+		(password_cksum  >>  0) & 0xFF,
+		(password_first  >> 32) & 0xFF,
+		(password_first  >> 40) & 0xFF,
+		(password_first  >> 48) & 0xFF,
+		(password_first  >> 56) & 0xFF,
+	};
+
+	//Encode as string, spreading bytes across characters
+	uint8_t password_vals[20] = 
+	{
+		(password_bytes[0] >> 0) & 0xF,
+		(password_bytes[2] >> 4) & 0xF,
+		(password_bytes[4] >> 0) & 0xF,
+		(password_bytes[6] >> 4) & 0xF,
+		(password_bytes[8] >> 0) & 0xF,
+		(password_bytes[0] >> 4) & 0xF,
+		(password_bytes[2] >> 0) & 0xF,
+		(password_bytes[4] >> 4) & 0xF,
+		(password_bytes[6] >> 0) & 0xF,
+		(password_bytes[8] >> 4) & 0xF,
+		(password_bytes[9] >> 0) & 0xF,
+		(password_bytes[7] >> 4) & 0xF,
+		(password_bytes[5] >> 0) & 0xF,
+		(password_bytes[3] >> 4) & 0xF,
+		(password_bytes[1] >> 0) & 0xF,
+		(password_bytes[9] >> 4) & 0xF,
+		(password_bytes[7] >> 0) & 0xF,
+		(password_bytes[5] >> 4) & 0xF,
+		(password_bytes[3] >> 0) & 0xF,
+		(password_bytes[1] >> 4) & 0xF,
+	};
+
+	char strbuf[21] = {0};
+	for(int vv = 0; vv < 20; vv++)
+	{
+		strbuf[vv] = "DCFGHKLMNPRTVWXZ"[password_vals[vv]];
+	}
+	M_SetPassword(strbuf);
 } 
 
 

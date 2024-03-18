@@ -132,6 +132,7 @@ char			savegamestrings[10][SAVESTRINGSIZE];
 
 char	endstring[160];
 
+char savepassword[256];
 
 //
 // MENU TYPEDEFS
@@ -714,9 +715,24 @@ void M_SaveGame (int choice)
 	M_StartMessage(SAVEDEAD,NULL,false);
 	return;
     }
-	
+
     if (gamestate != GS_LEVEL)
 	return;
+    
+    
+    // Password save  =======================
+    #if 0
+    if(savepassword[0] == '\0')
+    {
+	    M_StartMessage("This is the first level.\n\nYou haven't done anything yet!\n\nPress any button.", NULL, false);
+	    return;
+    }
+    
+    M_StartMessage(savepassword, NULL, false);
+    return;
+    #endif
+    // ======================================
+    
 	
     M_SetupNextMenu(&SaveDef);
     M_ReadSaveStrings();
@@ -1055,6 +1071,8 @@ void M_EndGameResponse(int ch)
     currentMenu->lastOn = itemOn;
     M_ClearMenus ();
     D_StartTitle ();
+    
+    M_SetPassword("");
 }
 
 void M_EndGame(int choice)
@@ -1745,7 +1763,7 @@ boolean M_Responder (event_t* ev)
 	return true;
 		
       case KEY_BACKSPACE:
-	case KEY_RALT:
+	case KEY_RSHIFT:
 	currentMenu->lastOn = itemOn;
 	if (currentMenu->prevMenu)
 	{
@@ -1957,5 +1975,19 @@ void M_Init (void)
 	break;
     }
     
+}
+
+
+void M_SetPassword(const char *str)
+{
+	if(str == NULL || str[0] == '\0')
+	{
+		savepassword[0] = '\0';
+		return;
+	}
+	
+	snprintf(savepassword, sizeof(savepassword)-1, 
+		"Your password for this level:\n\n%.5s  %.5s\n\n%.5s  %.5s\n\nPress any button.",
+		str + 0, str + 5, str + 10, str + 15);
 }
 

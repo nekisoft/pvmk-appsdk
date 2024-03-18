@@ -283,7 +283,19 @@ void P_PlayerThink (player_t* player)
 	// The actual changing of the weapon is done
 	//  when the weapon psprite can do it
 	//  (read: not in the middle of an attack).
-	newweapon = (cmd->buttons&BT_WEAPONMASK)>>BT_WEAPONSHIFT;
+	//newweapon = (cmd->buttons&BT_WEAPONMASK)>>BT_WEAPONSHIFT; //neki32 - cycle instead of select
+	newweapon = (player->pendingweapon == wp_nochange) ? player->readyweapon : player->pendingweapon;
+	for(int attempt = 0; attempt < 10; attempt++)
+	{
+		if((cmd->buttons&BT_WEAPONMASK)>>BT_WEAPONSHIFT)
+			newweapon = (newweapon + 1) % NUMWEAPONS; //cycle forward
+		else
+			newweapon = (newweapon + NUMWEAPONS - 1) % NUMWEAPONS; //cycle backward
+		
+		if(player->weaponowned[newweapon])
+			break;
+	}
+	
 	
 	if (newweapon == wp_fist
 	    && player->weaponowned[wp_chainsaw]

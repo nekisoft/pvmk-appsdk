@@ -55,7 +55,8 @@ void M_Init (void);
 void M_StartControlPanel (void);
 
 
-
+//Sets the password displayed in the menu
+void M_SetPassword(const char *str);
 
 
 

@@ -91,12 +91,12 @@ void I_StartTic (void)
 				[_SC_BTNIDX_SELECT] = KEY_ESCAPE,
 				
 				[_SC_BTNIDX_A] = KEY_RCTRL,
-				[_SC_BTNIDX_B] = KEY_RALT,
+				[_SC_BTNIDX_B] = KEY_RSHIFT,
 				[_SC_BTNIDX_C] = ' ',
 				
-				[_SC_BTNIDX_X] = KEY_RSHIFT,
-				[_SC_BTNIDX_Y] = KEY_TAB,
-				[_SC_BTNIDX_Z] = KEY_PAUSE,
+				[_SC_BTNIDX_X] = KEY_TAB,
+				[_SC_BTNIDX_Y] = '1',
+				[_SC_BTNIDX_Z] = '2',
 				
 			};
 			
