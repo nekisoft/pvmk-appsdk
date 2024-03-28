@@ -1,0 +1,7 @@
+#info.txt
+NAME:SMS Bricky
+VERS:0.12.1
+DESC:Bryan's Awful Brick-Breaker
+DEVR:Bryan E. Topp
+PUBR:Nekisoft
+

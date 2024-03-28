@@ -1,0 +1,7 @@
+#info.txt
+NAME:Freedoom Phase 1
+VERS:0.12.1
+DESC:Freedoom, the free FPS action game (Phase 1)
+DEVR:The Freedoom project
+PUBR:Nekisoft
+
