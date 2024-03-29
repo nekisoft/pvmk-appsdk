@@ -23,20 +23,22 @@ static int lastkey[MAX_PADS];
 static int port[MAX_PADS];
 static const char *padnames[PAD_END+1+1] = {
 	"...",
-#define CONTROLNAMES(x) \
-	x" Up",             \
-	x" Right",          \
-	x" Down",           \
-	x" Left",           \
-	x" A",            \
-	x" B",            \
-	x" C",            \
-	x" X",          \
-	x" Y",          \
-	x" Z",          \
-	x" L",         \
-	x" R",         \
-	x" Start",        
+#define CONTROLNAMES(x)    \
+	x" L",             \
+	x" Up",            \
+	x" R",             \
+	x" Left",          \
+	x" Down",          \
+	x" Right",         \
+	x" X",             \
+	x" Y",             \
+	x" Z",             \
+	x" A",             \
+	x" B",             \
+	x" C",             \
+	x" Start",         \
+	x" Select",        \
+	x" Power",        	
 	CONTROLNAMES("P1")
 	CONTROLNAMES("P2")
 	CONTROLNAMES("P3")

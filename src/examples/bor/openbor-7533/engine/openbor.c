@@ -48685,6 +48685,8 @@ readfile:
         videoMode = 0;
     }
 #endif
+    
+    videoMode = 0;
 
 VIDEOMODES:
     videomodes.mode    = videoMode;

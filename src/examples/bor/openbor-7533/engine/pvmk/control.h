@@ -11,7 +11,7 @@
 
 #include <sc.h>
 
-#define MAX_BUTTONS 13
+#define MAX_BUTTONS 15
 #define	CONTROL_NONE				(1+(MAX_BUTTONS*99)) //Kratus (20-04-21) value used to clear all keys
 
 #define DFL_UP    (_SC_BTNIDX_UP)
@@ -25,9 +25,9 @@
 #define DFL_FIRE5 (_SC_BTNIDX_Y)
 #define DFL_FIRE6 (_SC_BTNIDX_Z)
 #define DFL_START (_SC_BTNIDX_START)
-#define CONTROL_DEFAULT(pl, bt) ((pl * MAX_BUTTONS) + bt)
+#define CONTROL_DEFAULT(pl, bt) (1 + (pl * MAX_BUTTONS) + bt)
 
-#define CONTROL_ESCAPE CONTROL_NONE
+#define CONTROL_ESC CONTROL_NONE
 
 #define	CONTROL_DEFAULT1_UP		CONTROL_DEFAULT(1, DFL_UP)
 #define	CONTROL_DEFAULT1_RIGHT		CONTROL_DEFAULT(1, DFL_RIGHT)
