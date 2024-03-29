@@ -9,6 +9,7 @@
 
 #include <stdarg.h>
 #include <sys/time.h>
+#include <sys/dirent.h>
 #include <stddef.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -592,3 +593,87 @@ int settimeofday(const struct timeval *tp, const struct timezone *tzp)
 	_timeofday_setting += tzp->tz_minuteswest * 60;
 	return 0;
 }
+
+struct _DIR_s
+{
+	int fd; //Underlying file descriptor
+	char buf[512]; //Space 
+};
+
+DIR *fdopendir(int fd)
+{
+	//Reopen with read permissions, in case the caller's FD was only open for stat()
+	int newfd = openat(fd, ".", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if(newfd < 0)
+		return NULL; //openat sets errno
+	
+	//Put in a DIR structure
+	DIR *retval = malloc(sizeof(DIR));
+	if(retval == NULL)
+	{
+		close(newfd);
+		errno = ENOMEM;
+		return NULL;
+	}
+	memset(retval, 0, sizeof(*retval));
+	retval->fd = newfd;
+	return retval;
+}
+
+int fdclosedir(DIR *dirp)
+{
+	close(dirp->fd);
+	free(dirp);
+	return 0;
+}
+
+DIR *opendir(const char *filename)
+{
+	int fd = open(filename, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if(fd < 0)
+		return NULL;
+	
+	DIR *retval = fdopendir(fd);
+	close(fd);
+	return retval;
+}
+
+struct dirent *readdir(DIR *dirp)
+{
+	//Ask kernel to read the directory, getting a directory entry
+	_sc_dirent_t d = {0};
+	int read_result = _sc_read(dirp->fd, &d, sizeof(d));
+	if(read_result < 0)
+	{
+		errno = -read_result;
+		return NULL;
+	}
+	if(read_result == 0)
+	{
+		return NULL;
+	}
+
+	//Use the dirent buffer in the DIR structure, and clear it
+	memset(dirp->buf, 0, sizeof(dirp->buf));
+	struct dirent *retval = (struct dirent*)(dirp->buf);
+	
+	//Copy the inode number and name from the directory entry to the dirent buffer
+	retval->d_ino = d.ino;
+	strncpy(dirp->buf + sizeof(struct dirent), d.name, sizeof(dirp->buf) - sizeof(struct dirent) - 1);
+	
+	//Stat the file to find its type, and put in the dirent buffer
+	struct stat st = {0};
+	if(fstatat(dirp->fd, d.name, &st, AT_SYMLINK_NOFOLLOW) >= 0)
+	{
+		retval->d_type = st.st_mode & S_IFMT;
+	}
+	
+	return retval;
+}
+
+int closedir(DIR *dirp)
+{
+	fdclosedir(dirp);
+	return 0;
+}
+

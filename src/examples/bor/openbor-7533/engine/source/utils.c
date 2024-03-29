@@ -441,6 +441,8 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
 #endif
 #endif
 }
+#else
+void screenshot(s_screen *vscreen, unsigned char *pal, int ingame) { (void)vscreen; (void)pal; (void)ingame; }
 #endif
 
 unsigned readlsb32(const unsigned char *src)
