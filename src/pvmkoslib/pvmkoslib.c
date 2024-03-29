@@ -8,6 +8,7 @@
 #include <sc.h>
 
 #include <stdarg.h>
+#include <sys/time.h>
 #include <stddef.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -563,4 +564,31 @@ unsigned sleep(unsigned sec)
 	int target = at_entry + ( sec * 1000 );
 	while(_sc_getticks() < target) { _sc_pause(); }
 	return 0;	
+}
+
+
+static uint64_t _timeofday_setting = 0;
+
+int gettimeofday(struct timeval *tp, void *tzp_void)
+{
+	struct timezone *tzp = (struct timezone *)tzp_void;
+	
+	int ticks = _sc_getticks();
+	
+	tp->tv_sec = ticks / 1000;
+	tp->tv_usec = (ticks % 1000) * 1000;
+	
+	tp->tv_sec += _timeofday_setting;
+	
+	tzp->tz_minuteswest = 0;
+	tzp->tz_dsttime = 0;
+	
+	return 0;
+}
+
+int settimeofday(const struct timeval *tp, const struct timezone *tzp)
+{
+	_timeofday_setting = tp->tv_sec - (_sc_getticks() / 1000);
+	_timeofday_setting += tzp->tz_minuteswest * 60;
+	return 0;
 }

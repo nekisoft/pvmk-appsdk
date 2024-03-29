@@ -27,13 +27,13 @@
 
 */
 
-#include "config.h"
+#include "source/openborscript/config.h"
 #include "openbor.h"
-#include "soundmix.h"
-#include "globals.h"
-#include "ImportCache.h"
-#include "models.h"
-#include "scriptcommon.h"
+#include "source/gamelib/soundmix.h"
+#include "source/globals.h"
+#include "source/scriptlib/ImportCache.h"
+#include "source/gamelib/models.h"
+#include "source/openborscript/scriptcommon.h"
 
 Varlist global_var_list;
 Script *pcurrentscript = NULL; //used by local script functions
@@ -52,7 +52,7 @@ extern int  ent_max;
 extern e_screen_status  screen_status;
 extern char	*currentScene;
 extern int  num_difficulties;
-extern u32  _time;
+extern unsigned int  _time;
 extern int goto_mainmenu_flag;
 extern int _pause;
 extern int timeleft;

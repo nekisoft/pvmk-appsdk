@@ -9,7 +9,8 @@
 
 //Hacked up by betopp to use STB_Image, reducing library dependencies
 #define STB_IMAGE_IMPLEMENTATION 1
-#define STBI_ONLY_PNG
+#define STBI_ONLY_PNG 1
+#define STBI_NO_THREAD_LOCALS 1
 #include "stb_image.h"
 
 #include "../gamelib/types.h"

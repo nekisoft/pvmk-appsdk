@@ -1,0 +1,7 @@
+#info.txt
+NAME:Beats of Rage
+VERS:4.0
+DESC:The 2003 beat-em-up classic
+DEVR:The OpenBOR team
+PUBR:Nekisoft
+

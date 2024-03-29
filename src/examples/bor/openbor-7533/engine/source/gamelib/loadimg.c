@@ -15,13 +15,13 @@
 #include <string.h>
 #include <assert.h>
 #include <zlib.h>
-#include "utils.h"
+#include "../utils.h"
 #include "types.h"
 #include "borendian.h"
 #include "bitmap.h"
 #include "screen.h"
 #include "packfile.h"
-#include "pngdec.h"
+#include "../pnglib/pngdec.h"
 
 #ifndef DC
 #pragma pack (1)
