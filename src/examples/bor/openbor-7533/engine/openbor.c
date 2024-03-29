@@ -2555,6 +2555,23 @@ void clearbuttons(int player)
         #ifdef SDL
             //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
         #endif
+	    
+	
+	//pvmk
+	savedata.keys[1][SDID_MOVEUP]    = CONTROL_DEFAULT2_UP; //Kratus (22-04-21) Maintain the key config only for player 1 because other modules like PSP will not work with CONTROL_NONE
+        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_DEFAULT2_DOWN;
+        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_DEFAULT2_LEFT;
+        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_DEFAULT2_RIGHT;
+        savedata.keys[1][SDID_ATTACK]    = CONTROL_DEFAULT2_FIRE1;
+        savedata.keys[1][SDID_ATTACK2]   = CONTROL_DEFAULT2_FIRE2;
+        savedata.keys[1][SDID_ATTACK3]   = CONTROL_DEFAULT2_FIRE3;
+        savedata.keys[1][SDID_ATTACK4]   = CONTROL_DEFAULT2_FIRE4;
+        savedata.keys[1][SDID_JUMP]      = CONTROL_DEFAULT2_FIRE5;
+        savedata.keys[1][SDID_SPECIAL]   = CONTROL_DEFAULT2_FIRE6;
+        savedata.keys[1][SDID_START]     = CONTROL_DEFAULT2_START;
+        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_DEFAULT2_SCREENSHOT;
+	savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
+	
     }
     else if (player == 2)
     {
@@ -2573,6 +2590,21 @@ void clearbuttons(int player)
         #ifdef SDL
             //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
         #endif
+	    
+	    //pvmk
+	savedata.keys[2][SDID_MOVEUP]    = CONTROL_DEFAULT3_UP; //Kratus (22-04-21) Maintain the key config only for player 1 because other modules like PSP will not work with CONTROL_NONE
+        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_DEFAULT3_DOWN;
+        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_DEFAULT3_LEFT;
+        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_DEFAULT3_RIGHT;
+        savedata.keys[2][SDID_ATTACK]    = CONTROL_DEFAULT3_FIRE1;
+        savedata.keys[2][SDID_ATTACK2]   = CONTROL_DEFAULT3_FIRE2;
+        savedata.keys[2][SDID_ATTACK3]   = CONTROL_DEFAULT3_FIRE3;
+        savedata.keys[2][SDID_ATTACK4]   = CONTROL_DEFAULT3_FIRE4;
+        savedata.keys[2][SDID_JUMP]      = CONTROL_DEFAULT3_FIRE5;
+        savedata.keys[2][SDID_SPECIAL]   = CONTROL_DEFAULT3_FIRE6;
+        savedata.keys[2][SDID_START]     = CONTROL_DEFAULT3_START;
+        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_DEFAULT3_SCREENSHOT;
+	savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
     }
     else if (player == 3)
     {
@@ -2591,6 +2623,21 @@ void clearbuttons(int player)
         #ifdef SDL
             //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
         #endif
+	    
+	    //pvmk
+	savedata.keys[3][SDID_MOVEUP]    = CONTROL_DEFAULT4_UP; //Kratus (22-04-21) Maintain the key config only for player 1 because other modules like PSP will not work with CONTROL_NONE
+        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_DEFAULT4_DOWN;
+        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_DEFAULT4_LEFT;
+        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_DEFAULT4_RIGHT;
+        savedata.keys[3][SDID_ATTACK]    = CONTROL_DEFAULT4_FIRE1;
+        savedata.keys[3][SDID_ATTACK2]   = CONTROL_DEFAULT4_FIRE2;
+        savedata.keys[3][SDID_ATTACK3]   = CONTROL_DEFAULT4_FIRE3;
+        savedata.keys[3][SDID_ATTACK4]   = CONTROL_DEFAULT4_FIRE4;
+        savedata.keys[3][SDID_JUMP]      = CONTROL_DEFAULT4_FIRE5;
+        savedata.keys[3][SDID_SPECIAL]   = CONTROL_DEFAULT4_FIRE6;
+        savedata.keys[3][SDID_START]     = CONTROL_DEFAULT4_START;
+        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
+	savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
     }
 }
 

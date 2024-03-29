@@ -153,7 +153,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 				int shiftby = (t-1) % MAX_BUTTONS;
 				if(portnum >= 0 && portnum <= 3)
 				{
-					if((lastkey[portnum] >> shiftby) & 1) k |= (1<<i);
+					if((port[portnum] >> shiftby) & 1) k |= (1<<i);
 				}
 			}
 		}

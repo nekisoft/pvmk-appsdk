@@ -30,4 +30,6 @@ void SB_playstop();
 void SB_setvolume(char dev, char volume);
 void SB_updatevolume(int volume);
 
+void SB_pump(void);
+
 #endif

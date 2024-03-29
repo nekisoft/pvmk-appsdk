@@ -247,7 +247,7 @@ void writeToLogFile(const char *msg, ...)
 {
     va_list arglist;
 
-#ifdef DC
+#if 1 //#ifdef DC
     va_start(arglist, msg);
     vfprintf(stdout, msg, arglist);
     va_end(arglist);
@@ -270,7 +270,7 @@ void writeToLogFile(const char *msg, ...)
 
 void writeToScriptLog(const char *msg)
 {
-#ifndef DC
+#if 0 //#ifndef DC
     if(scriptLog == NULL)
     {
         scriptLog = OPEN_LOGFILE(SCRIPT_LOG);

@@ -583,6 +583,8 @@ void update_sample(unsigned char *buf, int size)
     if (playbits == 16)
     {
         todo >>= 1;
+	    //stereo
+	    todo >>= 1;
     }
 
     clearmixbuffer((unsigned int *)mixbuf, todo);
@@ -621,7 +623,11 @@ void update_sample(unsigned char *buf, int size)
                 u = 0xffff;
             }
             u ^= 0x8000;
-            dst[i] = u;
+//            dst[i] = u;
+	    
+	    //stereo
+	    dst[ (i*2)+0 ] = u;
+	    dst[ (i*2)+1 ] = u;
         }
     }
 }
@@ -1587,7 +1593,9 @@ int sound_start_playback()
     sound_stop_playback();
 
     playbits = 16;
-    playfrequency = 44100;
+    //playfrequency = 44100;
+    playfrequency = 48000;
+    
 
     for(i = 0; i < max_channels; i++)
     {

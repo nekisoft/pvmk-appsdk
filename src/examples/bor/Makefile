@@ -20,7 +20,7 @@ COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
 #Flags to use when compiling
 CFLAGS += -std=c99 
 CFLAGS += -Wall -Werror -Wextra
-CFLAGS += -O2
+CFLAGS += -O2 -g
 
 #Holy shit, OpenBOR trips a lot of warnings.
 CFLAGS += -Wno-implicit-fallthrough
