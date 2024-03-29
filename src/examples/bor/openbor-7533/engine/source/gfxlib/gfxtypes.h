@@ -9,7 +9,7 @@
 #ifndef __GFXTYPES_H__
 #define __GFXTYPES_H__
 
-#include "types.h"
+#include "../gamelib/types.h"
 
 #if _WIN32_
 #define inline _inline

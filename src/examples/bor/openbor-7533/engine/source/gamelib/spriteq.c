@@ -13,7 +13,7 @@
 #include "screen.h"
 #include "sprite.h"
 #include "draw.h"
-#include "globals.h"
+#include "../globals.h"
 
 // This should be enough for most games...
 // But bear in mind that text is also composed of sprites!

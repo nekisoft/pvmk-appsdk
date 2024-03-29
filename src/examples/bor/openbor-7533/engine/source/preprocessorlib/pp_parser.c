@@ -21,10 +21,10 @@
 #include <time.h>
 #include <malloc.h>
 #include <errno.h>
-#include "List.h"
+#include "../scriptlib/List.h"
 #include "pp_parser.h"
 #include "pp_expr.h"
-#include "borendian.h"
+#include "../gamelib/borendian.h"
 
 #if PP_TEST // using pp_test.c to test the preprocessor functionality; OpenBOR functionality is not available
 #undef printf
@@ -37,7 +37,7 @@
 #define borShutdown(ret, msg, args...) { fprintf(stderr, msg, ##args); exit(ret); }
 extern char *get_full_path(char *filename);
 #else // otherwise, we can use OpenBOR functionality like writeToLogFile
-#include "packfile.h"
+#include "../gamelib/packfile.h"
 #define tellpackfile(hnd)            seekpackfile(hnd, 0, SEEK_CUR)
 #endif
 

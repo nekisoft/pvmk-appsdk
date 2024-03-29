@@ -9,8 +9,8 @@
 #include <string.h>
 #include <assert.h>
 #include "models.h"
-#include "List.h"
-#include "utils.h"
+#include "../scriptlib/List.h"
+#include "../utils.h"
 
 static List *modellist = NULL;
 static char convertbuf[MAX_MODELNAME_SIZE];

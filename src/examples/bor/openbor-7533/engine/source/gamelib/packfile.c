@@ -25,18 +25,18 @@
 #include <assert.h>
 #ifndef SPK_SUPPORTED
 
-#include "openbor.h"
+#include "../../openbor.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include "utils.h"
+#include "../utils.h"
 #include "borendian.h"
-#include "stristr.h"
+#include "../stristr.h"
 #include "packfile.h"
 #include "filecache.h"
 #include "soundmix.h"
-#include "savedata.h"
-#include "List.h"
+#include "../savedata.h"
+#include "../scriptlib/List.h"
 
 #if WIN || LINUX
 #include <dirent.h>

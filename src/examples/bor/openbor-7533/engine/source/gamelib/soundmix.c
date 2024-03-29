@@ -40,19 +40,19 @@
 Caution: move vorbis headers here otherwise the structs will
  get poisoned by #pragma in other header files, i.e. list.h
 */
-#ifdef DC
-#include <ivorbisfile.h>
-#elif TREMOR
-#include <tremor/ivorbisfile.h>
-#else
-#include <vorbis/vorbisfile.h>
-#endif
+//#ifdef DC
+//#include <ivorbisfile.h>
+//#elif TREMOR
+//#include <tremor/ivorbisfile.h>
+//#else
+//#include <vorbis/vorbisfile.h>
+//#endif
 #include "soundmix.h"
-#include "globals.h"
-#include "adpcm.h"
-#include "sblaster.h"
+#include "../globals.h"
+#include "../adpcmlib/adpcm.h"
+#include "../../pvmk/sblaster.h"
 #include "borendian.h"
-#include "List.h"
+#include "../scriptlib/List.h"
 
 
 #define		MIXSHIFT		     3	    // 2 should be OK
@@ -1145,7 +1145,7 @@ int sound_query_adpcm(char *artist, char *title)
 
 /////////////////////////// Ogg Vorbis decoding ///////////////////////////////
 // Plombo's Ogg Vorbis decoder for OpenBOR. Uses libvorbisfile or libvorbisidec.
-
+#if 0
 #if TREMOR || DC
 #define ov_decode(vf,buffer,length,bitstream) ov_read(vf,buffer,length,bitstream)
 #else
@@ -1437,6 +1437,7 @@ int sound_query_ogg(char *artist, char *title)
 
     return 1;
 }
+#endif
 
 /////////////////////////////// INIT / EXIT //////////////////////////////////
 
@@ -1451,10 +1452,10 @@ int sound_open_music(char *filename, char *packname, int volume, int loop, u32 m
     {
         return 1;
     }
-    if(sound_open_ogg(filename, packname, volume, loop, music_offset))
-    {
-        return 1;
-    }
+//    if(sound_open_ogg(filename, packname, volume, loop, music_offset))
+//    {
+//        return 1;
+//    }
 
     // handle adding an extension to the filename
     sprintf(fnam, "%s.bor", filename);
@@ -1462,16 +1463,16 @@ int sound_open_music(char *filename, char *packname, int volume, int loop, u32 m
     {
         return 1;
     }
-    sprintf(fnam, "%s.ogg", filename);
-    if(sound_open_ogg(fnam, packname, volume, loop, music_offset))
-    {
-        return 1;
-    }
-    sprintf(fnam, "%s.oga", filename);
-    if(sound_open_ogg(fnam, packname, volume, loop, music_offset))
-    {
-        return 1;
-    }
+//    sprintf(fnam, "%s.ogg", filename);
+//    if(sound_open_ogg(fnam, packname, volume, loop, music_offset))
+//    {
+//        return 1;
+ //   }
+ //   sprintf(fnam, "%s.oga", filename);
+ //   if(sound_open_ogg(fnam, packname, volume, loop, music_offset))
+ //   {
+ //       return 1;
+ //   }
 
     return 0;
 }
@@ -1484,7 +1485,7 @@ void sound_close_music()
         sound_close_adpcm();
         break;
     case 1:
-        sound_close_ogg();
+      //  sound_close_ogg();
     }
     music_type = -1;
 }
@@ -1497,7 +1498,7 @@ void sound_update_music()
         sound_update_adpcm();
         break;
     case 1:
-        sound_update_ogg();
+       // sound_update_ogg();
     }
 }
 
@@ -1508,7 +1509,7 @@ int sound_query_music(char *artist, char *title)
     case 0:
         return sound_query_adpcm(artist, title);
     case 1:
-        return sound_query_ogg(artist, title);
+      //  return sound_query_ogg(artist, title);
     default:
         return 0;
     }
@@ -1523,7 +1524,7 @@ void sound_music_tempo(int music_tempo)
         sound_adpcm_tempo(music_tempo);
         break;
     case 1:
-        sound_ogg_tempo(music_tempo);
+    //    sound_ogg_tempo(music_tempo);
     }
 }
 

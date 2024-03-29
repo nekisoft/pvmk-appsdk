@@ -1,5 +1,5 @@
-#include "openbor.h"
-#include "List.h"
+#include "../../openbor.h"
+#include "../scriptlib/List.h"
 #include "translation.h"
 
 static List *transList = NULL;

@@ -33,6 +33,7 @@ CFLAGS += -Wno-unused-parameter
 CFLAGS += -Wno-old-style-declaration
 CFLAGS += -Wno-stringop-truncation
 CFLAGS += -Wno-ignored-qualifiers
+CFLAGS += -Wno-incompatible-pointer-types
 
 
 #Flags to use when linking

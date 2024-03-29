@@ -40,8 +40,8 @@
 #include <malloc.h>
 #include <string.h>
 #include <stdio.h>
-#include "globals.h"
-#include "utils.h"
+#include "../globals.h"
+#include "../utils.h"
 #include "ram.h"
 
 /////////////////////////////////////////////////////////////////////////////

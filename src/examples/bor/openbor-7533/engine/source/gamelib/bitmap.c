@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
-#include "globals.h"
+#include "../globals.h"
 #include "types.h"
 
 #define		TRANS_INDEX		0x00

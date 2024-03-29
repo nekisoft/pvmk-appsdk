@@ -11,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
-#include "globals.h"
+#include "../globals.h"
 #include "borendian.h"
 
 #ifndef NULL

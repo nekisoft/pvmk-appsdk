@@ -6,7 +6,7 @@
  * Copyright (c)  OpenBOR Team
  */
 
-#include "globals.h"
+#include "../globals.h"
 #include "types.h"
 
 //with remap, work only under 8bit pixel format

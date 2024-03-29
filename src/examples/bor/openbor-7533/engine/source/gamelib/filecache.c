@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "utils.h"
+#include "../utils.h"
 #include "packfile.h"
 #include "filecache.h"
 
