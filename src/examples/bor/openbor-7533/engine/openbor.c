@@ -45824,7 +45824,7 @@ void update(int ingame, int usevwait)
 
     /************ gfx queueing ************/
 
-    clearscreen(vscreen);
+    //clearscreen(vscreen); //betopp - not needed?
 
     if(ingame == 1 && !_pause)
     {

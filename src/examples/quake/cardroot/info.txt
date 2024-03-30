@@ -1,0 +1,7 @@
+#info.txt
+NAME:Quake
+VERS:0.1
+DESC:A port of Quake
+DEVR:Id Software and Bryan E. Topp
+PUBR:Nekisoft
+

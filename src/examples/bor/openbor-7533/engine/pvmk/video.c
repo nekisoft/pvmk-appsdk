@@ -60,6 +60,9 @@ int video_copy_screen(s_screen* src)
 	else if(src->pixelformat == PIXEL_8)
 	{
 		//Depaletteize
+		if(src->palette != NULL)
+			vga_setpalette(src->palette);
+		
 		const uint8_t *srcpx = (const uint8_t*)(src->data);
 		uint16_t *dstpx = (uint16_t*)avail_buf;
 		for(int pp = 0; pp < 320*240; pp++)
@@ -131,11 +134,13 @@ void vga_vwait(void)
 
 void vga_setpalette(unsigned char* pal)
 {
-	int i;
-	for(i=0;i<256;i++)
+	//Compress 24-bit palette entries to 16-bit
+	for(int pp = 0; pp < 256; pp++)
 	{
-		palette[i] = (pal[0]>>3<<11) | (pal[1]>>2<<5) | (pal[2]>>3);
-		pal+=3;
+		palette[pp] = 0;
+		palette[pp] |= ((int)(pal[(pp*3)+0]) <<  8) & (0x1F << 11);
+		palette[pp] |= ((int)(pal[(pp*3)+1]) <<  3) & (0x3F <<  5);
+		palette[pp] |= ((int)(pal[(pp*3)+2]) >>  3) & (0x1F <<  0);
 	}
 }
 
