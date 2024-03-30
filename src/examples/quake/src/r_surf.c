@@ -281,7 +281,7 @@ void R_DrawSurface (void)
 
 //==============================
 
-	if (r_pixbytes == 1)
+	if ((r_pixbytes == 1) || 1) //betopp - 16bpp
 	{
 		pblockdrawer = surfmiptable[r_drawsurf.surfmip];
 	// TODO: only needs to be set when there is a display settings change

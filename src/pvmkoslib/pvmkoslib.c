@@ -8,6 +8,7 @@
 #include <sc.h>
 
 #include <stdarg.h>
+#include <libgen.h>
 #include <sys/time.h>
 #include <sys/dirent.h>
 #include <stddef.h>
@@ -548,6 +549,11 @@ int fstatat(int at_fd, const char *path, struct stat *out, int flag)
 	return fstat_err;
 }
 
+int stat(const char *path, struct stat *out)
+{
+	return fstatat(AT_FDCWD, path, out, 0);
+}
+
 int lstat(const char *path, struct stat *out)
 {
 	return fstatat(AT_FDCWD, path, out, AT_SYMLINK_NOFOLLOW);
@@ -731,3 +737,77 @@ int closedir(DIR *dirp)
 	return 0;
 }
 
+mode_t umask(mode_t numask)
+{
+	(void)numask;
+	return 0;
+}
+
+//This is a recent and nonstandard addition from the FreeBSD API. 
+//It solves an important problem though ("unlink exactly this file I've been looking at") so we copy it.
+int funlinkat(int dfd, const char *path, int fd, int flag)
+{
+	(void)flag;
+	
+	if(dfd == AT_FDCWD)
+		dfd = -1;
+	
+	//We unlink by using the "relink" system call, which atomically removes one link and makes another to an inode.
+	//We pass NULL for the "new" link, making it into an "unlink" operation.
+	//This requires that we pass a directory and single filename, not an entire path though.
+	//If the path has slashes in it, we need to resolve what exactly which dirent we're unlinking.
+	if(strchr(path, '/'))
+	{
+		char path_copy[256] = {0};
+		strncpy(path_copy, path, sizeof(path_copy)-1);
+		if(path_copy[sizeof(path_copy)-2] != '\0')
+		{
+			errno = ENAMETOOLONG;
+			return -1;
+		}
+		
+		int resolved_dfd = openat(dfd, dirname(path_copy), O_RDONLY | O_EXEC);
+		if(resolved_dfd < 0)
+			return -1;
+		
+		strncpy(path_copy, path, sizeof(path_copy)-1);
+		int result = _sc_relink(resolved_dfd, basename(path_copy), -1, NULL, fd);
+		close(resolved_dfd);
+		
+		if(result < 0)
+		{
+			errno = -result;
+			return -1;
+		}
+		
+		return 0;
+	}
+	else
+	{
+		int result = _sc_relink(dfd, path, -1, NULL, fd);
+		if(result < 0)
+		{
+			errno = -result;
+			return -1;
+		}
+		return 0;
+	}
+}
+
+int unlinkat(int dfd, const char *path, int flag)
+{
+	int fd = openat(dfd, path, O_RDWR | O_NOFOLLOW);
+	if(fd < 0)
+		return -1;
+	
+	int result = funlinkat(dfd, path, fd, flag);
+	
+	_sc_close(fd);
+	
+	return result;
+}
+
+int unlink(const char *path)
+{
+	return unlinkat(AT_FDCWD, path, 0);
+}

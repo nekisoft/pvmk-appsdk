@@ -65,7 +65,7 @@ D_DrawSkyScans8
 void D_DrawSkyScans8 (espan_t *pspan)
 {
 	int				count, spancount, u, v;
-	unsigned char	*pdest;
+	unsigned short	*pdest;
 	fixed16_t		s, t, snext, tnext, sstep, tstep;
 	int				spancountminus1;
 
@@ -74,8 +74,8 @@ void D_DrawSkyScans8 (espan_t *pspan)
 
 	do
 	{
-		pdest = (unsigned char *)((byte *)d_viewbuffer +
-				(screenwidth * pspan->v) + pspan->u);
+		pdest = (unsigned short *)((byte *)d_viewbuffer +
+				(screenwidth * pspan->v) + (pspan->u*2)); //betopp - 16bpp
 
 		count = pspan->count;
 
@@ -122,8 +122,8 @@ void D_DrawSkyScans8 (espan_t *pspan)
 
 			do
 			{
-				*pdest++ = r_skysource[((t & R_SKY_TMASK) >> 8) +
-						((s & R_SKY_SMASK) >> 16)];
+				*pdest++ = d_8to16table[r_skysource[((t & R_SKY_TMASK) >> 8) +
+						((s & R_SKY_SMASK) >> 16)]];
 				s += sstep;
 				t += tstep;
 			} while (--spancount > 0);

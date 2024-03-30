@@ -875,7 +875,7 @@ R_EdgeDrawing
 */
 void R_EdgeDrawing (void)
 {
-	//Made these static - betopp
+	//betopp - made static
 	static edge_t	ledges[NUMSTACKEDGES +
 				((CACHE_SIZE - 1) / sizeof(edge_t)) + 1];
 	static surf_t	lsurfs[NUMSTACKSURFACES +
@@ -953,8 +953,7 @@ r_refdef must be set before the first call
 */
 void R_RenderView_ (void)
 {
-	//made this static - betopp
-	static byte	warpbuffer[WARP_WIDTH * WARP_HEIGHT];
+	byte	warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 
 	r_warpbuffer = warpbuffer;
 

@@ -185,6 +185,10 @@ void Sys_SendKeyEvents(void)
 			[_SC_BTNIDX_A] = K_MOUSE1,
 			[_SC_BTNIDX_B] = K_MOUSE2,
 			[_SC_BTNIDX_C] = K_MOUSE3,
+			
+			[_SC_BTNIDX_X] = K_ENTER,
+			[_SC_BTNIDX_Y] = K_ESCAPE,
+			[_SC_BTNIDX_Z] = K_BACKSPACE,
 		};
 		
 		for(int bb = 0; bb < 16; bb++)
@@ -197,6 +201,8 @@ void Sys_SendKeyEvents(void)
 			else if(lastbuttons & (~input.buttons) & (1u << bb))
 				Key_Event(button_mapping[bb], false);
 		}
+		
+		lastbuttons = input.buttons;
 	}
 }
 

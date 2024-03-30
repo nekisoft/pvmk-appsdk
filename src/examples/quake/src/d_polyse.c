@@ -441,7 +441,7 @@ void D_PolysetScanLeftEdge (int height)
 		errorterm += erroradjustup;
 		if (errorterm >= 0)
 		{
-			d_pdest += d_pdestextrastep;
+			d_pdest += d_pdestextrastep * 2;
 			d_pz += d_pzextrastep;
 			d_aspancount += d_countextrastep;
 			d_ptex += d_ptexextrastep;
@@ -461,7 +461,7 @@ void D_PolysetScanLeftEdge (int height)
 		}
 		else
 		{
-			d_pdest += d_pdestbasestep;
+			d_pdest += d_pdestbasestep * 2;
 			d_pz += d_pzbasestep;
 			d_aspancount += ubasestep;
 			d_ptex += d_ptexbasestep;
@@ -615,7 +615,7 @@ D_PolysetDrawSpans8
 void D_PolysetDrawSpans8 (spanpackage_t *pspanpackage)
 {
 	int		lcount;
-	byte	*lpdest;
+	uint16_t	*lpdest; //betopp - 16bpp
 	byte	*lptex;
 	int		lsfrac, ltfrac;
 	int		llight;
@@ -639,7 +639,7 @@ void D_PolysetDrawSpans8 (spanpackage_t *pspanpackage)
 
 		if (lcount)
 		{
-			lpdest = pspanpackage->pdest;
+			lpdest = (uint16_t*)pspanpackage->pdest; //betopp - 16bpp
 			lptex = pspanpackage->ptex;
 			lpz = pspanpackage->pz;
 			lsfrac = pspanpackage->sfrac;
@@ -651,7 +651,7 @@ void D_PolysetDrawSpans8 (spanpackage_t *pspanpackage)
 			{
 				if ((lzi >> 16) >= *lpz)
 				{
-					*lpdest = ((byte *)acolormap)[*lptex + (llight & 0xFF00)];
+					*lpdest = d_8to16table[((byte *)acolormap)[*lptex + (llight & 0xFF00)]];
 // gel mapping					*lpdest = gelmap[*lpdest];
 					*lpz = lzi >> 16;
 				}
@@ -707,7 +707,7 @@ void D_PolysetFillSpans8 (spanpackage_t *pspanpackage)
 
 			do
 			{
-				*lpdest++ = color;
+				*lpdest++ = d_8to16table[color];
 			} while (--lcount);
 		}
 
@@ -766,7 +766,7 @@ void D_RasterizeAliasPolySmooth (void)
 	d_zi = plefttop[5];
 
 	d_pdest = (byte *)d_viewbuffer +
-			ystart * screenwidth + plefttop[0];
+			ystart * screenwidth + (plefttop[0]*2); //betopp - 16bpp
 	d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
 
 	if (initialleftheight == 1)
@@ -864,7 +864,7 @@ void D_RasterizeAliasPolySmooth (void)
 		d_light = plefttop[4];
 		d_zi = plefttop[5];
 
-		d_pdest = (byte *)d_viewbuffer + ystart * screenwidth + plefttop[0];
+		d_pdest = (byte *)d_viewbuffer + ystart * screenwidth + (plefttop[0]*2); //betopp - 16bpp
 		d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
 
 		if (height == 1)
