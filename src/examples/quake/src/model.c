@@ -1356,7 +1356,7 @@ void * Mod_LoadAliasSkin (void * pin, int *pskinindex, int skinsize,
 	pinskin = (byte *)pin;
 	*pskinindex = (byte *)pskin - (byte *)pheader;
 
-	if (r_pixbytes == 1)
+	if (r_pixbytes == 1 || 1) //betopp
 	{
 		Q_memcpy (pskin, pinskin, skinsize);
 	}

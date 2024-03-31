@@ -111,7 +111,7 @@ Only called by R_DisplayTime
 void R_LineGraph (int x, int y, int h)
 {
 	int		i;
-	byte	*dest;
+	pixel_t	*dest;
 	int		s;
 
 // FIXME: should be disabled on no-buffer adapters, or should be in the driver
@@ -119,7 +119,7 @@ void R_LineGraph (int x, int y, int h)
 	x += r_refdef.vrect.x;
 	y += r_refdef.vrect.y;
 	
-	dest = vid.buffer + vid.rowbytes*y + x;
+	dest = vid.buffer + vid.width*y + x;
 	
 	s = r_graphheight.value;
 	

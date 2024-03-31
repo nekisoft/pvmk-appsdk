@@ -84,7 +84,7 @@ entity_t	*CL_EntityNum (int num)
 			Host_Error ("CL_EntityNum: %i is an invalid number",num);
 		while (cl.num_entities<=num)
 		{
-			cl_entities[cl.num_entities].colormap = vid.colormap;
+			cl_entities[cl.num_entities].colormap = (void*)vid.colormap;
 			cl.num_entities++;
 		}
 	}

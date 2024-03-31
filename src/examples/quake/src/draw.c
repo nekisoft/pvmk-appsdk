@@ -134,7 +134,7 @@ smoothly scrolled off.
 */
 void Draw_Character (int x, int y, int num)
 {
-	byte			*dest;
+	pixel_t			*dest;
 	byte			*source;
 	unsigned short	*pusdest;
 	int				drawline;	
@@ -168,7 +168,7 @@ void Draw_Character (int x, int y, int num)
 
 	if (r_pixbytes == 1)
 	{
-		dest = vid.conbuffer + y*vid.conrowbytes + x;
+		dest = vid.conbuffer + y*vid.width + x;
 	
 		while (drawline--)
 		{
@@ -249,7 +249,7 @@ of the code.
 */
 void Draw_DebugChar (char num)
 {
-	byte			*dest;
+	pixel_t *dest;
 	byte			*source;
 	int				drawline;	
 	extern byte		*draw_chars;
@@ -288,7 +288,8 @@ Draw_Pic
 */
 void Draw_Pic (int x, int y, qpic_t *pic)
 {
-	byte			*dest, *source;
+	byte			*source;
+	pixel_t *dest;
 	unsigned short	*pusdest;
 	int				v, u;
 
@@ -304,7 +305,7 @@ void Draw_Pic (int x, int y, qpic_t *pic)
 
 	if (r_pixbytes == 1)
 	{
-		dest = vid.buffer + y * vid.rowbytes + x;
+		dest = vid.buffer + y * vid.width + x;
 
 		for (v=0 ; v<pic->height ; v++)
 		{
@@ -339,7 +340,8 @@ Draw_TransPic
 */
 void Draw_TransPic (int x, int y, qpic_t *pic)
 {
-	byte	*dest, *source, tbyte;
+	byte	 *source, tbyte;
+	pixel_t *dest;
 	unsigned short	*pusdest;
 	int				v, u;
 
@@ -353,7 +355,7 @@ void Draw_TransPic (int x, int y, qpic_t *pic)
 
 	if (r_pixbytes == 1)
 	{
-		dest = vid.buffer + y * vid.rowbytes + x;
+		dest = vid.buffer + y * vid.width + x;
 
 		if (pic->width & 7)
 		{	// general
@@ -426,7 +428,8 @@ Draw_TransPicTranslate
 */
 void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 {
-	byte	*dest, *source, tbyte;
+	byte  *source, tbyte;
+	pixel_t *dest;
 	unsigned short	*pusdest;
 	int				v, u;
 
@@ -539,7 +542,8 @@ Draw_ConsoleBackground
 void Draw_ConsoleBackground (int lines)
 {
 	int				x, y, v;
-	byte			*src, *dest;
+	byte			*src;
+	byte *dest;
 	unsigned short	*pusdest;
 	int				f, fstep;
 	qpic_t			*conback;
@@ -568,9 +572,10 @@ void Draw_ConsoleBackground (int lines)
 // draw the pic
 	if (r_pixbytes == 1)
 	{
+		/*
 		dest = vid.conbuffer;
 
-		for (y=0 ; y<lines ; y++, dest += vid.conrowbytes)
+		for (y=0 ; y<lines ; y++, dest += vid.width)
 		{
 			v = (vid.conheight - lines + y)*200/vid.conheight;
 			src = conback->data + v*320;
@@ -593,6 +598,7 @@ void Draw_ConsoleBackground (int lines)
 				}
 			}
 		}
+		*/
 	}
 	else
 	{
@@ -630,6 +636,7 @@ R_DrawRect8
 void R_DrawRect8 (vrect_t *prect, int rowbytes, byte *psrc,
 	int transparent)
 {
+	/*
 	byte	t;
 	int		i, j, srcdelta, destdelta;
 	byte	*pdest;
@@ -668,6 +675,7 @@ void R_DrawRect8 (vrect_t *prect, int rowbytes, byte *psrc,
 			pdest += vid.rowbytes;
 		}
 	}
+	*/
 }
 
 
@@ -818,10 +826,13 @@ void Draw_Fill (int x, int y, int w, int h, int c)
 
 	if (r_pixbytes == 1)
 	{
+		/*
 		dest = vid.buffer + y*vid.rowbytes + x;
 		for (v=0 ; v<h ; v++, dest += vid.rowbytes)
 			for (u=0 ; u<w ; u++)
 				dest[u] = c;
+		
+		*/
 	}
 	else
 	{

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 
 unsigned char	*r_turb_pbase;
-unsigned short *r_turb_pdest; // betopp - 16bpp
+pixel_t *r_turb_pdest;
 fixed16_t		r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
 int				*r_turb_turb;
 int				r_turb_spancount;
@@ -46,11 +46,11 @@ void D_WarpScreen (void)
 {
 	int		w, h;
 	int		u,v;
-	byte	*dest;
+	pixel_t	*dest;
 	int		*turb;
 	int		*col;
-	byte	**row;
-	byte	*rowptr[MAXHEIGHT+(AMP2*2)];
+	pixel_t	**row;
+	pixel_t	*rowptr[MAXHEIGHT+(AMP2*2)];
 	int		column[MAXWIDTH+(AMP2*2)];
 	float	wratio, hratio;
 
@@ -140,8 +140,8 @@ void Turbulent8 (espan_t *pspan)
 
 	do
 	{
-		r_turb_pdest = (unsigned short*)(unsigned char *)((byte *)d_viewbuffer +
-				(screenwidth * pspan->v) + (pspan->u*2)); //betopp - 16bpp
+		r_turb_pdest = ((pixel_t *)d_viewbuffer +
+				(screenwidth * pspan->v) + (pspan->u));
 
 		count = pspan->count;
 
@@ -258,8 +258,8 @@ D_DrawSpans8
 void D_DrawSpans8 (espan_t *pspan)
 {
 	int				count, spancount;
-	unsigned char	*pbase; //betopp - 16bpp
-	unsigned short *pdest;
+	unsigned char	*pbase; 
+	pixel_t *pdest;
 	fixed16_t		s, t, snext, tnext, sstep, tstep;
 	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
 	float			sdivz8stepu, tdivz8stepu, zi8stepu;
@@ -267,7 +267,7 @@ void D_DrawSpans8 (espan_t *pspan)
 	sstep = 0;	// keep compiler happy
 	tstep = 0;	// ditto
 
-	pbase = (unsigned char *)cacheblock; //betopp - 16bpp
+	pbase = (unsigned char *)cacheblock; 
 
 	sdivz8stepu = d_sdivzstepu * 8;
 	tdivz8stepu = d_tdivzstepu * 8;
@@ -275,8 +275,7 @@ void D_DrawSpans8 (espan_t *pspan)
 
 	do
 	{
-		pdest = (unsigned short*)((unsigned char *)((byte *)d_viewbuffer +
-				(screenwidth * pspan->v) + (pspan->u*2)));
+		pdest = (pixel_t *)d_viewbuffer + (screenwidth * pspan->v) + (pspan->u);
 
 		count = pspan->count;
 

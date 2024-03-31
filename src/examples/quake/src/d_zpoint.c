@@ -30,7 +30,7 @@ D_DrawZPoint
 */
 void D_DrawZPoint (void)
 {
-	byte	*pdest;
+	pixel_t	*pdest;
 	short	*pz;
 	int		izi;
 	
@@ -41,7 +41,7 @@ void D_DrawZPoint (void)
 	if (*pz <= izi)
 	{
 		*pz = izi;
-		*pdest = r_zpointdesc.color;
+		*pdest = d_8to16table[r_zpointdesc.color];
 	}
 }
 

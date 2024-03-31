@@ -190,7 +190,7 @@ extern void *acolormap;	// FIXME: should go away
 
 typedef struct
 {
-	pixel_t		*surfdat;	// destination for generated surface
+	byte		*surfdat;	// destination for generated surface
 	int			rowbytes;	// destination logical width in bytes
 	msurface_t	*surf;		// description for surface to generate
 	fixed8_t	lightadj[MAXLIGHTMAPS];
@@ -225,5 +225,5 @@ extern float	skytime;
 extern int		c_surf;
 extern vrect_t	scr_vrect;
 
-extern byte		*r_warpbuffer;
+extern pixel_t		*r_warpbuffer;
 

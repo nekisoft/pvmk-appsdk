@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define VID_GRADES	(1 << VID_CBITS)
 
 // a pixel can be one, two, or four bytes
-typedef byte pixel_t __attribute__((aligned(4)));
+typedef unsigned short pixel_t;
 
 typedef struct vrect_s
 {
@@ -34,7 +34,7 @@ typedef struct vrect_s
 typedef struct
 {
 	pixel_t			*buffer;		// invisible buffer
-	pixel_t			*colormap;		// 256 * VID_GRADES size
+	byte			*colormap;		// 256 * VID_GRADES size
 	unsigned short	*colormap16;	// 256 * VID_GRADES size
 	int				fullbright;		// index of first fullbright color
 	unsigned		rowbytes;	// may be > width if displayed in a window

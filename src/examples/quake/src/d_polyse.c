@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 #include "d_local.h"
 
-#include <stdint.h>
-
 // TODO: put in span spilling to shrink list size
 // !!! if this is changed, it must be changed in d_polysa.s too !!!
 #define DPS_MAXSPANS			MAXHEIGHT+1	
@@ -85,7 +83,9 @@ int				d_aspancount, d_countextrastep;
 spanpackage_t			*a_spans;
 spanpackage_t			*d_pedgespanpackage;
 static int				ystart;
-byte					*d_pdest, *d_ptex;
+pixel_t					*d_pdest;
+
+byte  *d_ptex;
 short					*d_pz;
 int						d_sfrac, d_tfrac, d_light, d_zi;
 int						d_ptexextrastep, d_sfracextrastep;
@@ -171,7 +171,7 @@ void D_PolysetDrawFinalVerts (finalvert_t *fv, int numverts)
 				*zbuf = z;
 				pix = skintable[fv->v[3]>>16][fv->v[2]>>16];
 				pix = ((byte *)acolormap)[pix + (fv->v[4] & 0xFF00) ];
-				d_viewbuffer[d_scantable[fv->v[1]] + (fv->v[0]*2)] = pix; //betopp - 16bpp
+				d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] = d_8to16table[pix];
 			}
 		}
 	}
@@ -380,7 +380,7 @@ split:
 		
 		*zbuf = z;
 		pix = d_pcolormap[skintable[new[3]>>16][new[2]>>16]];
-		d_viewbuffer[d_scantable[new[1]] + (new[0]*2)] = pix; //betopp - 16bpp
+		d_viewbuffer[d_scantable[new[1]] + new[0]] = d_8to16table[pix];
 	}
 
 nodraw:
@@ -443,7 +443,7 @@ void D_PolysetScanLeftEdge (int height)
 		errorterm += erroradjustup;
 		if (errorterm >= 0)
 		{
-			d_pdest += d_pdestextrastep * 2;
+			d_pdest += d_pdestextrastep ;
 			d_pz += d_pzextrastep;
 			d_aspancount += d_countextrastep;
 			d_ptex += d_ptexextrastep;
@@ -463,7 +463,7 @@ void D_PolysetScanLeftEdge (int height)
 		}
 		else
 		{
-			d_pdest += d_pdestbasestep * 2;
+			d_pdest += d_pdestbasestep ;
 			d_pz += d_pzbasestep;
 			d_aspancount += ubasestep;
 			d_ptex += d_ptexbasestep;
@@ -617,7 +617,7 @@ D_PolysetDrawSpans8
 void D_PolysetDrawSpans8 (spanpackage_t *pspanpackage)
 {
 	int		lcount;
-	uint16_t	*lpdest; //betopp - 16bpp
+	pixel_t *lpdest;
 	byte	*lptex;
 	int		lsfrac, ltfrac;
 	int		llight;
@@ -641,7 +641,7 @@ void D_PolysetDrawSpans8 (spanpackage_t *pspanpackage)
 
 		if (lcount)
 		{
-			lpdest = (uint16_t*)pspanpackage->pdest; //betopp - 16bpp
+			lpdest = (pixel_t *)pspanpackage->pdest;
 			lptex = pspanpackage->ptex;
 			lpz = pspanpackage->pz;
 			lsfrac = pspanpackage->sfrac;
@@ -680,6 +680,7 @@ void D_PolysetDrawSpans8 (spanpackage_t *pspanpackage)
 #endif	// !id386
 
 
+
 /*
 ================
 D_PolysetFillSpans8
@@ -696,7 +697,7 @@ void D_PolysetFillSpans8 (spanpackage_t *pspanpackage)
 	while (1)
 	{
 		int		lcount;
-		byte	*lpdest;
+		pixel_t	*lpdest;
 
 		lcount = pspanpackage->count;
 
@@ -767,8 +768,7 @@ void D_RasterizeAliasPolySmooth (void)
 	d_light = plefttop[4];
 	d_zi = plefttop[5];
 
-	d_pdest = (byte *)d_viewbuffer +
-			ystart * screenwidth + (plefttop[0]*2); //betopp - 16bpp
+	d_pdest = (pixel_t *)d_viewbuffer + ystart * screenwidth + (plefttop[0]);
 	d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
 
 	if (initialleftheight == 1)
@@ -866,7 +866,7 @@ void D_RasterizeAliasPolySmooth (void)
 		d_light = plefttop[4];
 		d_zi = plefttop[5];
 
-		d_pdest = (byte *)d_viewbuffer + ystart * screenwidth + (plefttop[0]*2); //betopp - 16bpp
+		d_pdest = (pixel_t *)d_viewbuffer + ystart * screenwidth + (plefttop[0]);
 		d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
 
 		if (height == 1)

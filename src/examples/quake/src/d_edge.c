@@ -83,13 +83,13 @@ D_DrawSolidSurface
 void D_DrawSolidSurface (surf_t *surf, int color)
 {
 	espan_t	*span;
-	byte	*pdest;
+	unsigned short	*pdest;
 	int		u, u2, pix;
 	
 	pix = (color<<24) | (color<<16) | (color<<8) | color;
 	for (span=surf->spans ; span ; span=span->pnext)
 	{
-		pdest = (byte *)d_viewbuffer + screenwidth*span->v;
+		pdest = (pixel_t *)d_viewbuffer + screenwidth*span->v;
 		u = span->u;
 		u2 = span->u + span->count - 1;
 		((byte *)pdest)[u] = pix;
@@ -237,7 +237,7 @@ void D_DrawSurfaces (void)
 			{
 				pface = s->data;
 				miplevel = 0;
-				cacheblock = (pixel_t *)
+				cacheblock = /*(pixel_t *)*/
 						((byte *)pface->texinfo->texture +
 						pface->texinfo->texture->offsets[0]);
 				cachewidth = 64;
@@ -299,7 +299,7 @@ void D_DrawSurfaces (void)
 			// FIXME: make this passed in to D_CacheSurface
 				pcurrentcache = D_CacheSurface (pface, miplevel);
 
-				cacheblock = (pixel_t *)pcurrentcache->data;
+				cacheblock = (byte *)pcurrentcache->data;
 				cachewidth = pcurrentcache->width;
 
 				D_CalcGradients (pface);
