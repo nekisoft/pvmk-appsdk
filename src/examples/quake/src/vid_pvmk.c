@@ -33,8 +33,7 @@ extern viddef_t	vid;				// global video state
 #define	BASEHEIGHT	240
 
 uint16_t vid_bufs[3][BASEWIDTH*BASEHEIGHT] __attribute__((aligned(1048576)));
-uint16_t *vid_bufptrs[3] = { &(vid_bufs[0][0]), &(vid_bufs[1][0]), &(vid_bufs[2][0]) };
-
+int vid_bufs_next = 0;
 
 short	zbuffer[BASEWIDTH*BASEHEIGHT];
 byte	surfcache[256*1024*4] __attribute__((aligned(16)));
@@ -70,7 +69,7 @@ void	VID_Init (unsigned char *palette)
 	vid.maxwarpwidth = vid.width = vid.conwidth = BASEWIDTH;
 	vid.maxwarpheight = vid.height = vid.conheight = BASEHEIGHT;
 	vid.aspect = 1.0;
-	vid.numpages = 1;
+	vid.numpages = 4; //this just determines how many times a status bar or whatever will be drawn
 	vid.colormap = host_colormap;
 	
 	vid.colormap16 = colormap16;
@@ -111,7 +110,7 @@ void	VID_Init (unsigned char *palette)
 	
 	
 	vid.fullbright = 256 - LittleLong (*((int *)vid.colormap + 2048));
-	vid.buffer = vid.conbuffer = (pixel_t*)(vid_bufptrs[0]);
+	vid.buffer = vid.conbuffer = (pixel_t*)(vid_bufs[0]);
 	vid.rowbytes = vid.conrowbytes = BASEWIDTH * 2;
 	
 	d_pzbuffer = zbuffer;
@@ -137,16 +136,19 @@ void	VID_Update (vrect_t *rects)
 	}
 	
 	//Figure out what buffer we'll use next. It shouldn't be the one displayed nor enqueued.
-	uint16_t *nextbuf = (uint16_t*)vid.buffer;
+	//If we have a choice, prefer cycling through them 1-2-3, so status bar updates can hit all of them.
+	uint16_t *nextbuf = vid_bufs[vid_bufs_next];
 	for(int bb = 0; bb < 3; bb++)
 	{
-		if(vid_bufs[bb] == (uint16_t*)displayed)
+		vid_bufs_next = (vid_bufs_next + 1) % 3;
+		
+		if(vid_bufs[vid_bufs_next] == (uint16_t*)displayed)
 			continue; //Can't use this one, it's displayed now
-		if(vid_bufs[bb] == (uint16_t*)vid.buffer)
+		if(vid_bufs[vid_bufs_next] == (uint16_t*)vid.buffer)
 			continue; //Can't use this one, it's about to be displayed
 	
 		//Found one
-		nextbuf = vid_bufs[bb];
+		nextbuf = vid_bufs[vid_bufs_next];
 		break;
 	}
 	

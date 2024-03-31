@@ -855,7 +855,7 @@ Draw_FadeScreen
 void Draw_FadeScreen (void)
 {
 	int			x,y;
-	byte		*pbuf;
+	pixel_t		*pbuf;
 
 	VID_UnlockBuffer ();
 	S_ExtraUpdate ();
@@ -865,7 +865,7 @@ void Draw_FadeScreen (void)
 	{
 		int	t;
 
-		pbuf = (byte *)(vid.buffer + vid.rowbytes*y);
+		pbuf = (pixel_t*)(vid.buffer + vid.width*y);
 		t = (y & 1) << 1;
 
 		for (x=0 ; x<vid.width ; x++)
