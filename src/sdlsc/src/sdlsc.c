@@ -19,20 +19,6 @@ int _use_sdlsc_dummy = 0;
 #include <stdbool.h>
 #include <stdint.h>
 
-//Color masks used with SDL calls
-#define RMASK 0xF800u
-#define GMASK 0x07E0u
-#define BMASK 0x001Fu
-
-//This code simulates some of the context-switching of the kernel.
-//The kernel has interrupt handlers for:
-//1. Timer ticks
-//2. The advancement of audio scanout
-//3. Entering vertical blanking in video scanout
-//The kernel then has system-calls which interact via buffers with these ISRs.
-//Here, we simulate the system-calls directly in the caller's application.
-//We simulate the kernel ISRs with separate threads interacting with SDL.
-
 //Whether the simulated system-call layer wants to exit
 static bool _sdlsc_done;
 
@@ -142,73 +128,6 @@ int _sdlsc_video_function(void *dummy)
 	return 0;
 }
 
-//Audio state as the kernel would keep it - one ring buffer, cut into 8 chunks which hardware notifies us about
-static uint8_t _i2s_chunks[8][(48000 / 60) * 2 * 2] __attribute__((aligned(128)));
-static int _i2s_used[8];
-static int _i2s_next;
-
-//Notion of where the hardware's DMA playback would be, in the above chunks
-static int _i2s_dmapos;
-
-//Callback from SDL when it wants more audio - simulating audio DMA + ISRs
-void _sdlsc_i2s_isr(void *userdata, uint8_t *stream, int len)
-{
-	static const size_t i2s_chunksize = sizeof(_i2s_chunks[0]);
-	while(len > 0)
-	{
-		//Copy more bytes out of the phony i2s buffer and hand them to SDL
-		//On the Neki32 hardware, this part happens in the I2S peripheral.
-		*stream = _i2s_chunks[_i2s_dmapos / i2s_chunksize][_i2s_dmapos % i2s_chunksize];		
-		_i2s_dmapos++;
-		stream++;
-		len--; //Todo - could unroll this part a bit
-		
-		//If we've just reached the next i2s chunk, clear the previous one.
-		//This corresponds to the kernel's ISR on the Neki32.
-		if( (_i2s_dmapos % i2s_chunksize) == 0 )
-		{
-			int finished_chunk = (_i2s_dmapos / i2s_chunksize) - 1;
-			_i2s_used[finished_chunk] = 0;
-			memset(_i2s_chunks[finished_chunk], 0, sizeof(_i2s_chunks[finished_chunk]));
-		}
-		
-		//Wrap around at the end of the chunks
-		if(_i2s_dmapos > (int)sizeof(_i2s_chunks))
-			_i2s_dmapos -= sizeof(_i2s_chunks);
-	}
-}
-
-//SDL thread simulating audio scanout
-static SDL_Thread *_sdlsc_audio_thread;
-int _sdlsc_audio_function(void *dummy)
-{
-	//Init SDL and get audio going
-	_sdlsc_require_sdlinit(SDL_INIT_AUDIO);
-	
-	SDL_AudioSpec desired = 
-	{
-		.freq = 48000,
-		.format = AUDIO_S16MSB,
-		.channels = 2,
-		.samples = 1024,
-		.callback = _sdlsc_i2s_isr,
-	};
-	
-	SDL_AudioSpec obtained = {0};
-	int open_result = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
-	_sdlsc_require_sdlok((open_result<=0), "SDL_OpenAudioDevice");
-	
-	SDL_PauseAudioDevice(open_result, 0);
-	while(!_sdlsc_done)
-	{
-		//SDL handles this in its callbacks...
-		SDL_Delay(100);
-	}
-	
-	return 0;
-}
-
-
 int _sc_gfx_flip(int mode, const void *buffer)
 {
 	//If we need to initialize our video scanout thread, do so
@@ -234,15 +153,30 @@ int _sc_gfx_flip(int mode, const void *buffer)
 	return ((int)_sdlsc_video_buffer_displayed) & 0x7FFFFFFF;
 }
 
+//SDL audio setting
+SDL_AudioDeviceID _sdlsc_audio_dev = 0;
+
 int _sc_snd_play(int mode, const void *chunk, int chunkbytes, int maxbuf)
 {
-	int nbytes = chunkbytes;
-
-	//If we need to initialize our sound scanout thread, do so
-	if(_sdlsc_audio_thread == NULL)
+	if(_sdlsc_audio_dev == 0)
 	{
-		_sdlsc_audio_thread = SDL_CreateThread(&_sdlsc_audio_function, "sdlsc audio", NULL);
-		_sdlsc_require_sdlok((_sdlsc_audio_thread == NULL), "SDL_CreateThread");
+		//Init SDL and get audio going
+		_sdlsc_require_sdlinit(SDL_INIT_AUDIO);
+		
+		SDL_AudioSpec desired = 
+		{
+			.freq = 48000,
+			.format = AUDIO_S16LSB,
+			.channels = 2,
+			.samples = 2048,
+		};
+		
+		SDL_AudioSpec obtained = {0};
+		int open_result = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
+		_sdlsc_require_sdlok((open_result==0), "SDL_OpenAudioDevice");
+		
+		_sdlsc_audio_dev = open_result;
+		SDL_PauseAudioDevice(_sdlsc_audio_dev, 0);
 	}
 	
 	//Some of the validation the kernel could do
@@ -252,58 +186,14 @@ int _sc_snd_play(int mode, const void *chunk, int chunkbytes, int maxbuf)
 	if(mode != _SC_SND_MODE_48K_16B_2C)
 		return -_SC_EINVAL;
 	
-	//Copy the new data into the audio ring (code ripped from kernel I2S driver)
+	if(maxbuf < 0)
+		return -_SC_EINVAL;
 	
-	//Cap maximum buffer size to what we actually allocate
-	if(maxbuf > (int)sizeof(_i2s_chunks))
-		maxbuf = sizeof(_i2s_chunks);
-	
-	//Return an error if the user tried to enqueue more than our entire kernel buffer
-	if(nbytes > (int)sizeof(_i2s_chunks))
-	{
-		//User is trying to enqueue more than the entire buffer size.
-		//They'll never have room to do so.
-		return -_SC_ENOMEM;
-	}
-	
-	//See how much we currently have enqueued - limit to the given maximum
-	for(int ee = 0; ee < 8; ee++)
-	{
-		maxbuf -= _i2s_used[ee];
-	}
-	
-	if(nbytes > maxbuf)
-	{
-		//Enqueuing this many bytes would put us over the specified "maximum amount enqueued"
+	if(chunkbytes + SDL_GetQueuedAudioSize(_sdlsc_audio_dev) > (size_t)maxbuf)
 		return -_SC_EAGAIN;
-	}
-	
-	//Enqueue it
-	const char *buf_bytes = (const char*)chunk;
-	for(int ee = 0; ee < 8; ee++)
-	{
-		if(nbytes == 0)
-			break;
 		
-		int copy_len = sizeof(_i2s_chunks[_i2s_next]) - _i2s_used[_i2s_next];
-		if(copy_len > nbytes)
-			copy_len = nbytes;
-		
-		for(int pair = 0; pair < copy_len; pair += 2)
-		{
-			//Note byte swapping. No fucking clue why the NUC970 wants this MSByte-first.
-			//Everything in their docs talks about 32-bit words getting fetched.
-			_i2s_chunks[_i2s_next][_i2s_used[_i2s_next]+0] = buf_bytes[1];
-			_i2s_chunks[_i2s_next][_i2s_used[_i2s_next]+1] = buf_bytes[0];
-			buf_bytes += 2;
-			_i2s_used[_i2s_next] += 2;
-		}
-		
-		if(_i2s_used[_i2s_next] >= (int)sizeof(_i2s_chunks[_i2s_next]))
-			_i2s_next = (_i2s_next + 1) % 8;
-		
-		nbytes -= copy_len;
-	}
+	int queued = SDL_QueueAudio(_sdlsc_audio_dev, chunk, chunkbytes);
+	_sdlsc_require_sdlok(queued, "SDL_QueueAudio");
 
 	return 0;
 }
