@@ -1696,7 +1696,7 @@ void * Mod_LoadSpriteFrame (void * pin, mspriteframe_t **ppframe)
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
 
-	if (r_pixbytes == 1)
+	if (r_pixbytes == 1 || 1 ) //betopp
 	{
 		Q_memcpy (&pspriteframe->pixels[0], (byte *)(pinframe + 1), size);
 	}

@@ -269,9 +269,13 @@ void D_DrawSpans8 (espan_t *pspan)
 
 	pbase = (unsigned char *)cacheblock; 
 
-	sdivz8stepu = d_sdivzstepu * 8;
-	tdivz8stepu = d_tdivzstepu * 8;
-	zi8stepu = d_zistepu * 8;
+	//betopp - coarser perspective-correction than 8px as original
+	#define SPANGRAN 32
+	#define SPANGRAN_LOG2 5
+	
+	sdivz8stepu = d_sdivzstepu * SPANGRAN;
+	tdivz8stepu = d_tdivzstepu * SPANGRAN;
+	zi8stepu = d_zistepu * SPANGRAN;
 
 	do
 	{
@@ -303,8 +307,8 @@ void D_DrawSpans8 (espan_t *pspan)
 		do
 		{
 		// calculate s and t at the far end of the span
-			if (count >= 8)
-				spancount = 8;
+			if (count >= SPANGRAN)
+				spancount = SPANGRAN;
 			else
 				spancount = count;
 
@@ -322,19 +326,19 @@ void D_DrawSpans8 (espan_t *pspan)
 				snext = (int)(sdivz * z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
-				else if (snext < 8)
-					snext = 8;	// prevent round-off error on <0 steps from
+				else if (snext < SPANGRAN)
+					snext = SPANGRAN;	// prevent round-off error on <0 steps from
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
 				tnext = (int)(tdivz * z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8;	// guard against round-off error on <0 steps
+				else if (tnext < SPANGRAN)
+					tnext = SPANGRAN;	// guard against round-off error on <0 steps
 
-				sstep = (snext - s) >> 3;
-				tstep = (tnext - t) >> 3;
+				sstep = (snext - s) >> SPANGRAN_LOG2;
+				tstep = (tnext - t) >> SPANGRAN_LOG2;
 			}
 			else
 			{
@@ -350,16 +354,16 @@ void D_DrawSpans8 (espan_t *pspan)
 				snext = (int)(sdivz * z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
-				else if (snext < 8)
-					snext = 8;	// prevent round-off error on <0 steps from
+				else if (snext < SPANGRAN)
+					snext = SPANGRAN;	// prevent round-off error on <0 steps from
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
 				tnext = (int)(tdivz * z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8;	// guard against round-off error on <0 steps
+				else if (tnext < SPANGRAN)
+					tnext = SPANGRAN;	// guard against round-off error on <0 steps
 
 				if (spancount > 1)
 				{
