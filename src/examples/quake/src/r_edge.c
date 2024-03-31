@@ -299,7 +299,7 @@ pushback:
 R_CleanupSpan
 ==============
 */
-void R_CleanupSpan ()
+void R_CleanupSpan (void)
 {
 	surf_t	*surf;
 	int		iu;

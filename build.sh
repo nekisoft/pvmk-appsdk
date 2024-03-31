@@ -18,5 +18,6 @@ mkdir obj
 ./src/libcxxabi_build.sh
 ./src/savepart_build.sh
 ./src/zlib_build.sh
+./src/sdlsc_build.sh
 ./src/examples_build.sh
  

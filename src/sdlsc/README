@@ -1,0 +1,14 @@
+README for sdlsc
+Bryan E. Topp <betopp@betopp.com> 2024
+
+This is the SDL System-Call Shim library, "sdlsc".
+
+It can be used to build an otherwise PVMK-focused application, on a normal desktop.
+
+The sdlsc library contains an "sc.h" header that is used in place of the normal "sc.h" system-call header.
+
+It contains a C source file, "sdlsc.c", which implements the functions in this header.
+
+Together, this provides an implementation of the PVMK audio/video/input system calls, on top of SDL.
+
+
