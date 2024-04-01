@@ -632,7 +632,7 @@ void Key_Event (int key, qboolean down)
 //
 // handle escape specialy, so the user can never unbind it
 //
-	if (key == K_ESCAPE)
+	if (key == K_ESCAPE || key == K_ENTER) //pvmk - betopp - key binds
 	{
 		if (!down)
 			return;

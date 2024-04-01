@@ -23,7 +23,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <sc.h>
 
-int dmapos = 0;
+static void SNDDMA_pump(void)
+{
+	while(1)
+	{
+		int submitted = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, shm->buffer + (shm->samplepos*2), 1024, (shm->samples*2));
+		if(submitted < 0)
+			return;
+		
+		shm->samplepos += (1024/2);
+		if(shm->samplepos >= (shm->samples))
+			shm->samplepos -= shm->samples;
+	}
+}
 
 qboolean SNDDMA_Init(void)
 {
@@ -33,7 +45,8 @@ qboolean SNDDMA_Init(void)
 
 int SNDDMA_GetDMAPos(void)
 {
-	return dmapos;
+	SNDDMA_pump();
+	return shm->samplepos;
 }
 
 void SNDDMA_Shutdown(void)
@@ -42,19 +55,6 @@ void SNDDMA_Shutdown(void)
 
 void SNDDMA_Submit(void)
 {
-	while(1)
-	{
-		int submitted = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, shm->buffer + shm->samplepos, 1024, shm->samples);
-		if(submitted > 0)
-		{
-			dmapos += 1024;
-			if(dmapos >= shm->samples)
-				dmapos -= shm->samples;
-		}
-		else
-		{
-			break;
-		}
-	}	
+	SNDDMA_pump();
 }
 

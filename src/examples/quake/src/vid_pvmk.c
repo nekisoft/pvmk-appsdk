@@ -57,6 +57,9 @@ void	VID_SetPalette (unsigned char *palette)
 		d_8to24table[cc] |= (palette[ (cc*3) + 1 ] >> 0) << 8;
 		d_8to24table[cc] |= (palette[ (cc*3) + 2 ] >> 0) << 16;
 	}
+	
+	scr_copyeverything = 1;
+	scr_fullupdate = 0;
 }
 
 void	VID_ShiftPalette (unsigned char *palette)
@@ -65,7 +68,7 @@ void	VID_ShiftPalette (unsigned char *palette)
 }
 
 void	VID_Init (unsigned char *palette)
-{
+{	
 	vid.maxwarpwidth = vid.width = vid.conwidth = BASEWIDTH;
 	vid.maxwarpheight = vid.height = vid.conheight = BASEHEIGHT;
 	vid.aspect = 1.0;
@@ -116,6 +119,7 @@ void	VID_Init (unsigned char *palette)
 	d_pzbuffer = zbuffer;
 	D_InitCaches (surfcache, sizeof(surfcache));
 	VID_SetPalette(palette);
+	
 }
 
 void	VID_Shutdown (void)
@@ -185,13 +189,18 @@ void Sys_SendKeyEvents(void)
 			[_SC_BTNIDX_LEFT] = K_LEFTARROW,
 			[_SC_BTNIDX_RIGHT] = K_RIGHTARROW,
 			
-			[_SC_BTNIDX_A] = K_MOUSE1,
-			[_SC_BTNIDX_B] = K_MOUSE2,
-			[_SC_BTNIDX_C] = K_MOUSE3,
+			[_SC_BTNIDX_A] = 'a',
+			[_SC_BTNIDX_B] = 'b',
+			[_SC_BTNIDX_C] = 'c',
 			
-			[_SC_BTNIDX_X] = K_ENTER,
-			[_SC_BTNIDX_Y] = K_ESCAPE,
-			[_SC_BTNIDX_Z] = K_BACKSPACE,
+			[_SC_BTNIDX_X] = 'x',
+			[_SC_BTNIDX_Y] = 'y',
+			[_SC_BTNIDX_Z] = 'z',
+			
+			[_SC_BTNIDX_L] = 'l',
+			[_SC_BTNIDX_R] = 'r',
+			
+			[_SC_BTNIDX_START] = K_ENTER,
 		};
 		
 		for(int bb = 0; bb < 16; bb++)

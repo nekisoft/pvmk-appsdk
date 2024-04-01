@@ -309,6 +309,7 @@ void M_Main_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		key_dest = key_game;
 		m_state = m_none;
 		cls.demonum = m_save_demonum;
@@ -329,6 +330,7 @@ void M_Main_Key (int key)
 		break;
 
 	case K_ENTER:
+	case 'a':
 		m_entersound = true;
 
 		switch (m_main_cursor)
@@ -392,6 +394,7 @@ void M_SinglePlayer_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Main_f ();
 		break;
 
@@ -408,6 +411,7 @@ void M_SinglePlayer_Key (int key)
 		break;
 
 	case K_ENTER:
+	case 'a':
 		m_entersound = true;
 
 		switch (m_singleplayer_cursor)
@@ -532,10 +536,12 @@ void M_Load_Key (int k)
 	switch (k)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_SinglePlayer_f ();
 		break;
 
 	case K_ENTER:
+	case 'a':
 		S_LocalSound ("misc/menu2.wav");
 		if (!loadable[load_cursor])
 			return;
@@ -574,10 +580,12 @@ void M_Save_Key (int k)
 	switch (k)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_SinglePlayer_f ();
 		break;
 
 	case K_ENTER:
+	case 'a':
 		m_state = m_none;
 		key_dest = key_game;
 		Cbuf_AddText (va("save s%i\n", load_cursor));
@@ -641,6 +649,7 @@ void M_MultiPlayer_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Main_f ();
 		break;
 
@@ -657,6 +666,7 @@ void M_MultiPlayer_Key (int key)
 		break;
 
 	case K_ENTER:
+	case 'a':
 		m_entersound = true;
 		switch (m_multiplayer_cursor)
 		{
@@ -749,6 +759,7 @@ void M_Setup_Key (int k)
 	switch (k)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_MultiPlayer_f ();
 		break;
 
@@ -787,6 +798,7 @@ forward:
 		break;
 
 	case K_ENTER:
+	case 'a':
 		if (setup_cursor == 0 || setup_cursor == 1)
 			return;
 
@@ -981,6 +993,7 @@ again:
 	switch (k)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_MultiPlayer_f ();
 		break;
 
@@ -997,6 +1010,7 @@ again:
 		break;
 
 	case K_ENTER:
+	case 'a':
 		m_entersound = true;
 
 		switch (m_net_cursor)
@@ -1036,11 +1050,11 @@ again:
 //=============================================================================
 /* OPTIONS MENU */
 
-#ifdef _WIN32
-#define	OPTIONS_ITEMS	14
-#else
-#define	OPTIONS_ITEMS	13
-#endif
+//#ifdef _WIN32
+//#define	OPTIONS_ITEMS	14
+//#else
+#define	OPTIONS_ITEMS	4
+//#endif
 
 #define	SLIDER_RANGE	10
 
@@ -1067,7 +1081,7 @@ void M_AdjustSliders (int dir)
 
 	switch (options_cursor)
 	{
-	case 3:	// screen size
+	case 0:	// screen size
 		scr_viewsize.value += dir * 10;
 		if (scr_viewsize.value < 30)
 			scr_viewsize.value = 30;
@@ -1075,7 +1089,7 @@ void M_AdjustSliders (int dir)
 			scr_viewsize.value = 120;
 		Cvar_SetValue ("viewsize", scr_viewsize.value);
 		break;
-	case 4:	// gamma
+	case 1:	// gamma
 		v_gamma.value -= dir * 0.05;
 		if (v_gamma.value < 0.5)
 			v_gamma.value = 0.5;
@@ -1083,27 +1097,27 @@ void M_AdjustSliders (int dir)
 			v_gamma.value = 1;
 		Cvar_SetValue ("gamma", v_gamma.value);
 		break;
-	case 5:	// mouse speed
-		sensitivity.value += dir * 0.5;
-		if (sensitivity.value < 1)
-			sensitivity.value = 1;
-		if (sensitivity.value > 11)
-			sensitivity.value = 11;
-		Cvar_SetValue ("sensitivity", sensitivity.value);
-		break;
-	case 6:	// music volume
-#ifdef _WIN32
-		bgmvolume.value += dir * 1.0;
-#else
+//	case 5:	// mouse speed
+//		sensitivity.value += dir * 0.5;
+//		if (sensitivity.value < 1)
+//			sensitivity.value = 1;
+//		if (sensitivity.value > 11)
+//			sensitivity.value = 11;
+//		Cvar_SetValue ("sensitivity", sensitivity.value);
+//		break;
+	case 2:	// music volume
+//#ifdef _WIN32
+//		bgmvolume.value += dir * 1.0;
+//#else
 		bgmvolume.value += dir * 0.1;
-#endif
+//#endif
 		if (bgmvolume.value < 0)
 			bgmvolume.value = 0;
 		if (bgmvolume.value > 1)
 			bgmvolume.value = 1;
 		Cvar_SetValue ("bgmvolume", bgmvolume.value);
 		break;
-	case 7:	// sfx volume
+	case 3:	// sfx volume
 		volume.value += dir * 0.1;
 		if (volume.value < 0)
 			volume.value = 0;
@@ -1112,30 +1126,30 @@ void M_AdjustSliders (int dir)
 		Cvar_SetValue ("volume", volume.value);
 		break;
 
-	case 8:	// allways run
-		if (cl_forwardspeed.value > 200)
-		{
-			Cvar_SetValue ("cl_forwardspeed", 200);
-			Cvar_SetValue ("cl_backspeed", 200);
-		}
-		else
-		{
-			Cvar_SetValue ("cl_forwardspeed", 400);
-			Cvar_SetValue ("cl_backspeed", 400);
-		}
-		break;
+	//case 8:	// allways run
+	//	if (cl_forwardspeed.value > 200)
+	//	{
+	//		Cvar_SetValue ("cl_forwardspeed", 200);
+	//		Cvar_SetValue ("cl_backspeed", 200);
+	//	}
+	//	else
+	//	{
+	//		Cvar_SetValue ("cl_forwardspeed", 400);
+	//		Cvar_SetValue ("cl_backspeed", 400);
+	//	}
+	//	break;
 
-	case 9:	// invert mouse
-		Cvar_SetValue ("m_pitch", -m_pitch.value);
-		break;
+	//case 9:	// invert mouse
+	//	Cvar_SetValue ("m_pitch", -m_pitch.value);
+	//	break;
 
-	case 10:	// lookspring
-		Cvar_SetValue ("lookspring", !lookspring.value);
-		break;
+	//case 10:	// lookspring
+	//	Cvar_SetValue ("lookspring", !lookspring.value);
+	//	break;
 
-	case 11:	// lookstrafe
-		Cvar_SetValue ("lookstrafe", !lookstrafe.value);
-		break;
+	//case 11:	// lookstrafe
+	//	Cvar_SetValue ("lookstrafe", !lookstrafe.value);
+	//	break;
 
 #ifdef _WIN32
 	case 13:	// _windowed_mouse
@@ -1183,45 +1197,49 @@ void M_Options_Draw (void)
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_option.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
+	
+	
+	int yiter = 32;
+	
+	//M_Print (16, yiter, "    Customize controls"); yiter += 8;
+	//M_Print (16, yiter, "         Go to console"); yiter += 8;
+	//M_Print (16, yiter, "     Reset to defaults"); yiter += 8;
 
-	M_Print (16, 32, "    Customize controls");
-	M_Print (16, 40, "         Go to console");
-	M_Print (16, 48, "     Reset to defaults");
-
-	M_Print (16, 56, "           Screen size");
+	
+	M_Print (16, yiter, "           Screen size");
 	r = (scr_viewsize.value - 30) / (120 - 30);
-	M_DrawSlider (220, 56, r);
+	M_DrawSlider (220, yiter, r); yiter += 8;
 
-	M_Print (16, 64, "            Brightness");
+	M_Print (16, yiter, "            Brightness");
 	r = (1.0 - v_gamma.value) / 0.5;
-	M_DrawSlider (220, 64, r);
+	M_DrawSlider (220, yiter, r); yiter += 8;
 
-	M_Print (16, 72, "           Mouse Speed");
-	r = (sensitivity.value - 1)/10;
-	M_DrawSlider (220, 72, r);
+	//M_Print (16, yiter, "           Mouse Speed");
+	//r = (sensitivity.value - 1)/10;
+	//M_DrawSlider (220, yiter, r); yiter += 8;
 
-	M_Print (16, 80, "       CD Music Volume");
+	M_Print (16, yiter, "          Music Volume");
 	r = bgmvolume.value;
-	M_DrawSlider (220, 80, r);
+	M_DrawSlider (220, yiter, r); yiter += 8;
 
-	M_Print (16, 88, "          Sound Volume");
+	M_Print (16, yiter, "          Sound Volume");
 	r = volume.value;
-	M_DrawSlider (220, 88, r);
+	M_DrawSlider (220, yiter, r); yiter += 8;
 
-	M_Print (16, 96,  "            Always Run");
-	M_DrawCheckbox (220, 96, cl_forwardspeed.value > 200);
+	//M_Print (16, yiter,  "            Always Run");
+	//M_DrawCheckbox (220, yiter, cl_forwardspeed.value > 200); yiter += 8;
 
-	M_Print (16, 104, "          Invert Mouse");
-	M_DrawCheckbox (220, 104, m_pitch.value < 0);
+	//M_Print (16, yiter, "          Invert Mouse");
+	//M_DrawCheckbox (220, yiter, m_pitch.value < 0); yiter += 8;
 
-	M_Print (16, 112, "            Lookspring");
-	M_DrawCheckbox (220, 112, lookspring.value);
+	//M_Print (16, yiter, "            Lookspring");
+	//M_DrawCheckbox (220, yiter, lookspring.value); yiter += 8;
 
-	M_Print (16, 120, "            Lookstrafe");
-	M_DrawCheckbox (220, 120, lookstrafe.value);
+	//M_Print (16, yiter, "            Lookstrafe");
+	//M_DrawCheckbox (220, yiter, lookstrafe.value); yiter += 8;
 
-	if (vid_menudrawfn)
-		M_Print (16, 128, "         Video Options");
+	//if (vid_menudrawfn)
+	//{M_Print (16, yiter, "         Video Options"); yiter += 8;}
 
 #ifdef _WIN32
 	if (modestate == MS_WINDOWED)
@@ -1241,31 +1259,33 @@ void M_Options_Key (int k)
 	switch (k)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Main_f ();
 		break;
 
-	case K_ENTER:
-		m_entersound = true;
-		switch (options_cursor)
-		{
-		case 0:
-			M_Menu_Keys_f ();
-			break;
-		case 1:
-			m_state = m_none;
-			Con_ToggleConsole_f ();
-			break;
-		case 2:
-			Cbuf_AddText ("exec default.cfg\n");
-			break;
-		case 12:
-			M_Menu_Video_f ();
-			break;
-		default:
-			M_AdjustSliders (1);
-			break;
-		}
-		return;
+	//case K_ENTER:
+	//case 'a':
+		//m_entersound = true;
+		//switch (options_cursor)
+		//{
+		//case 0:
+		//	M_Menu_Keys_f ();
+		//	break;
+		//case 1:
+		//	m_state = m_none;
+		//	Con_ToggleConsole_f ();
+		//	break;
+		//case 2:
+		//	Cbuf_AddText ("exec default.cfg\n");
+		//	break;
+		//case 12:
+		//	M_Menu_Video_f ();
+		//	break;
+		//default:
+		//	M_AdjustSliders (1);
+		//	break;
+		//}
+		//return;
 
 	case K_UPARROW:
 		S_LocalSound ("misc/menu1.wav");
@@ -1468,6 +1488,7 @@ void M_Keys_Key (int k)
 	switch (k)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Options_f ();
 		break;
 
@@ -1488,6 +1509,7 @@ void M_Keys_Key (int k)
 		break;
 
 	case K_ENTER:		// go into bind mode
+	case 'a':
 		M_FindKeysForCommand (bindnames[keys_cursor][0], keys);
 		S_LocalSound ("misc/menu2.wav");
 		if (keys[1] != -1)
@@ -1553,6 +1575,7 @@ void M_Help_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Main_f ();
 		break;
 
@@ -1644,6 +1667,7 @@ void M_Quit_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 	case 'n':
 	case 'N':
 		if (wasInMenus)
@@ -1658,6 +1682,7 @@ void M_Quit_Key (int key)
 		}
 		break;
 
+	case 'a':
 	case 'Y':
 	case 'y':
 		key_dest = key_console;
@@ -1845,6 +1870,7 @@ void M_SerialConfig_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Net_f ();
 		break;
 
@@ -1926,6 +1952,7 @@ forward:
 		break;
 
 	case K_ENTER:
+	case 'a':
 		if (serialConfig_cursor < 3)
 			goto forward;
 
@@ -2071,6 +2098,7 @@ void M_ModemConfig_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_SerialConfig_f ();
 		break;
 
@@ -2101,6 +2129,7 @@ void M_ModemConfig_Key (int key)
 		break;
 
 	case K_ENTER:
+	case 'a':
 		if (modemConfig_cursor == 0)
 		{
 			if (modemConfig_dialing == 'P')
@@ -2273,6 +2302,7 @@ void M_LanConfig_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Net_f ();
 		break;
 
@@ -2291,6 +2321,7 @@ void M_LanConfig_Key (int key)
 		break;
 
 	case K_ENTER:
+	case 'a':
 		if (lanConfig_cursor == 0)
 			break;
 
@@ -2777,6 +2808,7 @@ void M_GameOptions_Key (int key)
 	switch (key)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_Net_f ();
 		break;
 
@@ -2809,6 +2841,7 @@ void M_GameOptions_Key (int key)
 		break;
 
 	case K_ENTER:
+	case 'a':
 		S_LocalSound ("misc/menu2.wav");
 		if (gameoptions_cursor == 0)
 		{
@@ -2957,6 +2990,7 @@ void M_ServerList_Key (int k)
 	switch (k)
 	{
 	case K_ESCAPE:
+	case 'b':
 		M_Menu_LanConfig_f ();
 		break;
 
@@ -2981,6 +3015,7 @@ void M_ServerList_Key (int k)
 		break;
 
 	case K_ENTER:
+	case 'a':
 		S_LocalSound ("misc/menu2.wav");
 		m_return_state = m_state;
 		m_return_onerror = true;
