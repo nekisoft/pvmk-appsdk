@@ -88,7 +88,7 @@ void I_StartTic (void)
 				[_SC_BTNIDX_R] = '.',
 				
 				[_SC_BTNIDX_START] = KEY_ENTER,
-				[_SC_BTNIDX_SELECT] = KEY_ESCAPE,
+				//[_SC_BTNIDX_SELECT] = KEY_ESCAPE,
 				
 				[_SC_BTNIDX_A] = KEY_RCTRL,
 				[_SC_BTNIDX_B] = KEY_RSHIFT,
