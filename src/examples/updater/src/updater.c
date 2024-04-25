@@ -219,6 +219,10 @@ int main(int argc, const char **argv)
 	uint32_t free_start = sizeof_flashrom - sizeof_image;
 	free_start -= free_start % 1048576;
 	
+	//The NVMs system uses 4 megabytes starting 1 meg in, and we have to start past that.
+	if(free_start < (5*1024*1024))
+		failure("No room for update image!");
+
 	text_printf("Writing 0x%X bytes at 0x%X.\n", sizeof_image, free_start);
 	fliptext(0x10);
 	
