@@ -58,8 +58,8 @@ void osd_update_input(void)
 			if(ii.buttons & _SC_BTNBIT_Z)
 				system_reset();
 		
-			if(ii.buttons & _SC_BTNBIT_SELECT)
-				time_to_exit = true;
+			//if(ii.buttons & _SC_BTNBIT_SELECT)
+			//	time_to_exit = true;
 		}
 		
 		if(ii.format == 'A' || ii.format == 'B')
