@@ -45,6 +45,10 @@ static volatile const void *_sdlsc_video_enq_buffer;
 //Buffer from video ISR to video syscall
 static volatile const void *_sdlsc_video_buffer_displayed;
 
+//State of simulated gamepad
+static int _sc_input_last = 0;
+static int _sc_input_count = 0;
+
 //SDL thread simulating video scanout / ISRs
 static SDL_Thread *_sdlsc_video_thread;
 int _sdlsc_video_function(void *dummy)
@@ -117,6 +121,9 @@ int _sdlsc_video_function(void *dummy)
 			
 			//After SDL says the screen is presented, then, their buffer is the one displayed.
 			_sdlsc_video_buffer_displayed = newbuf;
+			
+			//Update input once per frame
+			_sc_input_count++;
 		}
 		else
 		{
@@ -197,10 +204,6 @@ int _sc_snd_play(int mode, const void *chunk, int chunkbytes, int maxbuf)
 
 	return 0;
 }
-
-//State of simulated gamepad
-static int _sc_input_last = 0;
-static int _sc_input_count = 0;
 
 int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max)
 {
