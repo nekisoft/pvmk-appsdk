@@ -177,16 +177,16 @@ int main(int argc, const char **argv)
 	fliptext(0x10);
 	
 	//Load update image...
-	int update_fd = open("pvmk_arm.bin", O_RDONLY);
+	int update_fd = open("pvmk_upd/pvmk_arm.bin", O_RDONLY);
 	if(update_fd < 0)
-		failure("Cannot open pvmk_arm.bin");
+		failure("Cannot open pvmk_upd/pvmk_arm.bin");
 	
 	ssize_t nread = read(update_fd, image_buf, sizeof(image_buf));
 	if(nread < 0)
-		failure("Cannot read pvmk_arm.bin");
+		failure("Cannot read pvmk_upd/pvmk_arm.bin");
 	
 	if(nread < 131072)
-		failure("Short read of pvmk_arm.bin");	
+		failure("Short read of pvmk_upd/pvmk_arm.bin");	
 	
 	//The update, implicitly, starts at 0x10000.
 	//Find where the update actually ends.
