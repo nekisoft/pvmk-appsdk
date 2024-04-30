@@ -65,14 +65,19 @@ int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max);
 void _sc_pause(void);
 int _sc_getticks(void);
 
+//NVM
+int _sc_nvm_save(const void *buf, int len);
+int _sc_nvm_load(void *buf, int len);
+
 //Error codes used in the shim
 #define _SC_EINVAL       22 //Invalid argument.
 #define _SC_EAGAIN       11 //Resource unavailable, try again (may be the same value as EWOULDBLOCK).
 #define _SC_ENOMEM       12 //Not enough space.
+#define _SC_ENOENT        2 //No such file or directory.
 
 #if 0
 #define _SC_EPERM         1 //Operation not permitted.
-#define _SC_ENOENT        2 //No such file or directory.
+
 #define _SC_ESRCH         3 //No such process.
 #define _SC_EINTR         4 //Interrupted function.
 #define _SC_EIO           5 //I/O error.

@@ -18,6 +18,8 @@ int _use_sdlsc_dummy = 0;
 #include <SDL.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 //Whether the simulated system-call layer wants to exit
 static bool _sdlsc_done;
@@ -286,6 +288,36 @@ int _sc_getticks(void)
 {
 	_sdlsc_require_sdlinit(SDL_INIT_TIMER);
 	return SDL_GetTicks();
+}
+
+int _sc_nvm_save(const void *buf, int len)
+{
+	int fd = open(".nvm.bin", O_WRONLY | O_CREAT, 0666);
+	if(fd > 0)
+	{
+		write(fd, buf, len);
+		close(fd);
+		return 0;
+	}
+	else
+	{
+		return -_SC_ENOENT;
+	}
+}
+
+int _sc_nvm_load(void *buf, int len)
+{
+	int fd = open(".nvm.bin", O_RDONLY);
+	if(fd > 0)
+	{
+		read(fd, buf, len);
+		close(fd);
+		return 0;
+	}
+	else
+	{
+		return -_SC_ENOENT;
+	}
 }
 
 #endif //USE_SDLSC
