@@ -26,8 +26,6 @@
 #include "doomdef.h"
 #include "d_event.h"
 
-
-
 //
 // GAME
 //
@@ -44,7 +42,8 @@ void G_DeferedPlayDemo (char* demo);
 
 // Can be called by the startup code or M_Responder,
 // calls P_SetupLevel or W_EnterWorld.
-void G_LoadGame (char* name);
+//void G_LoadGame (char* name);
+void G_LoadGameNvm(unsigned char *buf16);
 
 void G_DoLoadGame (void);
 

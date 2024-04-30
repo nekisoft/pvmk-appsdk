@@ -62,6 +62,10 @@
 
 #include "m_menu.h"
 
+#include <sc.h>
+#include "nvmsave.h"
+
+
 
 
 extern patch_t*		hu_font[HU_FONTSIZE];
@@ -255,7 +259,7 @@ menuitem_t MainMenu[]=
     {1,"M_ENDGAM",M_EndGame,'e'}, //{1,"M_OPTION",M_Options,'o'},
     
     {1,"M_LOADG",M_LoadGame,'l'},
-    {1,"M_SAVEG",M_SaveGame,'s'},
+    {1,"M_SAVEG",M_SaveGame,'s'}, //Neki - only allow saving at beginning of level
     // Another hickup with Special edition.
     {1,"M_RDTHIS",M_ReadThis,'r'},
   //  {1,"M_QUITG",M_QuitDOOM,'q'} //Neki - no need for quit on a console
@@ -463,6 +467,14 @@ enum
     load_end
 } load_e;
 
+
+typedef struct nvm_s
+{
+	uint8_t saves[load_end][16];
+	uint8_t save_pending[16];
+} nvm_t;
+nvm_t nvm;
+
 menuitem_t LoadMenu[]=
 {
     {1,"", M_LoadSelect,'1'},
@@ -506,6 +518,41 @@ menu_t  SaveDef =
     0
 };
 
+//Generates a savegame name from an NVM save
+//Returns 0 on success or negative on error
+static int M_DecodeNvmSaveName(const uint8_t *nvmbuf, char *out)
+{
+	player_t player_state = {0};
+	int episode = 0;
+	int map = 0;
+	int skill = 0;
+
+	if(nvmsave_decode(nvmbuf, &player_state, &episode, &map, &skill) < 0)
+	{
+		strcpy(&out[0],EMPTYSTRING);
+		return -1;
+	}
+
+	if(gamemode == commercial)
+		snprintf(out, sizeof(savegamestrings[0])-1, "MAP%2.2d", map+1);
+	else
+		snprintf(out, sizeof(savegamestrings[0])-1, " E%1.1dM%1.1d", episode+1, map+1);
+
+	const char *diffs[5] = 
+	{
+		"TYD",
+		"NTR",
+		"HMP",
+		"U-V",
+		"NM!",
+	};
+
+	snprintf(out + 5, sizeof(savegamestrings[0])-6, 
+	" (%s) %3dH %3dA", diffs[skill], player_state.health, player_state.armorpoints);	
+	
+	return 0;
+}
+
 
 //
 // M_ReadSaveStrings
@@ -516,7 +563,7 @@ void M_ReadSaveStrings(void)
     int             handle;
     int             i;
     char    name[256];
-	
+/*	
     for (i = 0;i < load_end;i++)
     {
 	if (M_CheckParm("-cdrom"))
@@ -534,6 +581,16 @@ void M_ReadSaveStrings(void)
 	read (handle, &savegamestrings[i], SAVESTRINGSIZE);
 	close (handle);
 	LoadMenu[i].status = 1;
+    }
+    */
+    
+    _sc_nvm_load(&nvm, sizeof(nvm));
+    for(int i = 0; i < load_end; i++)
+    {
+	if(M_DecodeNvmSaveName(nvm.saves[i], savegamestrings[i]) < 0)
+		LoadMenu[i].status = 0;
+	else
+		LoadMenu[i].status = 1;
     }
 }
 
@@ -586,7 +643,10 @@ void M_LoadSelect(int choice)
 	sprintf(name,"c:\\doomdata\\"SAVEGAMENAME"%d.dsg",choice);
     else
 	sprintf(name,SAVEGAMENAME"%d.dsg",choice);
-    G_LoadGame (name);
+//    G_LoadGame (name);
+    
+    G_LoadGameNvm(nvm.saves[choice]);
+    
     M_ClearMenus ();
 }
 
@@ -633,12 +693,15 @@ void M_DrawSave(void)
 //
 void M_DoSave(int slot)
 {
-    G_SaveGame (slot,savegamestrings[slot]);
+    //G_SaveGame (slot,savegamestrings[slot]);
     M_ClearMenus ();
 
     // PICK QUICKSAVE SLOT YET?
     if (quickSaveSlot == -2)
 	quickSaveSlot = slot;
+    
+    memcpy(nvm.saves[slot], nvm.save_pending, sizeof(nvm.saves[slot]));
+    _sc_nvm_save(&nvm, sizeof(nvm));
 }
 
 //
@@ -655,7 +718,7 @@ void M_SaveSelect(int choice)
 	savegamestrings[choice][0] = 0;
     
     //neki32 - offer a reasonable savegame name instead of typing it
-    
+    /*
     char key_blue = '_';
     if(players[0].cards[it_bluecard])
 	    key_blue = 'b';
@@ -699,7 +762,9 @@ void M_SaveSelect(int choice)
 		key_blue, key_yellow, key_red
 	    );	    
     }
-	    
+	*/
+	
+	M_DecodeNvmSaveName(nvm.save_pending, savegamestrings[choice]);
     
     saveCharIndex = strlen(savegamestrings[choice]);
 }
@@ -719,20 +784,8 @@ void M_SaveGame (int choice)
     if (gamestate != GS_LEVEL)
 	return;
     
-    
-    // Password save  =======================
-    #if 0
-    if(savepassword[0] == '\0')
-    {
-	    M_StartMessage("This is the first level.\n\nYou haven't done anything yet!\n\nPress any button.", NULL, false);
+    if(nvm.save_pending[12] != 'S')
 	    return;
-    }
-    
-    M_StartMessage(savepassword, NULL, false);
-    return;
-    #endif
-    // ======================================
-    
 	
     M_SetupNextMenu(&SaveDef);
     M_ReadSaveStrings();
@@ -1072,7 +1125,7 @@ void M_EndGameResponse(int ch)
     M_ClearMenus ();
     D_StartTitle ();
     
-    M_SetPassword("");
+    memset(nvm.save_pending, 0, sizeof(nvm.save_pending));
 }
 
 void M_EndGame(int choice)
@@ -1986,8 +2039,14 @@ void M_SetPassword(const char *str)
 		return;
 	}
 	
-	snprintf(savepassword, sizeof(savepassword)-1, 
-		"Your password for this level:\n\n%.5s  %.5s\n\n%.5s  %.5s\n\nPress any button.",
-		str + 0, str + 5, str + 10, str + 15);
+	//snprintf(savepassword, sizeof(savepassword)-1, 
+	//	"Your password for this level:\n\n%.5s  %.5s\n\n%.5s  %.5s\n\nPress any button.",
+	//	str + 0, str + 5, str + 10, str + 15);
+	
+	//strncpy(savepassword, str, sizeof(savepassword));
 }
 
+void M_SetNvmSaveData(const unsigned char *buf)
+{
+	memcpy(nvm.save_pending, buf, sizeof(nvm.save_pending));
+}

@@ -68,6 +68,8 @@
 
 #include "g_game.h"
 
+#include "nvmsave.h"
+
 
 #define SAVEGAMESIZE	0x2c000
 #define SAVESTRINGSIZE	24
@@ -763,19 +765,6 @@ void G_InitPlayer (int player)
     G_PlayerReborn (player); 
 	 
 } 
- 
- 
-//Clamps value for making save password
-static int clampval(int val, int min, int max)
-{
-	if(val < min)
-		return min;
-	if(val > max)
-		return max;
-	
-	return val;
-}
-
 
 //
 // G_PlayerFinishLevel
@@ -1144,91 +1133,10 @@ void G_DoCompleted (void)
 	
     WI_Start (&wminfo); 
     
-
-    // ========================================
-    // Password Save System - Generate Password
-    // ========================================
-	player_t *p = &players[consoleplayer]; 	
-
-	//64-bit value for arithmetic encoding of player state
-	uint64_t password_first = 0;
-	password_first = (password_first * 201) + clampval(p->health,                       0, 200);
-	password_first = (password_first * 201) + clampval(p->armorpoints,                  0, 200);
-	password_first = (password_first * 401) + clampval(p->ammo[am_clip],                0, 400);
-	password_first = (password_first * 101) + clampval(p->ammo[am_shell],               0, 100);
-	password_first = (password_first * 601) + clampval(p->ammo[am_cell],                0, 600);
-	password_first = (password_first * 101) + clampval(p->ammo[am_misl],                0, 100);
-	password_first = (password_first *   2) + clampval(p->backpack,                     0, 1);
-	password_first = (password_first *   2) + clampval(p->didsecret,                    0, 1);
-	password_first = (password_first *   3) + clampval(p->armortype,                    0, 2);
-	password_first = (password_first *   2) + clampval(p->weaponowned[wp_shotgun],      0, 1);
-	password_first = (password_first *   2) + clampval(p->weaponowned[wp_chaingun],     0, 1);
-	password_first = (password_first *   2) + clampval(p->weaponowned[wp_missile],      0, 1);
-	password_first = (password_first *   2) + clampval(p->weaponowned[wp_plasma],       0, 1);
-	password_first = (password_first *   2) + clampval(p->weaponowned[wp_bfg],          0, 1);
-	password_first = (password_first *   2) + clampval(p->weaponowned[wp_chainsaw],     0, 1);
-	password_first = (password_first *   2) + clampval(p->weaponowned[wp_supershotgun], 0, 1);
-	password_first = (password_first *  10) + clampval(p->readyweapon,                  0, 9);
-	password_first = (password_first *   2) + clampval(p->cheats & CF_GODMODE,          0, 1);
-
-	//8-bit value for next map and difficulty
-	uint32_t password_second = 0;
-	password_second = (wminfo.epsd * 10) + wminfo.next; //0 to 31 for doom2, 0 to 38 for doomu
-	password_second = (password_second * 5) + clampval(gameskill, 0, 4);
-
-	//8-bit checksum
-	uint8_t password_cksum = password_second;
-	for(int bb = 0; bb < 8; bb++)
-	{
-		password_cksum ^= password_first >> (8 * bb);
-	}
-
-	//Split into bytes
-	uint8_t password_bytes[10] =
-	{
-		(password_first  >>  0) & 0xFF,
-		(password_first  >>  8) & 0xFF,
-		(password_first  >> 16) & 0xFF,
-		(password_first  >> 24) & 0xFF,
-		(password_second >>  0) & 0xFF,
-		(password_cksum  >>  0) & 0xFF,
-		(password_first  >> 32) & 0xFF,
-		(password_first  >> 40) & 0xFF,
-		(password_first  >> 48) & 0xFF,
-		(password_first  >> 56) & 0xFF,
-	};
-
-	//Encode as string, spreading bytes across characters
-	uint8_t password_vals[20] = 
-	{
-		(password_bytes[0] >> 0) & 0xF,
-		(password_bytes[2] >> 4) & 0xF,
-		(password_bytes[4] >> 0) & 0xF,
-		(password_bytes[6] >> 4) & 0xF,
-		(password_bytes[8] >> 0) & 0xF,
-		(password_bytes[0] >> 4) & 0xF,
-		(password_bytes[2] >> 0) & 0xF,
-		(password_bytes[4] >> 4) & 0xF,
-		(password_bytes[6] >> 0) & 0xF,
-		(password_bytes[8] >> 4) & 0xF,
-		(password_bytes[9] >> 0) & 0xF,
-		(password_bytes[7] >> 4) & 0xF,
-		(password_bytes[5] >> 0) & 0xF,
-		(password_bytes[3] >> 4) & 0xF,
-		(password_bytes[1] >> 0) & 0xF,
-		(password_bytes[9] >> 4) & 0xF,
-		(password_bytes[7] >> 0) & 0xF,
-		(password_bytes[5] >> 4) & 0xF,
-		(password_bytes[3] >> 0) & 0xF,
-		(password_bytes[1] >> 4) & 0xF,
-	};
-
-	char strbuf[21] = {0};
-	for(int vv = 0; vv < 20; vv++)
-	{
-		strbuf[vv] = "DCFGHKLMNPRTVWXZ"[password_vals[vv]];
-	}
-	M_SetPassword(strbuf);
+    //Generate data for NVM saving
+    unsigned char nvmbuf[16];
+    nvmsave_encode(nvmbuf, &players[consoleplayer], wminfo.epsd, wminfo.next, gameskill);
+    M_SetNvmSaveData(nvmbuf);
 } 
 
 
@@ -1281,17 +1189,28 @@ void R_ExecuteSetViewSize (void);
 
 char	savename[256];
 
-void G_LoadGame (char* name) 
-{ 
-    strcpy (savename, name); 
-    gameaction = ga_loadgame; 
-} 
+static unsigned char savenvm[16];
+
+//void G_LoadGame (char* name) 
+//{ 
+    //strcpy (savename, name); 
+    //gameaction = ga_loadgame; 
+//} 
+
+void G_LoadGameNvm(unsigned char *buf16)
+{
+	memcpy(savenvm, buf16, sizeof(savenvm));
+	gameaction = ga_loadgame; 
+}
+
+
  
 #define VERSIONSIZE		16 
 
 
 void G_DoLoadGame (void) 
 { 
+	/*
     int		i; 
     int		a,b,c; 
     char	vcheck[VERSIONSIZE]; 
@@ -1339,7 +1258,56 @@ void G_DoLoadGame (void)
 	R_ExecuteSetViewSize ();
     
     // draw the pattern into the back screen
-    R_FillBackScreen ();   
+    R_FillBackScreen ();  
+
+*/
+
+//nvm load
+	gameaction = ga_nothing;
+	
+	int episode, level, skill;
+	player_t ps = {0};
+	if(nvmsave_decode(savenvm, &ps, &episode, &level, &skill) < 0)
+		return;
+	
+	memset(playeringame, 0, sizeof(playeringame));
+	playeringame[0] = 1;
+	
+
+	
+	G_InitNew(skill, episode+1, level+1);
+	leveltime = 0;
+	
+	//restore player state
+	players[0].health      = ps.health;
+	players[0].armorpoints = ps.armorpoints;
+	memcpy(players[0].ammo, ps.ammo, sizeof(players[0].ammo));
+	players[0].backpack = ps.backpack;
+	players[0].didsecret = ps.didsecret;
+	players[0].armortype = ps.armortype;
+	memcpy(players[0].weaponowned, ps.weaponowned, sizeof(players[0].weaponowned));
+	players[0].pendingweapon = ps.readyweapon;
+	players[0].cheats = ps.cheats;
+	
+
+	//set ammo for backpack
+	if(players[0].backpack)
+	{
+		for (i=0 ; i<NUMAMMO ; i++)
+			players[0].maxammo[i] *= 2;
+	}
+	
+	//force weapon to start ready
+	for(int ss = 0; ss < 100; ss++)
+	{
+		P_MovePsprites(&players[0]);
+	}
+	
+	
+    if (setsizeneeded)
+	R_ExecuteSetViewSize ();
+
+    R_FillBackScreen ();  
 } 
  
 

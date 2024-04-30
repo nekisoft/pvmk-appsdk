@@ -55,8 +55,8 @@ void M_Init (void);
 void M_StartControlPanel (void);
 
 
-//Sets the password displayed in the menu
-void M_SetPassword(const char *str);
+//Sets the NVM compressed savegame to save at the save menu
+void M_SetNvmSaveData(const unsigned char *buf);
 
 
 
