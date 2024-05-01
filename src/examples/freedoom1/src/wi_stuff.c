@@ -48,6 +48,7 @@
 #include "v_video.h"
 
 #include "wi_stuff.h"
+#include "m_menu.h"
 
 //
 // Data needed to add patches to full screen intermission pics.
@@ -732,11 +733,19 @@ void WI_initNoState(void)
     state = NoState;
     acceleratestage = 0;
     cnt = 10;
+	
+	//Neki - pop savegame menu at the end of the level
+	event_t phony_ev = { .type = ev_keydown, .data1 = KEY_F2 };
+	M_Responder(&phony_ev);
 }
 
 void WI_updateNoState(void) {
 
     WI_updateAnimatedBack();
+	
+	//Neki - Don't progress while the save menu is still up
+	if(menuactive)
+		cnt = 10;
 
     if (!--cnt)
     {

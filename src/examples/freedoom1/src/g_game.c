@@ -1293,7 +1293,7 @@ void G_DoLoadGame (void)
 	//set ammo for backpack
 	if(players[0].backpack)
 	{
-		for (i=0 ; i<NUMAMMO ; i++)
+		for (int i=0 ; i<NUMAMMO ; i++)
 			players[0].maxammo[i] *= 2;
 	}
 	

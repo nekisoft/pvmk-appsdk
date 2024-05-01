@@ -207,6 +207,7 @@ void M_Sound(int choice);
 void M_FinishReadThis(int choice);
 void M_LoadSelect(int choice);
 void M_SaveSelect(int choice);
+void M_SaveCancel(int choice);
 void M_ReadSaveStrings(void);
 void M_QuickSave(void);
 void M_QuickLoad(void);
@@ -243,9 +244,9 @@ void M_ClearMenus (void);
 enum
 {
     newgame = 0,
-    options,
+  //  options,
     loadgame,
-    savegame,
+  //  savegame,
     readthis,
   //  quitdoom,
     main_end
@@ -256,10 +257,10 @@ menuitem_t MainMenu[]=
     {1,"M_NGAME",M_NewGame,'n'},
     
     //Neki - options menu is generally useless, just put "end game" on the main menu instead
-    {1,"M_ENDGAM",M_EndGame,'e'}, //{1,"M_OPTION",M_Options,'o'},
+ //   {1,"M_ENDGAM",M_EndGame,'e'}, //{1,"M_OPTION",M_Options,'o'},
     
     {1,"M_LOADG",M_LoadGame,'l'},
-    {1,"M_SAVEG",M_SaveGame,'s'}, //Neki - only allow saving at beginning of level
+  //  {1,"M_SAVEG",M_SaveGame,'s'}, //Neki - only allow saving at beginning of level
     // Another hickup with Special edition.
     {1,"M_RDTHIS",M_ReadThis,'r'},
   //  {1,"M_QUITG",M_QuitDOOM,'q'} //Neki - no need for quit on a console
@@ -471,9 +472,9 @@ enum
 typedef struct nvm_s
 {
 	uint8_t saves[load_end][16];
-	uint8_t save_pending[16];
 } nvm_t;
 nvm_t nvm;
+uint8_t nvm_save_pending[16];
 
 menuitem_t LoadMenu[]=
 {
@@ -505,16 +506,17 @@ menuitem_t SaveMenu[]=
     {1,"", M_SaveSelect,'3'},
     {1,"", M_SaveSelect,'4'},
     {1,"", M_SaveSelect,'5'},
-    {1,"", M_SaveSelect,'6'}
+    {1,"", M_SaveSelect,'6'},
+    {1,"", M_SaveCancel,'C'},
 };
 
 menu_t  SaveDef =
 {
-    load_end,
+    load_end+1,
     &MainDef,
     SaveMenu,
     M_DrawSave,
-    80,54,
+    80,54+24,
     0
 };
 
@@ -532,11 +534,21 @@ static int M_DecodeNvmSaveName(const uint8_t *nvmbuf, char *out)
 		strcpy(&out[0],EMPTYSTRING);
 		return -1;
 	}
+	
+	if(episode < 0)
+		episode = 0;
+	if(episode > 3)
+		episode = 3;
+	
+	if(map < 0)
+		map = 0;
+	if(map > 31)
+		map = 31;
 
 	if(gamemode == commercial)
-		snprintf(out, sizeof(savegamestrings[0])-1, "MAP%2.2d", map+1);
+		snprintf(out, SAVESTRINGSIZE-1, "MAP%2.2d", map+1);
 	else
-		snprintf(out, sizeof(savegamestrings[0])-1, " E%1.1dM%1.1d", episode+1, map+1);
+		snprintf(out, SAVESTRINGSIZE-1, " E%1.1dM%1.1d", episode+1, map+1);
 
 	const char *diffs[5] = 
 	{
@@ -547,7 +559,7 @@ static int M_DecodeNvmSaveName(const uint8_t *nvmbuf, char *out)
 		"NM!",
 	};
 
-	snprintf(out + 5, sizeof(savegamestrings[0])-6, 
+	snprintf(out + 5, SAVESTRINGSIZE-6, 
 	" (%s) %3dH %3dA", diffs[skill], player_state.health, player_state.armorpoints);	
 	
 	return 0;
@@ -560,9 +572,9 @@ static int M_DecodeNvmSaveName(const uint8_t *nvmbuf, char *out)
 //
 void M_ReadSaveStrings(void)
 {
-    int             handle;
-    int             i;
-    char    name[256];
+  //  int             handle;
+//    int             i;
+//    char    name[256];
 /*	
     for (i = 0;i < load_end;i++)
     {
@@ -584,7 +596,7 @@ void M_ReadSaveStrings(void)
     }
     */
     
-    _sc_nvm_load(&nvm, sizeof(nvm));
+    _sc_nvm_load(&nvm, sizeof(nvm));    
     for(int i = 0; i < load_end; i++)
     {
 	if(M_DecodeNvmSaveName(nvm.saves[i], savegamestrings[i]) < 0)
@@ -600,14 +612,44 @@ void M_ReadSaveStrings(void)
 //
 void M_DrawLoad(void)
 {
-    int             i;
-	
-    V_DrawPatchDirect (72,28,0,W_CacheLumpName("M_LOADG",PU_CACHE));
-    for (i = 0;i < load_end; i++)
-    {
-	M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
-	M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,savegamestrings[i]);
-    }
+	int             i;
+
+	V_DrawPatchDirect (72,28,0,W_CacheLumpName("M_LOADG",PU_CACHE));
+	for (i = 0;i < load_end; i++)
+	{
+		M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
+		M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,savegamestrings[i]);
+	}
+    
+	player_t player_state = {0};
+	int episode = 0;
+	int map = 0;
+	int skill = 0;
+	if(nvmsave_decode(nvm.saves[itemOn], &player_state, &episode, &map, &skill) >= 0)
+	{
+		static char descriptions[256];
+		snprintf(descriptions, sizeof(descriptions)-1,
+			"HEALTH: %3d  ARMOR: %3d\n"
+			"BULLET: %3d  SHELL: %3d\n"
+			"ROCKET: %3d  CELLS: %3d\n"
+			"WEAPON: %c%c%c%c%c%c%c",
+		
+			player_state.health, player_state.armorpoints,
+			player_state.ammo[am_clip],
+			player_state.ammo[am_shell],
+			player_state.ammo[am_misl],
+			player_state.ammo[am_cell],
+			player_state.weaponowned[wp_shotgun]      ? 'S' : '_',
+			player_state.weaponowned[wp_chaingun]     ? 'C' : '_',
+			player_state.weaponowned[wp_missile]      ? 'R' : '_',
+			player_state.weaponowned[wp_plasma]       ? 'P' : '_',
+			player_state.weaponowned[wp_bfg]          ? 'B' : '_',
+			player_state.weaponowned[wp_supershotgun] ? 'S' : '_',
+			player_state.weaponowned[wp_chainsaw]     ? 'Z' : '_'
+		);
+
+		M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*load_end,descriptions);
+	}
 }
 
 
@@ -674,18 +716,20 @@ void M_DrawSave(void)
 {
     int             i;
 	
-    V_DrawPatchDirect (72,28,0,W_CacheLumpName("M_SAVEG",PU_CACHE));
+    V_DrawPatchDirect (72,28+24,0,W_CacheLumpName("M_SAVEG",PU_CACHE));
     for (i = 0;i < load_end; i++)
     {
-	M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
-	M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,savegamestrings[i]);
+	M_DrawSaveLoadBorder(SaveDef.x,SaveDef.y+LINEHEIGHT*i);
+	M_WriteText(SaveDef.x,SaveDef.y+LINEHEIGHT*i,savegamestrings[i]);
     }
 	
     if (saveStringEnter)
     {
 	i = M_StringWidth(savegamestrings[saveSlot]);
-	M_WriteText(LoadDef.x + i,LoadDef.y+LINEHEIGHT*saveSlot," (OK?)"); //neki
+	M_WriteText(SaveDef.x + i,SaveDef.y+LINEHEIGHT*saveSlot," (OK?)"); //neki
     }
+    
+    M_WriteText(SaveDef.x,SaveDef.y+LINEHEIGHT*load_end,"CONTINUE WITHOUT SAVING");
 }
 
 //
@@ -700,7 +744,7 @@ void M_DoSave(int slot)
     if (quickSaveSlot == -2)
 	quickSaveSlot = slot;
     
-    memcpy(nvm.saves[slot], nvm.save_pending, sizeof(nvm.saves[slot]));
+    memcpy(nvm.saves[slot], nvm_save_pending, sizeof(nvm.saves[slot]));
     _sc_nvm_save(&nvm, sizeof(nvm));
 }
 
@@ -764,9 +808,15 @@ void M_SaveSelect(int choice)
     }
 	*/
 	
-	M_DecodeNvmSaveName(nvm.save_pending, savegamestrings[choice]);
+	M_DecodeNvmSaveName(nvm_save_pending, savegamestrings[choice]);
     
     saveCharIndex = strlen(savegamestrings[choice]);
+}
+
+void M_SaveCancel(int choice)
+{
+	(void)choice;
+	M_ClearMenus();
 }
 
 //
@@ -781,10 +831,10 @@ void M_SaveGame (int choice)
 	return;
     }
 
-    if (gamestate != GS_LEVEL)
-	return;
+ //   if (gamestate != GS_LEVEL)
+//	return;
     
-    if(nvm.save_pending[12] != 'S')
+    if(nvm_save_pending[12] != 'S')
 	    return;
 	
     M_SetupNextMenu(&SaveDef);
@@ -1026,6 +1076,21 @@ void M_VerifyNightmare(int ch)
     M_ClearMenus ();
 }
 
+//Neki32 - prompt when trying to back out of savegame menu without saving
+void M_VerifySaveCancel(int ch)
+{
+	if(ch != 'y')
+	{
+		M_StartControlPanel();
+		S_StartSound(NULL,sfx_swtchn);
+		M_SaveGame(0);
+	}
+	else
+	{
+		M_ClearMenus();
+	}
+}
+
 void M_ChooseSkill(int choice)
 {
     if (choice == nightmare)
@@ -1125,7 +1190,7 @@ void M_EndGameResponse(int ch)
     M_ClearMenus ();
     D_StartTitle ();
     
-    memset(nvm.save_pending, 0, sizeof(nvm.save_pending));
+    memset(nvm_save_pending, 0, sizeof(nvm_save_pending));
 }
 
 void M_EndGame(int choice)
@@ -1592,7 +1657,7 @@ boolean M_Responder (event_t* ev)
 	 //   break;
 				
 	  case KEY_ESCAPE:
-	  case KEY_RALT:
+	  case KEY_RSHIFT:
 	    saveStringEnter = 0;
 	    strcpy(&savegamestrings[saveSlot][0],saveOldString);
 	    break;
@@ -1820,6 +1885,9 @@ boolean M_Responder (event_t* ev)
 	currentMenu->lastOn = itemOn;
 	if (currentMenu->prevMenu)
 	{
+		if(currentMenu == &SaveDef) //Don't allow backing out of the save menu accidentally
+			return true;
+		
 	    currentMenu = currentMenu->prevMenu;
 	    itemOn = currentMenu->lastOn;
 	    S_StartSound(NULL,sfx_swtchn);
@@ -2048,5 +2116,5 @@ void M_SetPassword(const char *str)
 
 void M_SetNvmSaveData(const unsigned char *buf)
 {
-	memcpy(nvm.save_pending, buf, sizeof(nvm.save_pending));
+	memcpy(nvm_save_pending, buf, sizeof(nvm_save_pending));
 }
