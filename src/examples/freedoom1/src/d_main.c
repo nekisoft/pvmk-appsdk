@@ -433,6 +433,13 @@ void D_PageTicker (void)
 //
 void D_PageDrawer (void)
 {
+	//Neki - FreeDoom looks like crap with a menu over a big page of text
+	if(menuactive)
+	{
+		V_DrawPatch (0,0, 0, W_CacheLumpName("INTERPIC", PU_CACHE));
+		return;
+	}
+	
     V_DrawPatch (0,0, 0, W_CacheLumpName(pagename, PU_CACHE));
 }
 

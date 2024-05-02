@@ -278,6 +278,7 @@ V_DrawPatch
     }
     
     //Super hack, again, to handle darkening screen if the menu is displayed
+    /*
 	extern boolean menuactive;
 	extern boolean inhelpscreens;
 	if(menuactive && !inhelpscreens)
@@ -290,6 +291,7 @@ V_DrawPatch
 			}
 		}
 	}
+    */
 } 
  
 //

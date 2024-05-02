@@ -272,7 +272,7 @@ menu_t  MainDef =
     NULL,
     MainMenu,
     M_DrawMainMenu,
-    97,64,
+    97,64+24,
     0
 };
 
@@ -548,7 +548,7 @@ static int M_DecodeNvmSaveName(const uint8_t *nvmbuf, char *out)
 	if(gamemode == commercial)
 		snprintf(out, SAVESTRINGSIZE-1, "MAP%2.2d", map+1);
 	else
-		snprintf(out, SAVESTRINGSIZE-1, " E%1.1dM%1.1d", episode+1, map+1);
+		snprintf(out, SAVESTRINGSIZE-1, "E%1.1dM%1.1d", episode+1, map+1);
 
 	const char *diffs[5] = 
 	{
@@ -559,7 +559,7 @@ static int M_DecodeNvmSaveName(const uint8_t *nvmbuf, char *out)
 		"NM!",
 	};
 
-	snprintf(out + 5, SAVESTRINGSIZE-6, 
+	snprintf(out + ((gamemode==commercial)?5:4), SAVESTRINGSIZE-6, 
 	" (%s) %3dH %3dA", diffs[skill], player_state.health, player_state.armorpoints);	
 	
 	return 0;
@@ -1064,6 +1064,7 @@ int     epi;
 
 void M_DrawEpisode(void)
 {
+	V_DrawPatchDirect (96,14,0,W_CacheLumpName("M_NEWG",PU_CACHE)); //Neki - not in original doom...?
     V_DrawPatchDirect (54,38,0,W_CacheLumpName("M_EPISOD",PU_CACHE));
 }
 
@@ -1894,9 +1895,12 @@ boolean M_Responder (event_t* ev)
 	}
 	else //neki32 - exit by hitting B from top-level
 	{
-            currentMenu->lastOn = itemOn;
-            M_ClearMenus ();
-            S_StartSound(NULL,sfx_swtchx);
+		if(usergame)
+		{
+			currentMenu->lastOn = itemOn;
+			M_ClearMenus ();
+			S_StartSound(NULL,sfx_swtchx);
+		}
 	}
 	return true;
 	
@@ -2075,8 +2079,8 @@ void M_Init (void)
         //  page. I use CREDIT as second page now, but
 	//  kept this hack for educational purposes.
 	//MainMenu[readthis] = MainMenu[quitdoom];
-	MainDef.numitems--;
-	MainDef.y += 8;
+	//MainDef.numitems--;
+	//MainDef.y += 8;
 	NewDef.prevMenu = &MainDef;
 	ReadDef1.routine = M_DrawReadThis1;
 	ReadDef1.x = 330;
