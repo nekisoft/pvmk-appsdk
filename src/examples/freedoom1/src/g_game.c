@@ -1289,6 +1289,9 @@ void G_DoLoadGame (void)
 	players[0].pendingweapon = ps.readyweapon;
 	players[0].cheats = ps.cheats;
 	
+	if(players[0].mo)
+		players[0].mo->health = ps.health;
+	
 
 	//set ammo for backpack
 	if(players[0].backpack)
