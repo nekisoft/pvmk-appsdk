@@ -278,7 +278,7 @@ void P_PlayerThink (player_t* player)
     if (cmd->buttons & BT_SPECIAL)
 	cmd->buttons = 0;			
 		
-    if (cmd->buttons & BT_CHANGE)
+    if ( (cmd->buttons & BT_CHANGE) && !player->changedown)
     {
 	// The actual changing of the weapon is done
 	//  when the weapon psprite can do it
@@ -296,7 +296,7 @@ void P_PlayerThink (player_t* player)
 			break;
 	}
 	
-	
+	/*
 	if (newweapon == wp_fist
 	    && player->weaponowned[wp_chainsaw]
 	    && !(player->readyweapon == wp_chainsaw
@@ -312,7 +312,7 @@ void P_PlayerThink (player_t* player)
 	{
 	    newweapon = wp_supershotgun;
 	}
-	
+	*/
 
 	if (player->weaponowned[newweapon]
 	    && newweapon != player->readyweapon)
@@ -323,10 +323,15 @@ void P_PlayerThink (player_t* player)
 		 && newweapon != wp_bfg)
 		|| (gamemode != shareware) )
 	    {
-		player->pendingweapon = newweapon;
+		    if( (newweapon != wp_supershotgun) || (gamemode == commercial) )
+		    {
+			player->pendingweapon = newweapon;
+		    }
 	    }
 	}
     }
+    
+    player->changedown = (cmd->buttons & BT_CHANGE);
     
     // check for use
     if (cmd->buttons & BT_USE)

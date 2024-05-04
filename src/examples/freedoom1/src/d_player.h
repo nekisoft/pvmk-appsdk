@@ -123,6 +123,7 @@ typedef struct player_s
     // True if button down last tic.
     int			attackdown;
     int			usedown;
+    int                 changedown; //Neki32 - weapon cycle next/prev 
 
     // Bit flags, for cheats and debug.
     // See cheat_t, above.

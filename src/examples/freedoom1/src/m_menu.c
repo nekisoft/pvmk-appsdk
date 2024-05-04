@@ -64,7 +64,7 @@
 
 #include <sc.h>
 #include "nvmsave.h"
-
+#include "p_inter.h"
 
 
 
@@ -205,6 +205,8 @@ void M_StartGame(int choice);
 void M_Sound(int choice);
 
 void M_FinishReadThis(int choice);
+void M_WarpSelect(int choice);
+void M_CheatSelect(int choice);
 void M_LoadSelect(int choice);
 void M_SaveSelect(int choice);
 void M_SaveCancel(int choice);
@@ -221,6 +223,8 @@ void M_DrawOptions(void);
 void M_DrawSound(void);
 void M_DrawLoad(void);
 void M_DrawSave(void);
+void M_DrawWarp(void);
+void M_DrawCheat(void);
 
 void M_DrawSaveLoadBorder(int x,int y);
 void M_SetupNextMenu(menu_t *menudef);
@@ -478,8 +482,8 @@ uint8_t nvm_save_pending[16];
 
 menuitem_t LoadMenu[]=
 {
-    {1,"", M_LoadSelect,'1'},
-    {1,"", M_LoadSelect,'2'},
+    {1,"", M_LoadSelect,'9'},
+    {1,"", M_LoadSelect,'8'},
     {1,"", M_LoadSelect,'3'},
     {1,"", M_LoadSelect,'4'},
     {1,"", M_LoadSelect,'5'},
@@ -501,8 +505,8 @@ menu_t  LoadDef =
 //
 menuitem_t SaveMenu[]=
 {
-    {1,"", M_SaveSelect,'1'},
-    {1,"", M_SaveSelect,'2'},
+    {1,"", M_SaveSelect,'9'},
+    {1,"", M_SaveSelect,'8'},
     {1,"", M_SaveSelect,'3'},
     {1,"", M_SaveSelect,'4'},
     {1,"", M_SaveSelect,'5'},
@@ -518,6 +522,45 @@ menu_t  SaveDef =
     M_DrawSave,
     80,54+24,
     0
+};
+
+
+//
+// CHEAT MENU
+//
+menuitem_t CheatMenu[] =
+{
+	{1,"", M_CheatSelect,0},
+	{1,"", M_CheatSelect,0},
+	{1,"", M_CheatSelect,0},
+	{1,"", M_CheatSelect,0},
+};
+
+menu_t CheatDef = 
+{
+	5,
+	&MainDef,
+	CheatMenu,
+	M_DrawCheat,
+	80,54,
+	0
+};
+
+menuitem_t WarpMenu[] = 
+{
+	{1,"",M_WarpSelect,0},
+	{1,"",M_WarpSelect,0},
+	{1,"",M_WarpSelect,0},
+};
+
+menu_t WarpDef =
+{
+	3,
+	&CheatDef,
+	WarpMenu,
+	M_DrawWarp,
+	80,54,
+	0
 };
 
 //Generates a savegame name from an NVM save
@@ -652,7 +695,145 @@ void M_DrawLoad(void)
 	}
 }
 
+void M_DrawCheat(void)
+{
+	char *strings[] = 
+	{
+		players[0].cheats & CF_GODMODE ? "God Mode: ON" : "God Mode: OFF",
+		"Give Stuff",
+		"Warp to Level",
+		"See it All",
+	};
+	
+	for (int i = 0;i < 4; i++)
+	{
+		//M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
+		M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,strings[i]);
+	}	
+}
 
+void M_CheatSelect(int choice)
+{
+	if(!usergame)
+		return;
+	
+	switch(choice)
+	{
+		case 0:
+			players[0].cheats ^= CF_GODMODE;
+			if(players[0].cheats & CF_GODMODE)
+			{
+				players[0].health = 100;
+				if(players[0].mo)
+					players[0].mo->health = 100;
+			}
+		break;
+		case 1:
+			players[0].armorpoints = 200;
+			players[0].armortype = 2;
+			
+			for (int i=0;i<NUMWEAPONS;i++)
+			  players[0].weaponowned[i] = true;
+			
+			for (int i=0;i<NUMAMMO;i++)
+			  players[0].ammo[i] = players[0].maxammo[i];
+			
+			for (int i=0;i<NUMCARDS;i++)
+			  players[0].cards[i] = true;
+		
+			if(gamemode != commercial)
+				players[0].weaponowned[wp_supershotgun] = false;
+		break;
+		case 2:
+			M_SetupNextMenu(&WarpDef);
+		break;
+		case 3:
+			P_GivePower( &(players[0]), pw_allmap );
+			P_GivePower( &(players[0]), pw_infrared );
+		break;
+		case 4:
+			
+		break;
+		default:
+		break;
+	}
+}
+
+static int warpmenu_ep = 1;
+static int warpmenu_lv = 1;
+
+void M_DrawWarp(void)
+{
+	char warpbuf[32];
+	
+	if(gamemode == commercial)
+		snprintf(warpbuf, sizeof(warpbuf)-1, "Warp to MAP%2.2d", warpmenu_lv);
+	else
+		snprintf(warpbuf, sizeof(warpbuf)-1, "Warp to E%1.1dM%1.1d", warpmenu_ep, warpmenu_lv);
+		
+	
+	char *strings[] = 
+	{
+		warpbuf,
+		"(NEXT)",
+		"(PREV)",
+	};
+	
+	for (int i = 0;i < 3; i++)
+	{
+		//M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
+		M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,strings[i]);
+	}
+}
+
+void M_WarpSelect(int choice)
+{
+	switch(choice)
+	{
+		case 0:
+			G_DeferedInitNew(gameskill, warpmenu_ep, warpmenu_lv);
+			M_ClearMenus();
+		break;
+		case 1:
+			warpmenu_lv++;
+			if(gamemode == commercial)
+			{
+				if(warpmenu_lv > 32)
+					warpmenu_lv = 1;
+			}
+			else
+			{
+				if(warpmenu_lv > 9)
+				{
+					warpmenu_lv = 1;
+					warpmenu_ep++;
+					if(warpmenu_ep > 4)
+						warpmenu_ep = 1;
+				}
+			}
+		break;
+		case 2:
+			warpmenu_lv--;
+			if(gamemode == commercial)
+			{
+				if(warpmenu_lv < 1)
+					warpmenu_lv = 32;
+			}
+			else
+			{
+				if(warpmenu_lv < 1)
+				{
+					warpmenu_lv = 9;
+					warpmenu_ep--;
+					if(warpmenu_ep < 1)
+						warpmenu_ep = 4;
+				}
+			}
+		break;
+		default:
+		break;
+	}
+}
 
 //
 // Draw border for the savegame description
@@ -1531,7 +1712,22 @@ M_WriteText
     }
 }
 
-
+static int cheatmenucode[] = 
+{
+	KEY_UPARROW,
+	KEY_UPARROW,
+	KEY_DOWNARROW,
+	KEY_DOWNARROW,
+	KEY_LEFTARROW,
+	KEY_RIGHTARROW,
+	KEY_LEFTARROW,
+	KEY_RIGHTARROW,
+	KEY_RSHIFT,
+	KEY_RCTRL,
+	KEY_ENTER,
+	0
+};
+int cheatmenucode_next = 0;
 
 //
 // CONTROL PANEL
@@ -1714,6 +1910,25 @@ boolean M_Responder (event_t* ev)
     
     // F-Keys
     if (!menuactive)
+    {
+	if(ch == cheatmenucode[cheatmenucode_next])
+	{
+		cheatmenucode_next++;
+		if(cheatmenucode[cheatmenucode_next] == 0)
+		{
+			cheatmenucode_next = 0;
+			M_StartControlPanel ();
+			currentMenu = &CheatDef;
+			itemOn = 0;
+			S_StartSound(NULL,sfx_pdiehi);
+			return true;
+		}
+	}
+	else
+	{
+		cheatmenucode_next = 0;
+	}
+	    
 	switch(ch)
 	{
 	  case KEY_MINUS:         // Screen size down
@@ -1800,6 +2015,7 @@ boolean M_Responder (event_t* ev)
 	    return true;
 				
 	}
+    }
 
     
     // Pop-up menu?

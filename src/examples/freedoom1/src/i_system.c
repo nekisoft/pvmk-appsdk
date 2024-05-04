@@ -167,6 +167,8 @@ void I_Error (char *error, ...)
     va_end (argptr);
 
     fflush( stderr );
+	
+	while(1) { _sc_gfx_flip(0, NULL); _sc_pause(); }
 
     // Shutdown. Here might be other errors.
     if (demorecording)
