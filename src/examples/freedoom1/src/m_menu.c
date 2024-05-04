@@ -538,8 +538,8 @@ menuitem_t CheatMenu[] =
 
 menu_t CheatDef = 
 {
-	5,
-	&MainDef,
+	4,
+	NULL,
 	CheatMenu,
 	M_DrawCheat,
 	80,54,
@@ -710,6 +710,8 @@ void M_DrawCheat(void)
 		//M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
 		M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,strings[i]);
 	}	
+	
+	M_WriteText(72,28,"OF COURSE THAT'S THE CODE");
 }
 
 void M_CheatSelect(int choice)
