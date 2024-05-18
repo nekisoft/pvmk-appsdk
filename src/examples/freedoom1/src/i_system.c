@@ -48,7 +48,7 @@
 #include <sc.h>
 
 
-int	mb_used = 6;
+int	mb_used = 12; //6; ??? freedoom seems to OOM and shit the bed? -betopp
 
 
 void
