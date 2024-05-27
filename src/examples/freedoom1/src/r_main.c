@@ -662,6 +662,10 @@ R_SetViewSize
     setdetail = detail;
 }
 
+void R_UpdateBufferPointers(void)
+{	
+	R_InitBuffer (scaledviewwidth, viewheight);
+}
 
 //
 // R_ExecuteSetViewSize

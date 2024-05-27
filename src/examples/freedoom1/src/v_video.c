@@ -39,7 +39,7 @@
 
 
 // Each screen is [SCREENWIDTH*SCREENHEIGHT]; 
-byte*				screens[5];	
+vpx_t*				screens[5];	
  
 int				dirtybox[4]; 
 
@@ -163,8 +163,8 @@ V_CopyRect
   int		desty,
   int		destscrn ) 
 { 
-    byte*	src;
-    byte*	dest; 
+    vpx_t*	src;
+    vpx_t*	dest; 
 	 
 #ifdef RANGECHECK 
     if (srcx<0
@@ -187,7 +187,7 @@ V_CopyRect
 
     for ( ; height>0 ; height--) 
     { 
-	memcpy (dest, src, width); 
+	memcpy (dest, src, width*sizeof(vpx_t)); 
 	src += SCREENWIDTH; 
 	dest += SCREENWIDTH; 
     } 
@@ -209,8 +209,8 @@ V_DrawPatch
     int		count;
     int		col; 
     column_t*	column; 
-    byte*	desttop;
-    byte*	dest;
+    vpx_t*	desttop;
+    vpx_t*	dest;
     byte*	source; 
     int		w; 
 	 
@@ -251,7 +251,7 @@ V_DrawPatch
 			 
 	    while (count--) 
 	    { 
-		*dest = *source++; 
+		*dest = defaultpal[*source++]; 
 		dest += SCREENWIDTH; 
 	    } 
 	    column = (column_t *)(  (byte *)column + column->length 
@@ -263,35 +263,19 @@ V_DrawPatch
     // -betopp
     if(patch->width == 320 && patch->height == 200)
     {
-	byte *copysrc = screens[scrn]+(200*SCREENWIDTH);
-	byte *copydst = screens[scrn]+(200*SCREENWIDTH);
+	vpx_t *copysrc = screens[scrn]+(200*SCREENWIDTH);
+	vpx_t *copydst = screens[scrn]+(200*SCREENWIDTH);
         for(int bottom_fill = 200; bottom_fill < SCREENHEIGHT; bottom_fill++)
 	{
 	    copysrc -= SCREENWIDTH;
 	    copysrc -= SCREENWIDTH;
 	    for(int xx = 0; xx < SCREENWIDTH; xx++)
 	    {
-	        copydst[xx] = colormaps[ (256*16) + copysrc[xx ^ 1]];
+	        copydst[xx] = (copysrc[xx ^ 1] >> 1) & 0xFBEF;
 	    }
 	    copydst += SCREENWIDTH;
 	}
     }
-    
-    //Super hack, again, to handle darkening screen if the menu is displayed
-    /*
-	extern boolean menuactive;
-	extern boolean inhelpscreens;
-	if(menuactive && !inhelpscreens)
-	{
-		if(patch->width == 320 && patch->height == 200)
-		{
-			for(int pp = 0; pp < 320*240; pp++)
-			{
-				screens[scrn][pp] = colormaps[ (256*16) + screens[scrn][pp]];
-			}
-		}
-	}
-    */
 } 
  
 //
@@ -310,8 +294,8 @@ V_DrawPatchFlipped
     int		count;
     int		col; 
     column_t*	column; 
-    byte*	desttop;
-    byte*	dest;
+    vpx_t*	desttop;
+    vpx_t*	dest;
     byte*	source; 
     int		w; 
 	 
@@ -350,7 +334,7 @@ V_DrawPatchFlipped
 			 
 	    while (count--) 
 	    { 
-		*dest = *source++; 
+		*dest = defaultpal[*source++]; 
 		dest += SCREENWIDTH; 
 	    } 
 	    column = (column_t *)(  (byte *)column + column->length 
@@ -440,9 +424,9 @@ V_DrawBlock
   int		scrn,
   int		width,
   int		height,
-  byte*		src ) 
+  vpx_t*		src ) 
 { 
-    byte*	dest; 
+    vpx_t*	dest; 
 	 
 #ifdef RANGECHECK 
     if (x<0
@@ -461,7 +445,7 @@ V_DrawBlock
 
     while (height--) 
     { 
-	memcpy (dest, src, width); 
+	memcpy (dest, src, width*sizeof(vpx_t)); 
 	src += width; 
 	dest += SCREENWIDTH; 
     } 
@@ -480,9 +464,9 @@ V_GetBlock
   int		scrn,
   int		width,
   int		height,
-  byte*		dest ) 
+  vpx_t*		dest ) 
 { 
-    byte*	src; 
+    vpx_t*	src; 
 	 
 #ifdef RANGECHECK 
     if (x<0
@@ -499,7 +483,7 @@ V_GetBlock
 
     while (height--) 
     { 
-	memcpy (dest, src, width); 
+	memcpy (dest, src, width*sizeof(vpx_t)); 
 	src += SCREENWIDTH; 
 	dest += width; 
     } 
@@ -514,11 +498,11 @@ V_GetBlock
 void V_Init (void) 
 { 
     int		i;
-    byte*	base;
+    vpx_t*	base;
 		
     // stick these in low dos memory on PCs
 
-    base = I_AllocLow (SCREENWIDTH*SCREENHEIGHT*4);
+    base = (vpx_t*)I_AllocLow (SCREENWIDTH*SCREENHEIGHT*4*sizeof(vpx_t));
 
     for (i=0 ; i<4 ; i++)
 	screens[i] = base + i*SCREENWIDTH*SCREENHEIGHT;

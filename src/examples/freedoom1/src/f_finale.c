@@ -260,7 +260,7 @@ extern	patch_t *hu_font[HU_FONTSIZE];
 void F_TextWrite (void)
 {
     byte*	src;
-    byte*	dest;
+    vpx_t*	dest;
     
     int		x,y,w;
     int		count;
@@ -277,12 +277,22 @@ void F_TextWrite (void)
     {
 	for (x=0 ; x<SCREENWIDTH/64 ; x++)
 	{
-	    memcpy (dest, src+((y&63)<<6), 64);
+	   // memcpy (dest, src+((y&63)<<6), 64);
+		for(int xx = 0; xx < 64; xx++)
+		{
+			dest[xx] = defaultpal[(src+((y&63)<<6))[xx]];
+		}
+		
 	    dest += 64;
 	}
 	if (SCREENWIDTH&63)
 	{
-	    memcpy (dest, src+((y&63)<<6), SCREENWIDTH&63);
+	    //memcpy (dest, src+((y&63)<<6), SCREENWIDTH&63);
+		for(int xx = 0; xx < (SCREENWIDTH&63); xx++)
+		{
+			dest[xx] = defaultpal[(src+((y&63)<<6))[xx]];
+		}
+		
 	    dest += (SCREENWIDTH&63);
 	}
     }
@@ -613,8 +623,8 @@ F_DrawPatchCol
 {
     column_t*	column;
     byte*	source;
-    byte*	dest;
-    byte*	desttop;
+    vpx_t*	dest;
+    vpx_t*	desttop;
     int		count;
 	
     column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
@@ -629,7 +639,7 @@ F_DrawPatchCol
 		
 	while (count--)
 	{
-	    *dest = *source++;
+	    *dest = defaultpal[*source++];
 	    dest += SCREENWIDTH;
 	}
 	column = (column_t *)(  (byte *)column + column->length + 4 );

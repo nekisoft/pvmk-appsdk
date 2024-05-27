@@ -39,6 +39,7 @@
 #include "v_video.h"
 #include "m_argv.h"
 #include "d_main.h"
+#include "r_main.h"
 
 #include "doomdef.h"
 
@@ -112,24 +113,12 @@ void I_StartTic (void)
 
 void I_UpdateNoBlit (void) { }
 
-uint16_t last_palette[256];
+uint16_t defaultpal[256];
 uint16_t fbs[3][SCREENHEIGHT][SCREENWIDTH] __attribute__((aligned(256)));
 int fb_next;
 
 void I_FinishUpdate (void)
 {
-	//De-palletize the 8-bit rendering result into the 16-bit truecolor buffer
-	//(Sadly we don't support indexed colors natively)
-	for(uint32_t dy = 0; dy < SCREENHEIGHT; dy++)
-	{
-		uint16_t *dline = fbs[fb_next][dy];
-		const uint8_t *sline = &(screens[0][dy * SCREENWIDTH]);
-		for(uint32_t dx = 0; dx < SCREENWIDTH; dx++)
-		{
-			dline[dx] = last_palette[sline[dx]];
-		}
-	}
-
 	//Flip that to the front at vertical blanking
 	int displayed = _sc_gfx_flip(_SC_GFX_MODE_320X240_16BPP, fbs[fb_next]);
 	
@@ -141,6 +130,8 @@ void I_FinishUpdate (void)
 		freebuf = 2;
 	
 	fb_next = freebuf;
+	screens[0] = &(fbs[fb_next][0][0]);
+	R_UpdateBufferPointers();
 	
 	//Pump sound
 	for(int ss = 0; ss < 8; ss++)
@@ -150,9 +141,9 @@ void I_FinishUpdate (void)
 	}
 }
 
-void I_ReadScreen (byte* scr)
+void I_ReadScreen (vpx_t* scr)
 {
-    memcpy (scr, screens[0], SCREENWIDTH*SCREENHEIGHT);
+    memcpy (scr, screens[0], SCREENWIDTH*SCREENHEIGHT*sizeof(vpx_t));
 }
 
 void I_SetPalette (byte* palette)
@@ -161,10 +152,10 @@ void I_SetPalette (byte* palette)
 	//Pack into a 16-bit word for RGB565 display.
 	for(int cc = 0; cc < 256; cc++)
 	{
-		last_palette[cc] = 0;
-		last_palette[cc] |= (((uint32_t)(*(palette++))) >> 3) << 11;
-		last_palette[cc] |= (((uint32_t)(*(palette++))) >> 2) << 5;
-		last_palette[cc] |= (((uint32_t)(*(palette++))) >> 3) << 0;
+		defaultpal[cc] = 0;
+		defaultpal[cc] |= (((uint32_t)(*(palette++))) >> 3) << 11;
+		defaultpal[cc] |= (((uint32_t)(*(palette++))) >> 2) << 5;
+		defaultpal[cc] |= (((uint32_t)(*(palette++))) >> 3) << 0;
 	}
 }
 
@@ -179,9 +170,8 @@ void I_InitGraphics(void)
 
 	signal(SIGINT, (void (*)(int)) I_Quit);
 
-	screens[0] = (unsigned char *) malloc (SCREENWIDTH * SCREENHEIGHT);
-	
 	fb_next = 0;
+	screens[0] = &(fbs[0][0][0]);
 }
 
 void I_LoadingScreen(void)

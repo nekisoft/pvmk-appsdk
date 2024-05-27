@@ -64,7 +64,7 @@ int		scaledviewwidth;
 int		viewheight;
 int		viewwindowx;
 int		viewwindowy; 
-byte*		ylookup[MAXHEIGHT]; 
+vpx_t*		ylookup[MAXHEIGHT]; 
 int		columnofs[MAXWIDTH]; 
 
 // Color tables for different players,
@@ -103,7 +103,7 @@ int			dccount;
 void R_DrawColumn (void) 
 { 
     int			count; 
-    byte*		dest; 
+    vpx_t*		dest; 
     fixed_t		frac;
     fixed_t		fracstep;	 
  
@@ -147,7 +147,7 @@ void R_DrawColumn (void)
     {
 	// Re-map color indices from wall texture column
 	//  using a lighting/special effects LUT.
-	*dest = dc_colormap[dc_source[(frac>>FRACBITS)&mask]];
+	*dest = defaultpal[dc_colormap[dc_source[(frac>>FRACBITS)&mask]]];
 	
 	dest += SCREENWIDTH; 
 	frac += fracstep;
@@ -219,8 +219,8 @@ void R_DrawColumn (void)
 void R_DrawColumnLow (void) 
 { 
     int			count; 
-    byte*		dest; 
-    byte*		dest2;
+    vpx_t*		dest; 
+    vpx_t*		dest2;
     fixed_t		frac;
     fixed_t		fracstep;	 
  
@@ -252,7 +252,7 @@ void R_DrawColumnLow (void)
     do 
     {
 	// Hack. Does not work corretly.
-	*dest2 = *dest = dc_colormap[dc_source[(frac>>FRACBITS)&127]];
+	*dest2 = *dest = defaultpal[dc_colormap[dc_source[(frac>>FRACBITS)&127]]];
 	dest += SCREENWIDTH;
 	dest2 += SCREENWIDTH;
 	frac += fracstep; 
@@ -293,7 +293,7 @@ int	fuzzpos = 0;
 void R_DrawFuzzColumn (void) 
 { 
     int			count; 
-    byte*		dest; 
+    vpx_t*		dest; 
     fixed_t		frac;
     fixed_t		fracstep;	 
 
@@ -363,7 +363,7 @@ void R_DrawFuzzColumn (void)
 	//  a pixel that is either one column
 	//  left or right of the current one.
 	// Add index from colormap to index.
-	*dest = colormaps[6*256+dest[fuzzoffset[fuzzpos]]]; 
+	*dest = defaultpal[colormaps[6*256+dest[fuzzoffset[fuzzpos]]]]; 
 
 	// Clamp table lookup index.
 	if (++fuzzpos == FUZZTABLE) 
@@ -393,7 +393,7 @@ byte*	translationtables;
 void R_DrawTranslatedColumn (void) 
 { 
     int			count; 
-    byte*		dest; 
+    vpx_t*		dest; 
     fixed_t		frac;
     fixed_t		fracstep;	 
  
@@ -447,7 +447,7 @@ void R_DrawTranslatedColumn (void)
 	//  used with PLAY sprites.
 	// Thus the "green" ramp of the player 0 sprite
 	//  is mapped to gray, red, black/indigo. 
-	*dest = dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]];
+	*dest = defaultpal[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
 	dest += SCREENWIDTH;
 	
 	frac += fracstep; 
@@ -531,7 +531,7 @@ void R_DrawSpan (void)
 { 
     fixed_t		xfrac;
     fixed_t		yfrac; 
-    byte*		dest; 
+    vpx_t*		dest; 
     int			count;
     int			spot; 
 	 
@@ -572,7 +572,7 @@ void R_DrawSpan (void)
 
 	// Lookup pixel from flat texture tile,
 	//  re-index using light/colormap.
-	*dest++ = ds_colormap[ds_source[spot]];
+	*dest++ = defaultpal[ds_colormap[ds_source[spot]]];
 
 	// Next step in u,v.
 	xfrac += ds_xstep; 
@@ -663,7 +663,7 @@ void R_DrawSpanLow (void)
 { 
     fixed_t		xfrac;
     fixed_t		yfrac; 
-    byte*		dest; 
+    vpx_t*		dest; 
     int			count;
     int			spot; 
 	 
@@ -695,8 +695,8 @@ void R_DrawSpanLow (void)
 	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
 	// Lowres/blocky mode does it twice,
 	//  while scale is adjusted appropriately.
-	*dest++ = ds_colormap[ds_source[spot]]; 
-	*dest++ = ds_colormap[ds_source[spot]];
+	*dest++ = defaultpal[ds_colormap[ds_source[spot]]]; 
+	*dest++ = defaultpal[ds_colormap[ds_source[spot]]];
 	
 	xfrac += ds_xstep; 
 	yfrac += ds_ystep; 
@@ -750,7 +750,7 @@ R_InitBuffer
 void R_FillBackScreen (void) 
 { 
     byte*	src;
-    byte*	dest; 
+    vpx_t*	dest; 
     int		x;
     int		y; 
     patch_t*	patch;
@@ -778,13 +778,21 @@ void R_FillBackScreen (void)
     { 
 	for (x=0 ; x<SCREENWIDTH/64 ; x++) 
 	{ 
-	    memcpy (dest, src+((y&63)<<6), 64); 
+	    //memcpy (dest, src+((y&63)<<6), 64); 
+		for(int xx = 0; xx < 64; xx++)
+		{
+			dest[xx] = defaultpal[(src+((y&63)<<6))[xx]];
+		}
 	    dest += 64; 
 	} 
 
 	if (SCREENWIDTH&63) 
 	{ 
-	    memcpy (dest, src+((y&63)<<6), SCREENWIDTH&63); 
+	    //memcpy (dest, src+((y&63)<<6), SCREENWIDTH&63); 
+		for(int xx = 0; xx < (SCREENWIDTH&63); xx++)
+		{
+			dest[xx] = defaultpal[(src+((y&63)<<6))[xx]];
+		}
 	    dest += (SCREENWIDTH&63); 
 	} 
     } 

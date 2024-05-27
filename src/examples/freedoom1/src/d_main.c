@@ -242,6 +242,8 @@ void D_Display (void)
 	    redrawsbar = true;
 	if (inhelpscreensstate && !inhelpscreens)
 	    redrawsbar = true;              // just put away the help screen
+	
+	redrawsbar = true; //Broke something during 16bpp changes -betopp
 	ST_Drawer (viewheight == SCREENHEIGHT, redrawsbar );
 	fullscreen = viewheight == SCREENHEIGHT;
 	break;

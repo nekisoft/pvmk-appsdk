@@ -43,15 +43,15 @@
 // Screen 1 is an extra buffer.
 
 
-
-extern	byte*		screens[5];
+extern	vpx_t*		screens[5];
 
 extern  int	dirtybox[4];
 
 extern	byte	gammatable[5][256];
 extern	int	usegamma;
 
-
+//Default Doom palette for things like menu/automap to draw into 16-bit framebuffer -betopp
+extern vpx_t defaultpal[256];
 
 // Allocates buffer screens, call before R_Init.
 void V_Init (void);
@@ -91,7 +91,7 @@ V_DrawBlock
   int		scrn,
   int		width,
   int		height,
-  byte*		src );
+  vpx_t* src );
 
 // Reads a linear block of pixels into the view buffer.
 void
@@ -101,8 +101,8 @@ V_GetBlock
   int		scrn,
   int		width,
   int		height,
-  byte*		dest );
-
+  vpx_t* dest );
+ 
 
 void
 V_MarkRect

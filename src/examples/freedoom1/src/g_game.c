@@ -1331,6 +1331,7 @@ G_SaveGame
  
 void G_DoSaveGame (void) 
 { 
+	#if 0
     char	name[100]; 
     char	name2[VERSIONSIZE]; 
     char*	description; 
@@ -1379,6 +1380,7 @@ void G_DoSaveGame (void)
 
     // draw the pattern into the back screen
     R_FillBackScreen ();	
+    #endif
 } 
  
 

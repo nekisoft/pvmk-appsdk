@@ -492,6 +492,7 @@ WritePCXfile
 //
 void M_ScreenShot (void)
 {
+	#if 0
     int		i;
     byte*	linear;
     char	lbmname[12];
@@ -519,6 +520,7 @@ void M_ScreenShot (void)
 		  W_CacheLumpName ("PLAYPAL",PU_CACHE));
 	
     players[consoleplayer].message = "screen shot";
+    #endif //0
 }
 
 

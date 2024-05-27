@@ -164,6 +164,9 @@ void R_Init (void);
 // Called by M_Responder.
 void R_SetViewSize (int blocks, int detail);
 
+//Neki32 - called when video changes where it wants the backbuffer
+void R_UpdateBufferPointers(void);
+
 #endif
 //-----------------------------------------------------------------------------
 //

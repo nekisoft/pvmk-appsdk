@@ -55,7 +55,8 @@ typedef unsigned char byte;
 #define MINLONG		((long)0x80000000)
 #endif
 
-
+//Video pixel type (wide for neki32) -betopp
+typedef unsigned short vpx_t;
 
 
 #endif

@@ -231,7 +231,7 @@ static int 	f_w;
 static int	f_h;
 
 static int 	lightlev; 		// used for funky strobing effect
-static byte*	fb; 			// pseudo-frame buffer
+static vpx_t*	fb; 			// pseudo-frame buffer
 static int 	amclock;
 
 static mpoint_t m_paninc; // how far the window pans each tic (map coords)
@@ -290,7 +290,7 @@ static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 static boolean stopped = true;
 
 extern boolean viewactive;
-//extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
+//extern vpx_t screens[][SCREENWIDTH*SCREENHEIGHT];
 
 
 
@@ -825,13 +825,15 @@ void AM_Ticker (void)
 
 }
 
-
 //
 // Clear automap frame buffer.
 //
 void AM_clearFB(int color)
 {
-    memset(fb, color, f_w*f_h);
+	for(int ff = 0; ff < (f_w*f_h); ff++)
+	{
+		fb[ff] = defaultpal[color];
+	}
 }
 
 
@@ -988,7 +990,7 @@ AM_drawFline
     register int ay;
     register int d;
     
-#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
+#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(defaultpal[cc])
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
@@ -1311,7 +1313,7 @@ void AM_drawMarks(void)
 
 void AM_drawCrosshair(int color)
 {
-    fb[(f_w*(f_h+1))/2] = color; // single point for now
+    fb[(f_w*(f_h+1))/2] = defaultpal[color]; // single point for now
 
 }
 
