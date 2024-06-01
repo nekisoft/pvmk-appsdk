@@ -32,6 +32,8 @@
 // Needed because we are refering to patches.
 #include "r_data.h"
 
+#include <stdint.h>
+
 //
 // VIDEO
 //
@@ -50,8 +52,9 @@ extern  int	dirtybox[4];
 extern	byte	gammatable[5][256];
 extern	int	usegamma;
 
-//Default Doom palette for things like menu/automap to draw into 16-bit framebuffer -betopp
-extern vpx_t defaultpal[256];
+//16-bit drawing routines copy from these palettes when interpreting Doom's 8-bit graphics - betopp
+extern vpx_t defaultpal[256]; //RGB565
+extern uint32_t sparsepal[256]; //5-bit gaps between each color channel so we can multiply them all in one go
 
 // Allocates buffer screens, call before R_Init.
 void V_Init (void);

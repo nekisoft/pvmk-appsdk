@@ -37,8 +37,11 @@ extern fixed_t		dc_iscale;
 extern fixed_t		dc_texturemid;
 
 // first pixel in a column
-extern byte*		dc_source;		
+extern byte*		dc_source;	
 
+//for bilerp - betopp
+extern byte*		dc_source2; //second column to interp to
+extern unsigned int     dc_lerpcol; //percentage towards second column, in 16 bits
 
 // The span blitting interface.
 // Hook in assembler or system specific BLT

@@ -120,7 +120,7 @@ R_RenderMaskedSegRange
     else if (curline->v1->x == curline->v2->x)
 	lightnum++;
 
-    if (lightnum < 0)		
+    if (lightnum < 0)
 	walllights = scalelight[0];
     else if (lightnum >= LIGHTLEVELS)
 	walllights = scalelight[LIGHTLEVELS-1];
@@ -258,6 +258,7 @@ void R_RenderSegLoop (void)
 	    // calculate texture offset
 	    angle = (rw_centerangle + xtoviewangle[rw_x])>>ANGLETOFINESHIFT;
 	    texturecolumn = rw_offset-FixedMul(finetangent[angle],rw_distance);
+	    dc_lerpcol = texturecolumn & 0xFFFF;
 	    texturecolumn >>= FRACBITS;
 	    // calculate lighting
 	    index = rw_scale>>LIGHTSCALESHIFT;
@@ -278,6 +279,7 @@ void R_RenderSegLoop (void)
 	    dc_yh = yh;
 	    dc_texturemid = rw_midtexturemid;
 	    dc_source = R_GetColumn(midtexture,texturecolumn);
+	    dc_source2 = R_GetColumn2(midtexture,texturecolumn);
 	    colfunc ();
 	    ceilingclip[rw_x] = viewheight;
 	    floorclip[rw_x] = -1;
@@ -300,6 +302,7 @@ void R_RenderSegLoop (void)
 		    dc_yh = mid;
 		    dc_texturemid = rw_toptexturemid;
 		    dc_source = R_GetColumn(toptexture,texturecolumn);
+		    dc_source2 = R_GetColumn2(toptexture,texturecolumn);
 		    colfunc ();
 		    ceilingclip[rw_x] = mid;
 		}
@@ -330,6 +333,8 @@ void R_RenderSegLoop (void)
 		    dc_texturemid = rw_bottomtexturemid;
 		    dc_source = R_GetColumn(bottomtexture,
 					    texturecolumn);
+		    dc_source2 = R_GetColumn2(bottomtexture,
+					    texturecolumn);
 		    colfunc ();
 		    floorclip[rw_x] = mid;
 		}
@@ -355,6 +360,8 @@ void R_RenderSegLoop (void)
 	topfrac += topstep;
 	bottomfrac += bottomstep;
     }
+    
+    dc_lerpcol = 0;
 }
 
 

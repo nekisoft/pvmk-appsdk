@@ -80,6 +80,7 @@ byte		translations[3][256];
 // R_DrawColumn
 // Source is the top of the column to scale.
 //
+unsigned int            dc_lerpcol; //betopp - percentage, in 16 bits, from left to right column (for bilerp)
 lighttable_t*		dc_colormap; 
 int			dc_x; 
 int			dc_yl; 
@@ -89,6 +90,7 @@ fixed_t			dc_texturemid;
 
 // first pixel in a column (possibly virtual) 
 byte*			dc_source;		
+byte*			dc_source2; //betopp - second column to filter towards in bilerp
 
 // just for profiling 
 int			dccount;
@@ -138,83 +140,71 @@ void R_DrawColumn (void)
     int mask = 127;
     
 	int maskmore = 0x1FFFF;
-	while(maskmore < dc_iscale)
-		maskmore <<= 1;
+	if( (maskmore < dc_iscale) || (dc_source == dc_source2) )
+	{
+		//Minifying - mask low bits to do cheap MIP-mapping
+		while(maskmore < dc_iscale)
+			maskmore <<= 1;
+		
+		mask &= maskmore;
+
+		do 
+		{
+			// Re-map color indices from wall texture column
+			//  using a lighting/special effects LUT.
+			*dest = defaultpal[dc_colormap[dc_source[(frac>>FRACBITS)&mask]]];	    
+			dest += SCREENWIDTH; 
+			frac += fracstep;
+
+		} while (count--); 
+	}
+	else
+	{
+		//Magnifying - do bilerp    
+		do 
+		{
+
+			// Re-map color indices from wall texture column
+			//  using a lighting/special effects LUT.
+		
+
+			uint32_t a = sparsepal[dc_colormap[dc_source [(frac>>FRACBITS)&mask]]];
+			uint32_t b = sparsepal[dc_colormap[dc_source2[(frac>>FRACBITS)&mask]]];
+			uint32_t c = sparsepal[dc_colormap[dc_source [((frac>>FRACBITS)+1)&mask]]];
+			uint32_t d = sparsepal[dc_colormap[dc_source2[((frac>>FRACBITS)+1)&mask]]];
+
+			uint32_t colblend = (frac & 0xFFFF) >> 11;
+			uint32_t blended_1 = (((c * colblend) + (a * (32 - colblend))) >> 5) & 0x03E0FC1Fu;
+			uint32_t blended_2 = (((d * colblend) + (b * (32 - colblend))) >> 5) & 0x03E0FC1Fu;
+			
+			uint32_t rowblend = (dc_lerpcol) >> 11;
+			uint32_t blended = (blended_2 * rowblend) + (blended_1 * (32 - rowblend));
+
+			//Todo - this part can get a lot faster if we're clever
+			//Could arrange the colors so some of them are already in place after the multiply
+			*dest = 0;
+			*dest |= (blended >>  5) & 0x001F;
+			*dest |= (blended >> 10) & 0x07E0;
+			*dest |= (blended >> 15) & 0xF800;
+
+			dest += SCREENWIDTH; 
+			frac += fracstep;
+
+		} while (count--); 
+	}
 	
-	mask &= maskmore;
+	
+	
     
-    do 
-    {
-	// Re-map color indices from wall texture column
-	//  using a lighting/special effects LUT.
-	*dest = defaultpal[dc_colormap[dc_source[(frac>>FRACBITS)&mask]]];
 	
-	dest += SCREENWIDTH; 
-	frac += fracstep;
-	
-    } while (count--); 
+
+
+
+
+
+
+
 } 
-
-
-
-// UNUSED.
-// Loop unrolled.
-#if 0
-void R_DrawColumn (void) 
-{ 
-    int			count; 
-    byte*		source;
-    byte*		dest;
-    byte*		colormap;
-    
-    unsigned		frac;
-    unsigned		fracstep;
-    unsigned		fracstep2;
-    unsigned		fracstep3;
-    unsigned		fracstep4;	 
- 
-    count = dc_yh - dc_yl + 1; 
-
-    source = dc_source;
-    colormap = dc_colormap;		 
-    dest = ylookup[dc_yl] + columnofs[dc_x];  
-	 
-    fracstep = dc_iscale<<9; 
-    frac = (dc_texturemid + (dc_yl-centery)*dc_iscale)<<9; 
- 
-    fracstep2 = fracstep+fracstep;
-    fracstep3 = fracstep2+fracstep;
-    fracstep4 = fracstep3+fracstep;
-	
-    while (count >= 8) 
-    { 
-	dest[0] = colormap[source[frac>>25]]; 
-	dest[SCREENWIDTH] = colormap[source[(frac+fracstep)>>25]]; 
-	dest[SCREENWIDTH*2] = colormap[source[(frac+fracstep2)>>25]]; 
-	dest[SCREENWIDTH*3] = colormap[source[(frac+fracstep3)>>25]];
-	
-	frac += fracstep4; 
-
-	dest[SCREENWIDTH*4] = colormap[source[frac>>25]]; 
-	dest[SCREENWIDTH*5] = colormap[source[(frac+fracstep)>>25]]; 
-	dest[SCREENWIDTH*6] = colormap[source[(frac+fracstep2)>>25]]; 
-	dest[SCREENWIDTH*7] = colormap[source[(frac+fracstep3)>>25]]; 
-
-	frac += fracstep4; 
-	dest += SCREENWIDTH*8; 
-	count -= 8;
-    } 
-	
-    while (count > 0)
-    { 
-	*dest = colormap[source[frac>>25]]; 
-	dest += SCREENWIDTH; 
-	frac += fracstep; 
-	count--;
-    } 
-}
-#endif
-
 
 void R_DrawColumnLow (void) 
 { 
@@ -363,7 +353,8 @@ void R_DrawFuzzColumn (void)
 	//  a pixel that is either one column
 	//  left or right of the current one.
 	// Add index from colormap to index.
-	*dest = defaultpal[colormaps[6*256+dest[fuzzoffset[fuzzpos]]]]; 
+	//*dest = defaultpal[colormaps[6*256+dest[fuzzoffset[fuzzpos]]]]; 
+	*dest = (dest[fuzzoffset[fuzzpos]] >> 1) & 0xFBEF; //16bpp - half brightness
 
 	// Clamp table lookup index.
 	if (++fuzzpos == FUZZTABLE) 

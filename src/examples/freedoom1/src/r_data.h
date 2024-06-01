@@ -36,6 +36,12 @@ byte*
 R_GetColumn
 ( int		tex,
   int		col );
+  
+//Gets successor column for bilinear interp
+byte*
+R_GetColumn2
+( int		tex,
+  int		col );
 
 
 // I/O, setting up the stuff.

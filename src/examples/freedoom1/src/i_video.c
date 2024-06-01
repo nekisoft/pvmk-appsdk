@@ -114,6 +114,7 @@ void I_StartTic (void)
 void I_UpdateNoBlit (void) { }
 
 uint16_t defaultpal[256];
+uint32_t sparsepal[256];
 uint16_t fbs[3][SCREENHEIGHT][SCREENWIDTH] __attribute__((aligned(256)));
 int fb_next;
 
@@ -152,10 +153,20 @@ void I_SetPalette (byte* palette)
 	//Pack into a 16-bit word for RGB565 display.
 	for(int cc = 0; cc < 256; cc++)
 	{
+		//For straight blits to the screen, just the literal RGB565 word
 		defaultpal[cc] = 0;
-		defaultpal[cc] |= (((uint32_t)(*(palette++))) >> 3) << 11;
-		defaultpal[cc] |= (((uint32_t)(*(palette++))) >> 2) << 5;
-		defaultpal[cc] |= (((uint32_t)(*(palette++))) >> 3) << 0;
+		defaultpal[cc] |= (((uint32_t)(palette[0])) >> 3) << 11;
+		defaultpal[cc] |= (((uint32_t)(palette[1])) >> 2) << 5;
+		defaultpal[cc] |= (((uint32_t)(palette[2])) >> 3) << 0;
+		
+		//For blended/faded colors, leave 5 bits between each component.
+		//This allows us to multiply by 0...31 all three channels at once.
+		sparsepal[cc] = 0;
+		sparsepal[cc] |= (((uint32_t)(palette[0])) >> 3) << 21;
+		sparsepal[cc] |= (((uint32_t)(palette[1])) >> 2) << 10;
+		sparsepal[cc] |= (((uint32_t)(palette[2])) >> 3) << 0;
+		
+		palette += 3;
 	}
 }
 

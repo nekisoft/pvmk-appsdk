@@ -405,6 +405,42 @@ R_GetColumn
     return texturecomposite[tex] + ofs;
 }
 
+//Copy of R_GetColumn that gets the successor for bilinear filtering
+byte*
+R_GetColumn2
+( int		tex,
+  int		col )
+{
+    int		lump;
+    int		ofs;
+	
+  //  col &= texturewidthmask[tex];
+	
+	//MIP mapping kinda
+	int maskmore = 0x1FFFF;
+	int bump = 1;
+	while(maskmore < dc_iscale)
+	{
+		maskmore <<= 1;
+		bump <<= 1;
+	}
+	
+	col &= maskmore;
+	col += bump;
+	col &= texturewidthmask[tex];
+	
+    lump = texturecolumnlump[tex][col];
+    ofs = texturecolumnofs[tex][col];
+    
+    if (lump > 0)
+	return (byte *)W_CacheLumpNum(lump,PU_CACHE)+ofs;
+
+    if (!texturecomposite[tex])
+	R_GenerateComposite (tex);
+
+    return texturecomposite[tex] + ofs;
+}
+
 
 
 
