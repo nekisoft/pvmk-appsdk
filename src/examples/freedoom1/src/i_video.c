@@ -159,12 +159,12 @@ void I_SetPalette (byte* palette)
 		defaultpal[cc] |= (((uint32_t)(palette[1])) >> 2) << 5;
 		defaultpal[cc] |= (((uint32_t)(palette[2])) >> 3) << 0;
 		
-		//For blended/faded colors, leave 5 bits between each component.
-		//This allows us to multiply by 0...31 all three channels at once.
+		//For blending - 6-bit RGB, 4-bit spacing
+		//(Used with 64-bit accumulator)
 		sparsepal[cc] = 0;
-		sparsepal[cc] |= (((uint32_t)(palette[0])) >> 3) << 21;
+		sparsepal[cc] |= (((uint32_t)(palette[0])) >> 2) << 20;
 		sparsepal[cc] |= (((uint32_t)(palette[1])) >> 2) << 10;
-		sparsepal[cc] |= (((uint32_t)(palette[2])) >> 3) << 0;
+		sparsepal[cc] |= (((uint32_t)(palette[2])) >> 2) <<  0;
 		
 		palette += 3;
 	}

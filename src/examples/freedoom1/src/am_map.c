@@ -1320,7 +1320,9 @@ void AM_drawCrosshair(int color)
 void AM_Drawer (void)
 {
     if (!automapactive) return;
-
+	
+	fb = screens[0];
+	
     AM_clearFB(BACKGROUND);
     if (grid)
 	AM_drawGrid(GRIDCOLORS);

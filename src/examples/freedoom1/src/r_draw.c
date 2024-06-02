@@ -173,19 +173,21 @@ void R_DrawColumn (void)
 			uint32_t c = sparsepal[dc_colormap[dc_source [((frac>>FRACBITS)+1)&mask]]];
 			uint32_t d = sparsepal[dc_colormap[dc_source2[((frac>>FRACBITS)+1)&mask]]];
 
-			uint32_t colblend = (frac & 0xFFFF) >> 11;
-			uint32_t blended_1 = (((c * colblend) + (a * (32 - colblend))) >> 5) & 0x03E0FC1Fu;
-			uint32_t blended_2 = (((d * colblend) + (b * (32 - colblend))) >> 5) & 0x03E0FC1Fu;
+			uint32_t colblend = (frac & 0xFFFF) >> 14; //2-bit result
+			uint32_t rowblend = (dc_lerpcol) >> 14; //2-bit result
 			
-			uint32_t rowblend = (dc_lerpcol) >> 11;
-			uint32_t blended = (blended_2 * rowblend) + (blended_1 * (32 - rowblend));
+			uint32_t blendacc = 0;
+			blendacc += (   colblend  *    rowblend  * d);
+			blendacc += (   colblend  * (4-rowblend) * c);
+			blendacc += ((4-colblend) *    rowblend  * b);
+			blendacc += ((4-colblend) * (4-rowblend) * a);
 
 			//Todo - this part can get a lot faster if we're clever
 			//Could arrange the colors so some of them are already in place after the multiply
 			*dest = 0;
-			*dest |= (blended >>  5) & 0x001F;
-			*dest |= (blended >> 10) & 0x07E0;
-			*dest |= (blended >> 15) & 0xF800;
+			*dest |= (blendacc >> 5) & 0x001F;
+			*dest |= (blendacc >> 9) & 0x07E0;
+			*dest |= (blendacc >> 14) & 0xF800;
 
 			dest += SCREENWIDTH; 
 			frac += fracstep;
@@ -547,29 +549,68 @@ void R_DrawSpan (void)
     // We do not check for zero spans here?
     count = ds_x2 - ds_x1; 
     
-    //MIP mapping kinda
-    int mask = 63;
+	//MIP mapping kinda
+	int mask = 63;
     	int maskmore = 0x7FFFFF;
-	while(maskmore < ds_length )
-		maskmore <<= 1;
-	
-	mask &= maskmore;
-	int mask64 = mask * 64;
+	if(maskmore < ds_length)
+	{
+		//Minifying - do cheap MIP mapping by masking low texture address bits
+		while(maskmore < ds_length )
+			maskmore <<= 1;
+		
+		mask &= maskmore;
+		int mask64 = mask * 64;
 
-    do 
-    {
-	// Current texture index in u,v.
-	spot = ((yfrac>>(16-6))&(mask64)) + ((xfrac>>16)&mask);
+		do 
+		{
+			// Current texture index in u,v.
+			spot = ((yfrac>>(16-6))&(mask64)) + ((xfrac>>16)&mask);
 
-	// Lookup pixel from flat texture tile,
-	//  re-index using light/colormap.
-	*dest++ = defaultpal[ds_colormap[ds_source[spot]]];
+			// Lookup pixel from flat texture tile,
+			//  re-index using light/colormap.
+			*dest++ = defaultpal[ds_colormap[ds_source[spot]]];
 
-	// Next step in u,v.
-	xfrac += ds_xstep; 
-	yfrac += ds_ystep;
-	
-    } while (count--); 
+			// Next step in u,v.
+			xfrac += ds_xstep; 
+			yfrac += ds_ystep;
+
+		} while (count--); 
+	}
+	else
+	{
+		//Magnifying - do bilinear filtering
+		int mask64 = mask * 64;
+		do 
+		{
+			// Current texture index in u,v.
+			spot = ((yfrac>>(16-6))&(mask64)) + ((xfrac>>16)&mask);
+
+			uint32_t a = sparsepal[ds_colormap[ds_source[(spot+ 0)%4096]]];
+			uint32_t b = sparsepal[ds_colormap[ds_source[(spot+ 1)%4096]]];
+			uint32_t c = sparsepal[ds_colormap[ds_source[(spot+64)%4096]]];
+			uint32_t d = sparsepal[ds_colormap[ds_source[(spot+65)%4096]]]; 
+
+			uint32_t colblend = (yfrac & 0xFFFF) >> 14; //2-bit result
+			uint32_t rowblend = (xfrac & 0xFFFF) >> 14; //2-bit result
+			
+			uint32_t blendacc = 0;
+			blendacc += (   colblend  *    rowblend  * d);
+			blendacc += (   colblend  * (4-rowblend) * c);
+			blendacc += ((4-colblend) *    rowblend  * b);
+			blendacc += ((4-colblend) * (4-rowblend) * a);
+		
+			*dest = 0;
+			*dest |= (blendacc >> 5) & 0x001F;
+			*dest |= (blendacc >> 9) & 0x07E0;
+			*dest |= (blendacc >> 14) & 0xF800;
+			dest++;
+			
+			// Next step in u,v.
+			xfrac += ds_xstep; 
+			yfrac += ds_ystep;
+
+		} while (count--); 	
+	}
 } 
 
 
@@ -842,7 +883,7 @@ R_VideoErase
   //  is not optiomal, e.g. byte by byte on
   //  a 32bit CPU, as GNU GCC/Linux libc did
   //  at one point.
-    memcpy (screens[0]+ofs, screens[1]+ofs, count); 
+    memcpy (screens[0]+ofs, screens[1]+ofs, count * sizeof(vpx_t)); 
 } 
 
 

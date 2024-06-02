@@ -51,7 +51,7 @@
 #define HU_TITLET	(mapnamest[gamemap-1])
 #define HU_TITLEHEIGHT	1
 #define HU_TITLEX	0
-#define HU_TITLEY	(167 - SHORT(hu_font[0]->height))
+#define HU_TITLEY	(40 + (167 - SHORT(hu_font[0]->height))) //neki32 - 240 line
 
 #define HU_INPUTTOGGLE	't'
 #define HU_INPUTX	HU_MSGX

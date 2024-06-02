@@ -54,7 +54,7 @@ extern	int	usegamma;
 
 //16-bit drawing routines copy from these palettes when interpreting Doom's 8-bit graphics - betopp
 extern vpx_t defaultpal[256]; //RGB565
-extern uint32_t sparsepal[256]; //5-bit gaps between each color channel so we can multiply them all in one go
+extern uint32_t sparsepal[256]; //gaps between each color channel so we can multiply them all in one go
 
 // Allocates buffer screens, call before R_Init.
 void V_Init (void);
