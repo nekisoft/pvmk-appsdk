@@ -7,8 +7,16 @@
 #include "common.h"
 
 //Dimensions of framebuffer
-#define FBX 320
-#define FBY 240
+#define HIRES 1
+#if HIRES
+	#define FBX 640
+	#define FBY 480
+	#define FBMODE _SC_GFX_MODE_VGA_16BPP
+#else
+	#define FBX 320
+	#define FBY 240
+	#define FBMODE _SC_GFX_MODE_320X240_16BPP
+#endif
 
 //Pixel type
 typedef uint16_t fbpx_t;

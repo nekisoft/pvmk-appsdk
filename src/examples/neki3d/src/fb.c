@@ -16,7 +16,7 @@ fbpx_t *fb_back = &(fbs[0][0][0]);
 void fb_flip(void)
 {
 	//Enqueue the last-rendered image to flip onto the display.
-	int flip_result = _sc_gfx_flip(_SC_GFX_MODE_320X240_16BPP, fb_back);
+	int flip_result = _sc_gfx_flip(FBMODE, fb_back);
 	if(flip_result < 0)
 	{
 		//Failed to enqueue a flip
@@ -38,6 +38,6 @@ void fb_flip(void)
 	//Now ready to start rendering the next frame.
 	
 	//Clear frame buffer (can ditch this once we're covering the screen with spans)
-	memset(fb_back, 0, sizeof(fbs[0]));
+	//memset(fb_back, 0, sizeof(fbs[0]));
 }
 

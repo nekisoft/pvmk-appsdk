@@ -46,7 +46,7 @@ int main(int argc, const char **argv)
 		mvp_persp(FV(90), FV(1.33333), FV(1), FV(65536));
 		mvp_translate(0, 0, -1024);
 		mvp_rotate(FV(1) * FV(anim) / FV(10), FV(0), FV(1), FV(0));
-		//mvp_rotate(FV(1) * FV(anim/2) / FV(100), FV(1), FV(0), FV(0));
+		mvp_rotate(FV(1) * FV(anim/2) / FV(10), FV(1), FV(0), FV(0));
 		
 		//Transform some triangles and put into the span buffers
 		for(int ii = 0; ii < model->nidxs; ii += 3)

@@ -158,7 +158,7 @@ void span_add_tri(int tex,
 	va3[0] = (int64_t)FBY * FV(1) * va4[1] / va4[3];
 	vb3[0] = (int64_t)FBY * FV(1) * vb4[1] / vb4[3];
 	vc3[0] = (int64_t)FBY * FV(1) * vc4[1] / vc4[3];
-
+	
 	va3[1] += FBX * FV(0.5);
 	vb3[1] += FBX * FV(0.5);
 	vc3[1] += FBX * FV(0.5);
@@ -173,6 +173,9 @@ void span_add_tri(int tex,
 		vb3[dd] /= FV(1);
 		vc3[dd] /= FV(1);
 	}
+	
+	if( ((vb3[0] - va3[0]) * (vc3[1] - va3[1])) > ((vb3[1] - va3[1]) * (vc3[0] - va3[0])) )
+		return; //backface
 	
 	//Figure out top, middle, bottom verts in Y
 	fix24p8_t *top = va3;
