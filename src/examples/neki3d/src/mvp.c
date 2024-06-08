@@ -52,7 +52,7 @@ void mvp_persp(fix24p8_t fovy, fix24p8_t aspect, fix24p8_t znear, fix24p8_t zfar
 	fix24p8_t za = (int64_t)FV(1) * (zfar + znear) / (znear - zfar);
 	fix24p8_t zb =     ((int64_t)2 * zfar * znear) / (znear - zfar);
 	
-	fix24p8_t pp[4][4] = 
+	const fix24p8_t pp[4][4] = 
 	{
 		{ FV(1) * f / aspect, 0,      0,  0 },
 		{                  0, f,      0,  0 },

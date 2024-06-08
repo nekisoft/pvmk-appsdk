@@ -4,13 +4,15 @@
 #ifndef PLY_H
 #define PLY_H
 
+#include "common.h"
+
 //Contents of PLY file
 typedef struct ply_s 
 {
-	int *verts;
+	fix24p8_t *verts;
 	int nverts;
 	
-	int *idxs;
+	fix24p8_t *idxs;
 	int nidxs;
 } ply_t;
 

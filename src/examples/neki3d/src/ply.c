@@ -82,14 +82,14 @@ ply_t *ply_load(const char *filename)
 		fread(&s,  1, sizeof(s),  plyfile);
 		fread(&t,  1, sizeof(t),  plyfile);
 		
-		retval->verts[ (vv * 8) + 0 ] = 256 * x;
-		retval->verts[ (vv * 8) + 1 ] = 256 * y;
-		retval->verts[ (vv * 8) + 2 ] = 256 * z;
-		retval->verts[ (vv * 8) + 3 ] = 256 * nx;
-		retval->verts[ (vv * 8) + 4 ] = 256 * ny;
-		retval->verts[ (vv * 8) + 5 ] = 256 * nz;
-		retval->verts[ (vv * 8) + 6 ] = 256 * s;
-		retval->verts[ (vv * 8) + 7 ] = 256 * t;
+		retval->verts[ (vv * 8) + 0 ] = 256.0 * x;
+		retval->verts[ (vv * 8) + 1 ] = 256.0 * y;
+		retval->verts[ (vv * 8) + 2 ] = 256.0 * z;
+		retval->verts[ (vv * 8) + 3 ] = 256.0 * nx;
+		retval->verts[ (vv * 8) + 4 ] = 256.0 * ny;
+		retval->verts[ (vv * 8) + 5 ] = 256.0 * nz;
+		retval->verts[ (vv * 8) + 6 ] = 65536.0 * s;
+		retval->verts[ (vv * 8) + 7 ] = 65536.0 * t;
 	}
 	
 	//Read index data

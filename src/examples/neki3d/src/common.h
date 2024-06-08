@@ -7,11 +7,8 @@
 #include <stdint.h>
 
 //Fixed-point math type - 24.8 bits of precision
-typedef int32_t fix24p8_t;
+typedef int fix24p8_t;
 #define FV(floatval) ((fix24p8_t)(256 * floatval))
 
-//Dimensions of framebuffer
-#define FBX 320
-#define FBY 240
 
 #endif //COMMON_H
