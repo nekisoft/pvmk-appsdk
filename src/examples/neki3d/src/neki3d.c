@@ -7,29 +7,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 
 //temp
 #include <math.h>
 
-#define FBX 320
-#define FBY 240
+#include "common.h"
+#include "ply.h"
+#include "mvp.h"
+
 
 //Framebuffers
 uint16_t fbs[3][FBY][FBX];
-uint16_t *fb_next;
+uint16_t *fb_next = &(fbs[0][0][0]);
 
-//Fixed-point math type
-typedef int32_t fix24p8_t;
-
-//Triangle vertex
-typedef struct vert_s
-{
-	fix24p8_t pos[3];
-	uint8_t   rgb[3];
-	uint8_t   zzz[1];
-	fix24p8_t tex[2];
-	fix24p8_t ign[2];
-} vert_t;
 
 //Spans in span buffer - linked list on each line
 typedef struct span_s
@@ -56,6 +47,7 @@ int spanused[FBY];
 
 //Texture memory
 uint8_t textures[64][256][256][4];
+
 
 //Inserts a span into the span buffer
 void addspan(int y, int x0, int x1)
@@ -88,15 +80,45 @@ void addspan(int y, int x0, int x1)
 //Decomposes a triangle into spans, inserting them into the span buffer
 void makespans(const fix24p8_t *va4, const fix24p8_t *vb4, const fix24p8_t *vc4)
 {
-	//Dehomogenize
+	if(va4[3] <= 0 || vb4[3] <= 0 || vc4[3] <= 0)
+		return; //Behind the camera
+	
+	//Dehomogenize, turn to screen-space
 	fix24p8_t va3[3];
 	fix24p8_t vb3[3];
 	fix24p8_t vc3[3];
+	
+	//Todo - we're doing GL-style NDC as the output of the MVP transform
+	//Then we have to do this additional step to turn it into integer pixel-coords at reasonable precision
+	//We could combine this with the MVP stuff to save some time, once debugged like this
+
+	va3[2] = (int64_t)FV(1) * va4[2] / va4[3];
+	vb3[2] = (int64_t)FV(1) * vb4[2] / vb4[3];
+	vc3[2] = (int64_t)FV(1) * vc4[2] / vc4[3];
+	
+	va3[0] = (int64_t)FBX * FV(1) * va4[0] / va4[3];
+	vb3[0] = (int64_t)FBX * FV(1) * vb4[0] / vb4[3];
+	vc3[0] = (int64_t)FBX * FV(1) * vc4[0] / vc4[3];
+
+	va3[1] = (int64_t)FBY * FV(1) * va4[1] / va4[3];
+	vb3[1] = (int64_t)FBY * FV(1) * vb4[1] / vb4[3];
+	vc3[1] = (int64_t)FBY * FV(1) * vc4[1] / vc4[3];
+
+
+	
+	va3[0] += FBX * FV(0.5);
+	vb3[0] += FBX * FV(0.5);
+	vc3[0] += FBX * FV(0.5);
+
+	va3[1] += FBY * FV(0.5);
+	vb3[1] += FBY * FV(0.5);
+	vc3[1] += FBY * FV(0.5);
+	
 	for(int dd = 0; dd < 3; dd++)
 	{
-		va3[dd] = va4[dd] / va4[3];
-		vb3[dd] = vb4[dd] / vb4[3];
-		vc3[dd] = vc4[dd] / vc4[3];
+		va3[dd] /= FV(1);
+		vb3[dd] /= FV(1);
+		vc3[dd] /= FV(1);
 	}
 	
 	//Figure out top, middle, bottom verts in Y
@@ -257,14 +279,18 @@ int main(int argc, const char **argv)
 	(void)argc;
 	(void)argv;
 	
-	fb_next = &(fbs[0][0][0]);
-	int loop = 0;
+	ply_t *model = ply_load("cube.ply");
+	if(model == NULL)
+	{
+		perror("load cube.ply");
+		exit(-1);
+	}
 	
+	int anim = 0;
 	while(1)
 	{
-		loop += 4;
-		//usleep(1000);
-		#define M_PI 3.1415926535f
+		_sc_pause();
+		anim = _sc_getticks();
 		
 		//Enqueue the last-rendered image to flip onto the display.
 		int flip_result = _sc_gfx_flip(_SC_GFX_MODE_320X240_16BPP, fb_next);
@@ -288,6 +314,9 @@ int main(int argc, const char **argv)
 		
 		//Now ready to start rendering the next frame.
 		
+		//Clear frame buffer (can ditch this once we're covering the screen with spans)
+		memset(fb_next, 0, sizeof(fbs[0]));
+		
 		//Clear span buffers
 		for(int ll = 0; ll < FBY; ll++)
 		{
@@ -296,53 +325,50 @@ int main(int argc, const char **argv)
 			spanused[ll] = 0;
 		}
 		
-		//Clear frame buffer
-		memset(fb_next, 0, sizeof(fbs[0]));
-	
-		//Insert some test triangles into the span buffers
-		fix24p8_t va[4] = 
-		{
-			(256 * 160) + (256 * 64 * sinf(loop * M_PI / 1000.0f)),
-			(256 * 120) + (256 * 64 * cosf(loop * M_PI / 1000.0f)),
-			0,
-			256,
-		};
+		//Prep view matrix
+		mvp_ident();
+		mvp_persp(FV(90), FV(1.33333), FV(1), FV(65536));
+		mvp_translate(0, 0, -1024);
+		mvp_rotate(FV(1) * FV(anim) / FV(10), FV(0), FV(1), FV(0));
 		
-		fix24p8_t vb[4] = 
-		{
-			(256 * 160) + (256 * 64 * sinf((loop+256) * M_PI / 1000.0f)),
-			(256 * 120) + (256 * 64 * cosf((loop+256) * M_PI / 1000.0f)),
-			0,
-			256,
-		};
+		//Insert some triangles into the span buffers
 		
-		fix24p8_t vc[4] = 
+		for(int ii = 0; ii < model->nidxs; ii += 3)
 		{
-			(256 * 160) + (256 * 64 * sinf((loop+512) * M_PI / 1000.0f)),
-			(256 * 120) + (256 * 64 * cosf((loop+512) * M_PI / 1000.0f)),
-			0,
-			256,
-		};
-		
-		fix24p8_t vd[4] = 
-		{
-			(256 * 160) + (256 * 64 * sinf((loop+1024) * M_PI / 1000.0f)),
-			(256 * 120) + (256 * 64 * cosf((loop+1024) * M_PI / 1000.0f)),
-			0,
-			256,
-		};
-		
-		fix24p8_t ve[4] = 
-		{
-			(256 * 160) + (256 * 64 * sinf((loop+1536) * M_PI / 1000.0f)),
-			(256 * 120) + (256 * 64 * cosf((loop+1536) * M_PI / 1000.0f)),
-			0,
-			256,
-		};
-		
-		makespans(va, vc, vb);
-		makespans(va, vc, vd);
-		makespans(ve, va, vd);
+			int ia = model->idxs[ii + 0];
+			int ib = model->idxs[ii + 1];
+			int ic = model->idxs[ii + 2];
+			
+			fix24p8_t va[4] = 
+			{
+				model->verts[ (ia * 8) + 0 ],
+				model->verts[ (ia * 8) + 1 ],
+				model->verts[ (ia * 8) + 2 ],
+				256,
+			};
+			
+			fix24p8_t vb[4] = 
+			{
+				model->verts[ (ib * 8) + 0 ],
+				model->verts[ (ib * 8) + 1 ],
+				model->verts[ (ib * 8) + 2 ],
+				256,
+			};
+			
+			fix24p8_t vc[4] = 
+			{
+				model->verts[ (ic * 8) + 0 ],
+				model->verts[ (ic * 8) + 1 ],
+				model->verts[ (ic * 8) + 2 ],
+				256,
+			};
+			
+			mvp_xform(va, va);
+			mvp_xform(vb, vb);
+			mvp_xform(vc, vc);
+			
+			makespans(va, vb, vc);
+		}
 		
 		//Rasterize spans
 		uint16_t spancolor = 0x4208;
@@ -358,7 +384,12 @@ int main(int argc, const char **argv)
 				
 				for(int pp = 0; pp < spans[ll][spanidx].n; pp++)
 				{
-					fbline[spans[ll][spanidx].x] += spancolor;
+					if(spans[ll][spanidx].x >= FBX)
+						break;
+					
+					if(spans[ll][spanidx].x >= 0)
+						fbline[spans[ll][spanidx].x] += spancolor;
+					
 					spans[ll][spanidx].x++;
 				}
 			}
