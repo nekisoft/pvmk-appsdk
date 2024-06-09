@@ -11,15 +11,15 @@
 //Spans in span buffer - linked list on each line
 typedef struct span_s
 {
-	//Properties of the span
-	uint8_t next; //Index of next span when sorted
-	uint8_t prev; //Index of previous span when sorted
-	uint8_t tex; //Texture index
-	uint8_t mip; //MIP level to use
-	
 	//Interpolands at beginning and end
 	fix24p8_t x0[4]; //X, W, S, T
 	fix24p8_t x1[4]; //X, W, S, T
+	
+	//Properties of the span
+	uint8_t tex; //Texture index
+	uint8_t mip; //MIP level to use
+	
+	uint8_t dummy[2];
 } span_t;
 #define SPAN_MAX 128
 static span_t spans[FBY][SPAN_MAX]; //Span 0 of each line is unused and functions as the head/tail pointer
@@ -38,7 +38,6 @@ static void span_add(int y, int tex, int x0[4], int x1[4])
 	if(x0[0] == x1[0])
 		return; //Zero length horizontally
 	
-	span_used[y]++;
 	int ss = span_used[y];
 	if(ss >= SPAN_MAX)
 		return;	
@@ -56,11 +55,9 @@ static void span_add(int y, int tex, int x0[4], int x1[4])
 	}
 	
 	spans[y][ss].tex = tex;
+	spans[y][ss].mip = 0;
 	
-	spans[y][spans[y][0].prev].next = ss;
-	spans[y][ss].prev = spans[y][0].prev;
-	spans[y][ss].next = 0;
-	spans[y][0].prev = ss;
+	span_used[y]++;
 }
 
 //Clips the beginning of a span
@@ -249,126 +246,126 @@ void span_finish(void)
 	uint16_t *fbline = fb_back;
 	for(int ll = 0; ll < FBY; ll++)
 	{		
+		//Clip spans
 		span_t *ls = spans[ll];
-		
-		//Sort spans by starting X coordinate
-		for(int ss = 0; ss < span_used[ll]; ss++)
+		for(int aa = 0; aa < span_used[ll]; aa++)
 		{
-			int spanidx = 0;
-			while(1)
-			{
-				spanidx = ls[spanidx].next;
-				if(spanidx == 0)
-					break;
+			for(int bb = aa+1; bb < span_used[ll]; bb++)
+			{				
+				int aa_beg = ls[aa].x0[0];
+				int aa_end = ls[aa].x1[0];
 				
-				int successor = ls[spanidx].next;
-				if(successor == 0)
-					break;
+				int bb_beg = ls[bb].x0[0];
+				int bb_end = ls[bb].x1[0];
 				
-				if(ls[spanidx].x0[0] > ls[successor].x0[0])
+				int bb_far = ls[aa].x0[1] + ls[aa].x1[1];
+				int aa_far = ls[bb].x0[1] + ls[bb].x1[1];
+				
+				if(aa_end <= bb_beg)
 				{
-					ls[spanidx].next = ls[successor].next;
-					ls[successor].prev = ls[spanidx].prev;
-					ls[successor].next = spanidx;
-					ls[spanidx].prev = successor;
-					ls[ls[successor].prev].next = successor;
-					ls[ls[spanidx].next].prev = spanidx;
-					spanidx = 0;
-				}
-			}
-		}
-		
-		//Clip spans by X coordinate
-		for(int ss = 0; ss < span_used[ll]; ss++)
-		{
-			int spanidx = 0;
-			while(1)
-			{
-				spanidx = ls[spanidx].next;
-				if(spanidx == 0)
-					break;
-				
-				int successor = ls[spanidx].next;
-				if(successor == 0)
-					break;
-				
-				int span_end = ls[spanidx].x1[0];
-				int next_begin = ls[successor].x0[0];
-				int next_end = ls[successor].x1[0];
-				if(span_end <= next_begin)
-				{
-					//Spans don't overlap
-					//(This is bad because it means there's a gap in the rendering...)
+					//Disjoint
 					continue;
 				}
-				
-				if(span_end > next_end)
+				else if(bb_end <= aa_beg)
 				{
-					//The spanidx span begins before the successor (as they're sorted)
-					//It also ends after the successor.
-					//The spanidx span needs to be split, therefore, around the successor.
-					//Add a copy of the current span, beginning right where the successor does.
-					//Then the existing one can get chopped.
-					span_used[ll]++;
-					int ss = span_used[ll];
-					if(ss < SPAN_MAX)
+					//Disjoint
+					continue;
+				}
+				else if(aa_beg <= bb_beg && aa_end >= bb_end)
+				{
+					//span A is all around span B.
+					if(aa_far > bb_far)
 					{
-						memcpy(&ls[ss], &ls[spanidx], sizeof(ls[ss]));
-						ls[ss].next = ls[successor].next;
-						ls[ls[successor].next].prev = ss;
-						ls[ss].prev = successor;
-						ls[successor].next = ss;
+						//A is behind.
+						//Span B chops span A into two spans.
+						int ss = span_used[ll];
+						if(ss < SPAN_MAX)
+						{
+							//Add a copy of span A, after span B
+							memcpy(&ls[ss], &ls[aa], sizeof(ls[ss]));
+							
+							//Clip the later half after span B
+							span_clip_beginning(ls[ss].x0, ls[ss].x1, bb_end);
+							
+							span_used[ll]++;
+						}
+						
+						//Clip the earlier half before span B
+						span_clip_end(ls[aa].x0, ls[aa].x1, bb_beg);
+					}
+					else
+					{
+						//B is behind.
+						//It is totally eliminated by span A.
+						memset(&(ls[bb]), 0, sizeof(ls[bb]));
 					}
 				}
-								
-				//Need to clip these two spans.
-				//Figure out which one is in front.
-				int avgw_spanidx = ls[spanidx].x0[1] + ls[spanidx].x1[1];
-				int avgw_successor = ls[successor].x0[1] + ls[successor].x1[1];
-				
-				if(avgw_spanidx > avgw_successor)
+				else if(bb_beg <= aa_beg && bb_end >= aa_end)
 				{
-					//spanidx is in front of successor
-					//The beginning of successor needs to get shaved.
-					span_clip_beginning(
-						ls[successor].x0,
-						ls[successor].x1, 
-						ls[spanidx].x1[0]
-					);
+					//span B is all around span A.
+					if(aa_far > bb_far)
+					{
+						//A is behind.
+						//It is totally eliminated by span B.
+						memset(&(ls[aa]), 0, sizeof(ls[aa]));
+					}
+					else
+					{
+						//B is behind.
+						//Span A chops span B into two spans.
+						int ss = span_used[ll];
+						if(ss < SPAN_MAX)
+						{
+							//Add a copy of span B, before span A
+							memcpy(&ls[ss], &ls[bb], sizeof(ls[ss]));
+							
+							//Clip the earlier half before span A
+							span_clip_end(ls[ss].x0, ls[ss].x1, aa_beg);
+							
+							span_used[ll]++;
+						}
+						
+						//Clip the later half after span A
+						span_clip_beginning(ls[bb].x0, ls[bb].x1, aa_end);
+						
+					}
 				}
-				else
+				else if(aa_beg < bb_beg)
 				{
-					//successor is in front of spanidx
-					//The end of spanidx needs to get shaved.
-					span_clip_end(
-						ls[spanidx].x0,
-						ls[spanidx].x1, 
-						ls[successor].x0[0]
-					);
+					//span A is earlier but they overlap
+					if(aa_far > bb_far)
+					{
+						//A is in back - clip its end so they don't overlap.
+						span_clip_end(ls[aa].x0, ls[aa].x1, bb_beg);
+					}
+					else
+					{
+						//B is in back - clip its beginning so they don't overlap.
+						span_clip_beginning(ls[bb].x0, ls[bb].x1, aa_end);
+					}
 				}
-				
-				//Check if we've annihilated either of these spans
-				if(ls[spanidx].x0[0] == ls[spanidx].x1[0])
+				else if(bb_beg < aa_beg)
 				{
-					//spanidx span has been eliminated
-					ls[ls[spanidx].prev].next = ls[spanidx].next;
-					ls[ls[spanidx].next].prev = ls[spanidx].prev;
-				}
-				else if(ls[successor].x0[0] == ls[successor].x1[0])
-				{
-					//successor span has been eliminated
-					ls[ls[successor].prev].next = ls[successor].next;
-					ls[ls[successor].next].prev = ls[successor].prev;
+					//span B is earlier but they overlap
+					if(aa_far > bb_far)
+					{
+						//A is in back - clip its beginning so they don't overlap.
+						span_clip_beginning(ls[aa].x0, ls[aa].x1, bb_end);
+					}
+					else
+					{
+						//B is in back - clip its end so they don't overlap.
+						span_clip_end(ls[bb].x0, ls[bb].x1, aa_beg);
+					}
 				}
 			}
 		}
 		
-		//Run through the spans in order and rasterize them
-		const span_t *sptr = &(ls[0]);
+		//Run through the spans and rasterize them
+		//Todo - maybe sort by texture or something for cache locality
 		for(int ss = 0; ss < span_used[ll]; ss++)
 		{
-			sptr = &(ls[sptr->next]);
-			
+			const span_t *sptr = &(ls[ss]);
 			const fbpx_t *texdata = tex_data(sptr->tex);
 			
 			uint16_t ts = sptr->x0[2]; //0.16
@@ -380,6 +377,8 @@ void span_finish(void)
 			uint16_t d_tt = (sptr->x1[3] - sptr->x0[3]) / px_n; //0.16
 			
 			//Performance-critical pixel rasterization loop!
+			//int rand(void);
+			//int spancolor = rand();
 			for(int pp = sptr->x0[0]; pp < sptr->x1[0]; pp++)
 			{
 				fbpx_t sample = texdata[ (ts >> 8) + (tt & 0xFF00) ];
@@ -392,7 +391,9 @@ void span_finish(void)
 				
 				//Show how many times a pixel is touched (should be 1)
 				//(void)sample;
-				//fbline[pp] += 0x1082;
+				//fbline[pp] += 0x2104;
+				
+				//fbline[pp] = spancolor;
 				
 				ts += d_ts;
 				tt += d_tt;
@@ -405,11 +406,7 @@ void span_finish(void)
 	//Clear the span-buffers, now that they're drained out to the framebuffer
 	for(int ll = 0; ll < FBY; ll++)
 	{
-		//Item 0 is just a head-pointer
-		spans[ll][0].next = 1;
-		spans[ll][0].prev = 0;
 		span_used[ll] = 0;
-		
 		span_add(ll, 0, (int[4]){0,0,0,0}, (int[4]){FBX,0,65536,65536});		
 	}
 }

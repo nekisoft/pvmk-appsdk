@@ -7,7 +7,7 @@
 #include "common.h"
 
 //Dimensions of framebuffer
-#define HIRES 1
+#define HIRES 0
 #if HIRES
 	#define FBX 640
 	#define FBY 480
