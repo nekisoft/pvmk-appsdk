@@ -11,13 +11,13 @@
 //Spans in span buffer - linked list on each line
 typedef struct span_s
 {
+	//Properties of the span
 	uint8_t next; //Index of next span when sorted
 	uint8_t prev; //Index of previous span when sorted
 	uint8_t tex; //Texture index
 	uint8_t mip; //MIP level to use
 	
-	uint16_t x, n; //Screen X and length
-	
+	//Interpolands at beginning and end
 	fix24p8_t x0[4]; //X, W, S, T
 	fix24p8_t x1[4]; //X, W, S, T
 } span_t;
@@ -43,17 +43,14 @@ static void span_add(int y, int tex, int x0[4], int x1[4])
 	if(ss >= SPAN_MAX)
 		return;	
 
+	//Flip so the x0 side is always on the left in screen-X
 	if(x0[0] < x1[0])
 	{
-		spans[y][ss].x = x0[0];
-		spans[y][ss].n = x1[0] - x0[0];
 		memcpy(spans[y][ss].x0, x0, sizeof(spans[y][ss].x0));
 		memcpy(spans[y][ss].x1, x1, sizeof(spans[y][ss].x1));
 	}
 	else
 	{
-		spans[y][ss].x = x1[0];
-		spans[y][ss].n = x0[0] - x1[0];
 		memcpy(spans[y][ss].x0, x1, sizeof(spans[y][ss].x0));
 		memcpy(spans[y][ss].x1, x0, sizeof(spans[y][ss].x1));
 	}
@@ -64,6 +61,44 @@ static void span_add(int y, int tex, int x0[4], int x1[4])
 	spans[y][ss].prev = spans[y][0].prev;
 	spans[y][ss].next = 0;
 	spans[y][0].prev = ss;
+}
+
+//Clips the beginning of a span
+static void span_clip_beginning(int x0[4], int x1[4], int newbegin)
+{
+	int oldlen = x1[0] - x0[0];
+	int newlen = x1[0] - newbegin;
+	
+	if(newlen <= 0)
+		newlen = 0;
+	if(newlen > oldlen)
+		return;
+	if(oldlen <= 0)
+		return;
+	
+	for(int dd = 0; dd < 4; dd++)
+	{
+		x0[dd] = x1[dd] + ((int64_t)(x0[dd] - x1[dd]) * newlen / oldlen);
+	}
+}
+
+//Clips the end of a span
+static void span_clip_end(int x0[4], int x1[4], int newend)
+{
+	int oldlen = x1[0] - x0[0];
+	int newlen = newend - x0[0];
+	
+	if(newlen <= 0)
+		newlen = 0;
+	if(newlen > oldlen)
+		return;
+	if(oldlen <= 0)
+		return;
+	
+	for(int dd = 0; dd < 4; dd++)
+	{
+		x1[dd] = x0[dd] + ((int64_t)(x1[dd] - x0[dd]) * newlen / oldlen);
+	}	
 }
 
 //DDA (Bresenham lines) algorithm for working down triangle edges
@@ -91,7 +126,8 @@ static void span_dda(int y0, const int x0[4], int y1, const int x1[4], int dest[
 				if(cur < min)
 					cur = min;
 				
-				dest[yy][dd] = cur;
+				if(yy >= 0 && yy < FBY)
+					dest[yy][dd] = cur;
 				
 				cur += whole;
 				rem += num;
@@ -111,7 +147,8 @@ static void span_dda(int y0, const int x0[4], int y1, const int x1[4], int dest[
 				if(cur > max)
 					cur = max;
 				
-				dest[yy][dd] = cur;
+				if(yy >= 0 && yy < FBY)
+					dest[yy][dd] = cur;
 				
 				cur += whole;
 				rem += num;
@@ -174,9 +211,6 @@ void span_add_tri(int tex,
 		vc3[dd] /= FV(1);
 	}
 	
-	if( ((vb3[0] - va3[0]) * (vc3[1] - va3[1])) > ((vb3[1] - va3[1]) * (vc3[0] - va3[0])) )
-		return; //backface
-	
 	//Figure out top, middle, bottom verts in Y
 	fix24p8_t *top = va3;
 	if(vb3[0] < top[0])
@@ -215,66 +249,151 @@ void span_finish(void)
 	uint16_t *fbline = fb_back;
 	for(int ll = 0; ll < FBY; ll++)
 	{		
-		//Sort spans by depth
-		//Todo - sort them by X, chop them so they don't overlap
-		//For now sorting by depth works
+		span_t *ls = spans[ll];
 		
-		//Bubble sort whatever
+		//Sort spans by starting X coordinate
 		for(int ss = 0; ss < span_used[ll]; ss++)
 		{
 			int spanidx = 0;
 			while(1)
 			{
-				spanidx = spans[ll][spanidx].next;
+				spanidx = ls[spanidx].next;
 				if(spanidx == 0)
 					break;
 				
-				int successor = spans[ll][spanidx].next;
+				int successor = ls[spanidx].next;
 				if(successor == 0)
 					break;
 				
-				//Check average W as a sorting criterion
-				int spanidx_avg_w   = spans[ll][spanidx].x0[1]   + spans[ll][spanidx].x1[1];
-				int successor_avg_w = spans[ll][successor].x0[1] + spans[ll][successor].x1[1];
-				
-				if(spanidx_avg_w > successor_avg_w)
+				if(ls[spanidx].x0[0] > ls[successor].x0[0])
 				{
-					spans[ll][spanidx].next = spans[ll][successor].next;
-					spans[ll][successor].prev = spans[ll][spanidx].prev;
-					spans[ll][successor].next = spanidx;
-					spans[ll][spanidx].prev = successor;
-					spans[ll][spans[ll][successor].prev].next = successor;
-					spans[ll][spans[ll][spanidx].next].prev = spanidx;
-					spanidx = successor;
+					ls[spanidx].next = ls[successor].next;
+					ls[successor].prev = ls[spanidx].prev;
+					ls[successor].next = spanidx;
+					ls[spanidx].prev = successor;
+					ls[ls[successor].prev].next = successor;
+					ls[ls[spanidx].next].prev = spanidx;
+					spanidx = 0;
+				}
+			}
+		}
+		
+		//Clip spans by X coordinate
+		for(int ss = 0; ss < span_used[ll]; ss++)
+		{
+			int spanidx = 0;
+			while(1)
+			{
+				spanidx = ls[spanidx].next;
+				if(spanidx == 0)
+					break;
+				
+				int successor = ls[spanidx].next;
+				if(successor == 0)
+					break;
+				
+				int span_end = ls[spanidx].x1[0];
+				int next_begin = ls[successor].x0[0];
+				int next_end = ls[successor].x1[0];
+				if(span_end <= next_begin)
+				{
+					//Spans don't overlap
+					//(This is bad because it means there's a gap in the rendering...)
+					continue;
+				}
+				
+				if(span_end > next_end)
+				{
+					//The spanidx span begins before the successor (as they're sorted)
+					//It also ends after the successor.
+					//The spanidx span needs to be split, therefore, around the successor.
+					//Add a copy of the current span, beginning right where the successor does.
+					//Then the existing one can get chopped.
+					span_used[ll]++;
+					int ss = span_used[ll];
+					if(ss < SPAN_MAX)
+					{
+						memcpy(&ls[ss], &ls[spanidx], sizeof(ls[ss]));
+						ls[ss].next = ls[successor].next;
+						ls[ls[successor].next].prev = ss;
+						ls[ss].prev = successor;
+						ls[successor].next = ss;
+					}
+				}
+								
+				//Need to clip these two spans.
+				//Figure out which one is in front.
+				int avgw_spanidx = ls[spanidx].x0[1] + ls[spanidx].x1[1];
+				int avgw_successor = ls[successor].x0[1] + ls[successor].x1[1];
+				
+				if(avgw_spanidx > avgw_successor)
+				{
+					//spanidx is in front of successor
+					//The beginning of successor needs to get shaved.
+					span_clip_beginning(
+						ls[successor].x0,
+						ls[successor].x1, 
+						ls[spanidx].x1[0]
+					);
+				}
+				else
+				{
+					//successor is in front of spanidx
+					//The end of spanidx needs to get shaved.
+					span_clip_end(
+						ls[spanidx].x0,
+						ls[spanidx].x1, 
+						ls[successor].x0[0]
+					);
+				}
+				
+				//Check if we've annihilated either of these spans
+				if(ls[spanidx].x0[0] == ls[spanidx].x1[0])
+				{
+					//spanidx span has been eliminated
+					ls[ls[spanidx].prev].next = ls[spanidx].next;
+					ls[ls[spanidx].next].prev = ls[spanidx].prev;
+				}
+				else if(ls[successor].x0[0] == ls[successor].x1[0])
+				{
+					//successor span has been eliminated
+					ls[ls[successor].prev].next = ls[successor].next;
+					ls[ls[successor].next].prev = ls[successor].prev;
 				}
 			}
 		}
 		
 		//Run through the spans in order and rasterize them
-		const span_t *sptr = &(spans[ll][0]);
+		const span_t *sptr = &(ls[0]);
 		for(int ss = 0; ss < span_used[ll]; ss++)
 		{
-			sptr = &(spans[ll][sptr->next]);
+			sptr = &(ls[sptr->next]);
 			
-			const fbpx_t *texdata = tex_data(1);
+			const fbpx_t *texdata = tex_data(sptr->tex);
 			
 			uint16_t ts = sptr->x0[2]; //0.16
 			uint16_t tt = sptr->x0[3]; //0.16
 			
-			uint16_t d_ts = (sptr->x1[2] - sptr->x0[2]) / sptr->n; //0.16
-			uint16_t d_tt = (sptr->x1[3] - sptr->x0[3]) / sptr->n; //0.16
+			int px_n = (sptr->x1[0] - sptr->x0[0]);
 			
-			int px_n = sptr->n;
-			int px_x = sptr->x;
+			uint16_t d_ts = (sptr->x1[2] - sptr->x0[2]) / px_n; //0.16
+			uint16_t d_tt = (sptr->x1[3] - sptr->x0[3]) / px_n; //0.16
 			
 			//Performance-critical pixel rasterization loop!
-			for(int pp = 0; pp < px_n; pp++)
+			for(int pp = sptr->x0[0]; pp < sptr->x1[0]; pp++)
 			{
 				fbpx_t sample = texdata[ (ts >> 8) + (tt & 0xFF00) ];
 				
-				fbline[px_x] = sample;
+				fbline[pp] = sample;
 				
-				px_x++;
+				//Show wireframe outlines
+				//if(pp == sptr->x0[0] || pp == sptr->x1[0] -1 )
+				//	fbline[pp] = 0xFFFF;
+				
+				//Show how many times a pixel is touched (should be 1)
+				//(void)sample;
+				//fbline[pp] += 0x1082;
+				
 				ts += d_ts;
 				tt += d_tt;
 			}
@@ -286,8 +405,11 @@ void span_finish(void)
 	//Clear the span-buffers, now that they're drained out to the framebuffer
 	for(int ll = 0; ll < FBY; ll++)
 	{
-		spans[ll][0].next = 0;
+		//Item 0 is just a head-pointer
+		spans[ll][0].next = 1;
 		spans[ll][0].prev = 0;
 		span_used[ll] = 0;
+		
+		span_add(ll, 0, (int[4]){0,0,0,0}, (int[4]){FBX,0,65536,65536});		
 	}
 }

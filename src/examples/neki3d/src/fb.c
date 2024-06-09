@@ -38,6 +38,6 @@ void fb_flip(void)
 	//Now ready to start rendering the next frame.
 	
 	//Clear frame buffer (can ditch this once we're covering the screen with spans)
-	//memset(fb_back, 0, sizeof(fbs[0]));
+	memset(fb_back, 0, sizeof(fbs[0]));
 }
 

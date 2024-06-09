@@ -15,7 +15,8 @@
 #include "tex.h"
 #include "fb.h"
 #include "span.h"
-
+#include "subdiv.h"
+#include "trig.h"
 
 int main(int argc, const char **argv)
 {
@@ -45,8 +46,9 @@ int main(int argc, const char **argv)
 		mvp_ident();
 		mvp_persp(FV(90), FV(1.33333), FV(1), FV(65536));
 		mvp_translate(0, 0, -1024);
-		mvp_rotate(FV(1) * FV(anim) / FV(10), FV(0), FV(1), FV(0));
-		mvp_rotate(FV(1) * FV(anim/2) / FV(10), FV(1), FV(0), FV(0));
+		mvp_translate(0, 0, (FV(1) + trig_sind(FV(anim)/10)) * -10);
+		mvp_rotate(FV(1) * FV(anim/5) / FV(10), FV(0), FV(1), FV(0));
+		mvp_rotate(FV(1) * FV(anim/7) / FV(10), FV(1), FV(0), FV(0));
 		
 		//Transform some triangles and put into the span buffers
 		for(int ii = 0; ii < model->nidxs; ii += 3)
@@ -83,7 +85,7 @@ int main(int argc, const char **argv)
 			mvp_xform(vb, vb);
 			mvp_xform(vc, vc);
 			
-			span_add_tri(1,
+			subdiv_tri(1,
 				va, model->verts + ia + 6,
 				vb, model->verts + ib + 6,
 				vc, model->verts + ic + 6);

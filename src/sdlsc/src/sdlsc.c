@@ -140,6 +140,7 @@ int _sdlsc_video_function(void *dummy)
 int _sc_gfx_flip(int mode, const void *buffer)
 {
 	//If we need to initialize our video scanout thread, do so
+	_sdlsc_require_sdlinit(SDL_INIT_VIDEO);
 	if(_sdlsc_video_thread == NULL)
 	{
 		_sdlsc_video_thread = SDL_CreateThread(&_sdlsc_video_function, "sdlsc video", NULL);
@@ -159,7 +160,7 @@ int _sc_gfx_flip(int mode, const void *buffer)
 	_sdlsc_video_enq_valid  = true; //last
 	
 	//Return the buffer currently displayed
-	return ((int)_sdlsc_video_buffer_displayed) & 0x7FFFFFFF;
+	return ((int)(uintptr_t)_sdlsc_video_buffer_displayed) & 0x7FFFFFFF;
 }
 
 //SDL audio setting
