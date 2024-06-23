@@ -321,4 +321,47 @@ int _sc_nvm_load(void *buf, int len)
 	}
 }
 
+int _sc_nvm_ident(const char *name)
+{
+	(void)name;
+	return -_SC_ENOSYS;
+}
+
+int _sc_nvm_delete(void)
+{
+	return -_SC_ENOSYS;
+}
+
+int _sc_nvm_enum(int idx, char *name_buf, int name_max)
+{
+	(void)idx;
+	(void)name_buf;
+	(void)name_max;
+	return -_SC_ENOSYS;
+}
+
+int _sc_halt(void)
+{
+	exit(0);
+}
+
+int _sc_mount(int container_fd, int disk_number)
+{
+	(void)container_fd;
+	(void)disk_number;
+	return -_SC_ENOSYS;
+}
+
+int _sc_deny_syscall(int callnum)
+{
+	(void)callnum;
+	return -_SC_ENOSYS;
+}
+
+int _sc_deny_filefmt(int mode)
+{
+	(void)mode;
+	return -_SC_ENOSYS;
+}
+
 #endif //USE_SDLSC

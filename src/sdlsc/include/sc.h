@@ -68,12 +68,26 @@ int _sc_getticks(void);
 //NVM
 int _sc_nvm_save(const void *buf, int len);
 int _sc_nvm_load(void *buf, int len);
+int _sc_nvm_ident(const char *name); //ENOSYS
+int _sc_nvm_delete(void); //ENOSYS
+int _sc_nvm_enum(int idx, char *name_buf, int name_max); //ENOSYS
+
+//Poweroff
+int _sc_halt(void);
+
+//Other stuff (just to get our system-menu compiling...)
+int _sc_mount(int container_fd, int disk_number); //ENOSYS
+int _sc_deny_syscall(int callnum); //ENOSYS
+int _sc_deny_filefmt(int mode); //ENOSYS
+
 
 //Error codes used in the shim
 #define _SC_EINVAL       22 //Invalid argument.
 #define _SC_EAGAIN       11 //Resource unavailable, try again (may be the same value as EWOULDBLOCK).
 #define _SC_ENOMEM       12 //Not enough space.
 #define _SC_ENOENT        2 //No such file or directory.
+#define _SC_ENOSPC       28 //No space left on device.
+#define _SC_ENOSYS       38 //Functionality not supported.
 
 #if 0
 #define _SC_EPERM         1 //Operation not permitted.
@@ -103,7 +117,7 @@ int _sc_nvm_load(void *buf, int len);
 #define _SC_ENOTTY       25 //Inappropriate I/O control operation.
 #define _SC_ETXTBSY      26 //Text file busy.
 #define _SC_EFBIG        27 //File too large.
-#define _SC_ENOSPC       28 //No space left on device.
+
 #define _SC_ESPIPE       29 //Invalid seek.
 #define _SC_EROFS        30 //Read-only file system.
 #define _SC_EMLINK       31 //Too many links.
@@ -114,11 +128,39 @@ int _sc_nvm_load(void *buf, int len);
 #define _SC_EDEADLOCK    35 //Resource deadlock would occur.
 #define _SC_ENAMETOOLONG 36 //Filename too long.
 #define _SC_ENOLCK       37 //No locks available.
-#define _SC_ENOSYS       38 //Functionality not supported.
+
 #define _SC_ENOTEMPTY    39 //Directory not empty.
 #define _SC_ELOOP        40 //Too many levels of symbolic links.
 #define _SC_ENOMSG       42 //No message of the desired type.
 #define _SC_EIDRM        43 //Identifier removed.
 #endif
+
+//File modes (probably not a wise choice to look at anything but the lowest 9 bits... no guarantee the host system agrees)
+#define _SC_S_IFMT   ((int)0770000) //Format mask - bits that indicate the type of file
+#define _SC_S_IFREG  ((int)0010000) //Format - regular file
+#define _SC_S_IFDIR  ((int)0020000) //Format - directory
+#define _SC_S_IFBLK  ((int)0030000) //Format - block device (unused)
+#define _SC_S_IFCHR  ((int)0040000) //Format - character device
+#define _SC_S_IFLNK  ((int)0050000) //Format - symbolic link
+#define _SC_S_IFSOCK ((int)0060000) //Format - socket
+#define _SC_S_IFIFO  ((int)0070000) //Format - FIFO (named pipe)
+#define _SC_S_IFPTY  ((int)0100000) //Format - pseudoterminal (unique to us!)
+#define _SC_S_ISUID  ((int)0004000) //Set-UID bit (unused)
+#define _SC_S_ISGID  ((int)0002000) //Set-GID bit (unused)
+#define _SC_S_ISVTX  ((int)0001000) //Sticky bit (unused)
+#define _SC_S_IRWXU  ((int)0000700) //Permission mask - owner
+#define _SC_S_IRUSR  ((int)0000400) //Readable by owner
+#define _SC_S_IWUSR  ((int)0000200) //Writable by owner
+#define _SC_S_IXUSR  ((int)0000100) //Executable by owner
+#define _SC_S_IRWXG  ((int)0000070) //Permission mask - group (unused)
+#define _SC_S_IRGRP  ((int)0000040) //Readable by owning group (unused)
+#define _SC_S_IWGRP  ((int)0000020) //Writable by owning group (unused)
+#define _SC_S_IXGRP  ((int)0000010) //Executable by owning group (unused)
+#define _SC_S_IRWXO  ((int)0000007) //Permission mask - others (unused)
+#define _SC_S_IROTH  ((int)0000004) //Readable by others (unused)
+#define _SC_S_IWOTH  ((int)0000002) //Writable by others (unused)
+#define _SC_S_IXOTH  ((int)0000001) //Executable by others (unused)
+
+
 
 #endif //_SDLSC_H
