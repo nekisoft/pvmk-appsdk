@@ -3,6 +3,7 @@
 //Bryan E. Topp <betopp@betopp.com> 2024
 
 #include <sc.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
@@ -55,6 +56,7 @@ typedef struct bullet_s
 {
 	int pos[2];
 	int vel[2];
+	int timeleft;
 } bullet_t;
 bullet_t bullets[BULLET_MAX];
 
@@ -63,6 +65,19 @@ int refire;
 
 //Background noise - positions and angles
 int bgflurry[8][8][3];
+
+//Rocks
+#define ROCK_MAX 16
+typedef struct rock_s
+{
+	int health;
+	int pos[2];
+	int vel[2];
+	int ang;
+	int avel;
+	int shape[8][2];
+} rock_t;
+rock_t rocks[ROCK_MAX];
 
 //Draws a line into the current backbuffer. Bresenham spans algorithm.
 void drawline(int x0, int y0, int x1, int y1, uint16_t color)
@@ -285,20 +300,20 @@ void refresh(void)
 
 //Enqueues a line to be drawn at the next refresh.
 void qline(int x0, int y0, int x1, int y1)
-{	
-	//Discard lines that are trivially off the screen
-	if(x0 < 0 && x1 < 0)
-		return;
-	if(x0 >= SCRX && x1 >= SCRX)
-		return;
-	if(y0 < 0 && y1 < 0)
-		return;
-	if(y0 >= SCRY && y1 >= SCRY)
-		return;
-	
+{
 	//Clip the given coordinates (naive method... probably can figure out a faster option)
 	for(int clip = 0; clip < 8; clip++)
 	{		
+		//Discard lines that are trivially off the screen
+		if(x0 < 0 && x1 < 0)
+			return;
+		if(x0 >= SCRX && x1 >= SCRX)
+			return;
+		if(y0 < 0 && y1 < 0)
+			return;
+		if(y0 >= SCRY && y1 >= SCRY)
+			return;
+		
 		if(x0 < 0)
 		{
 			//Point 0 off the left side of the screen
@@ -389,6 +404,43 @@ int sin16(int ang16)
 	return cos16(ang16 + 16384);
 }
 
+//Generates a new rock
+void rockspawn(void)
+{
+	int rnum = -1;
+	for(int rr = 0; rr < ROCK_MAX; rr++)
+	{
+		if(rocks[rr].health <= 0)
+		{
+			rnum = rr;
+			break;
+		}
+	}
+	if(rnum == -1)
+		return;
+	
+	int offsx = (rand() % 512) - 256;
+	int offsy = (rand() % 512) - 256;
+	
+	rocks[rnum].pos[0] = player_pos[0] + (offsx * 65536);
+	rocks[rnum].pos[1] = player_pos[1] + (offsy * 65536);
+	rocks[rnum].vel[0] = (rand() % 65536) - 32768;
+	rocks[rnum].vel[1] = (rand() % 65536) - 32768;
+	
+	rocks[rnum].ang = rand() % 65536;
+	rocks[rnum].avel = rand() % 256;
+	
+	rocks[rnum].health = 5;
+	
+	int radius = 10;
+	int rrand = 5;
+	for(int vv = 0; vv < 8; vv++)
+	{
+		rocks[rnum].shape[vv][0] = cos16(65536 * vv / 8) * (radius + (rand() % rrand)) / 65536;
+		rocks[rnum].shape[vv][1] = sin16(65536 * vv / 8) * (radius + (rand() % rrand)) / 65536;
+	}
+}
+
 //Enqueues a list of vertexes for drawing at the given worldspace position with rotation
 void qmodel(const int verts[][2], int nverts, const int pos[2], int ang)
 {
@@ -427,7 +479,7 @@ void gamedraw(void)
 	//Bullets
 	for(int bb = 0; bb < BULLET_MAX; bb++)
 	{
-		if(bullets[bb].vel[0] == 0 && bullets[bb].vel[1] == 0)
+		if(bullets[bb].timeleft <= 0)
 			continue;
 		
 		static const int bverts[][2] = 
@@ -438,6 +490,16 @@ void gamedraw(void)
 			{  0, -2 }
 		};
 		qmodel(bverts, sizeof(bverts)/sizeof(bverts[0]), bullets[bb].pos, 0);
+	}
+	
+	//Rocks
+	for(int rr = 0; rr < ROCK_MAX; rr++)
+	{
+		if(rocks[rr].health <= 0)
+			continue;
+		
+		//Each rock has their own shape (void* to avoid array qualifier conversion rules)
+		qmodel((void*)(rocks[rr].shape), sizeof(rocks[rr].shape)/sizeof(rocks[rr].shape[0]), rocks[rr].pos, rocks[rr].ang);
 	}
 	
 	//Background flurry
@@ -559,12 +621,13 @@ void gametick(void)
 		{
 			for(int bb = 0; bb < BULLET_MAX; bb++)
 			{
-				if(bullets[bb].vel[0] == 0 && bullets[bb].vel[1] == 0)
+				if(bullets[bb].timeleft == 0)
 				{
 					bullets[bb].vel[0] = player_vel[0] + (4 *  sin16(player_ang));
 					bullets[bb].vel[1] = player_vel[1] + (4 * -cos16(player_ang));
 					bullets[bb].pos[0] = player_pos[0];
 					bullets[bb].pos[1] = player_pos[1];
+					bullets[bb].timeleft = 100;
 					refire += 10;
 					break;
 				}
@@ -605,17 +668,32 @@ void gametick(void)
 	//Move bullets
 	for(int bb = 0; bb < BULLET_MAX; bb++)
 	{
+		if(bullets[bb].timeleft <= 0)
+			continue;
+		
 		bullets[bb].pos[0] += bullets[bb].vel[0];
 		bullets[bb].pos[1] += bullets[bb].vel[1];
+		bullets[bb].timeleft--;
 		
 		//Bullets that are too far away get cleared
 		int xout = abs(bullets[bb].pos[0] - player_pos[0]) > (512 * 65536);
 		int yout = abs(bullets[bb].pos[1] - player_pos[1]) > (512 * 65536);
 		if(xout || yout)
 		{
-			bullets[bb].vel[0] = 0;
-			bullets[bb].vel[1] = 0;
+			bullets[bb].timeleft = 0;
 		}
+	}
+	
+	//Move rocks
+	for(int rr = 0; rr < ROCK_MAX; rr++)
+	{
+		if(rocks[rr].health <= 0)
+			continue;
+		
+		rocks[rr].pos[0] += rocks[rr].vel[0];
+		rocks[rr].pos[1] += rocks[rr].vel[1];
+		rocks[rr].ang += rocks[rr].avel;
+		rocks[rr].ang %= 65536;
 	}
 	
 	//Move camera
@@ -687,7 +765,12 @@ int dolevel(int levelnum)
 		}
 	}
 	
-	(void)levelnum;
+	//Reset rocks
+	memset(rocks, 0, sizeof(rocks));
+	for(int ll = 0; ll < (levelnum + 1) * 4; ll++)
+	{
+		rockspawn();
+	}
 	
 	int simulated = _sc_getticks();
 	while(1)
