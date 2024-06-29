@@ -85,20 +85,17 @@ void I_StartTic (void)
 				[_SC_BTNIDX_DOWN] = KEY_DOWNARROW,
 				[_SC_BTNIDX_LEFT] = KEY_LEFTARROW,
 				[_SC_BTNIDX_RIGHT] = KEY_RIGHTARROW,
-				[_SC_BTNIDX_L] = ',',
-				[_SC_BTNIDX_R] = '.',
-				
-				[_SC_BTNIDX_START] = KEY_ENTER,
-				//[_SC_BTNIDX_SELECT] = KEY_ESCAPE,
-				
+		
 				[_SC_BTNIDX_A] = KEY_RCTRL,
 				[_SC_BTNIDX_B] = KEY_RSHIFT,
-				[_SC_BTNIDX_C] = ' ',
+				[_SC_BTNIDX_C] = ' ',	
 				
-				[_SC_BTNIDX_X] = KEY_TAB,
+				[_SC_BTNIDX_X] = KEY_RALT,
 				[_SC_BTNIDX_Y] = '1',
 				[_SC_BTNIDX_Z] = '2',
 				
+				[_SC_BTNIDX_START] = KEY_ENTER,				
+				[_SC_BTNIDX_MODE] = KEY_TAB,
 			};
 			
 			event_t event = {0};

@@ -32,32 +32,30 @@ int _sc_gfx_flip(int mode, const void *buffer);
 int _sc_snd_play(int mode, const void *chunk, int chunkbytes, int maxbuf);
 
 //Replacement for input system-calls
-#define _SC_BTNIDX_L       0
-#define _SC_BTNIDX_UP      1
-#define _SC_BTNIDX_R       2
-#define _SC_BTNIDX_LEFT    3
-#define _SC_BTNIDX_DOWN    4
-#define _SC_BTNIDX_RIGHT   5
-#define _SC_BTNIDX_X       6
-#define _SC_BTNIDX_Y       7
-#define _SC_BTNIDX_Z       8
-#define _SC_BTNIDX_A       9
-#define _SC_BTNIDX_B      10
-#define _SC_BTNIDX_C      11
-#define _SC_BTNIDX_START  12
-#define _SC_BTNBIT_L       (1u << _SC_BTNIDX_L)
+#define _SC_BTNIDX_UP      0
+#define _SC_BTNIDX_LEFT    1
+#define _SC_BTNIDX_DOWN    2
+#define _SC_BTNIDX_RIGHT   3
+#define _SC_BTNIDX_A       4
+#define _SC_BTNIDX_B       5
+#define _SC_BTNIDX_C       6
+#define _SC_BTNIDX_X       7
+#define _SC_BTNIDX_Y       8
+#define _SC_BTNIDX_Z       9
+#define _SC_BTNIDX_START  10
+#define _SC_BTNIDX_MODE   11
 #define _SC_BTNBIT_UP      (1u << _SC_BTNIDX_UP)
-#define _SC_BTNBIT_R       (1u << _SC_BTNIDX_R)
 #define _SC_BTNBIT_LEFT    (1u << _SC_BTNIDX_LEFT)
 #define _SC_BTNBIT_DOWN    (1u << _SC_BTNIDX_DOWN)
 #define _SC_BTNBIT_RIGHT   (1u << _SC_BTNIDX_RIGHT)
-#define _SC_BTNBIT_X       (1u << _SC_BTNIDX_X)
-#define _SC_BTNBIT_Y       (1u << _SC_BTNIDX_Y)
-#define _SC_BTNBIT_Z       (1u << _SC_BTNIDX_Z)
 #define _SC_BTNBIT_A       (1u << _SC_BTNIDX_A)
 #define _SC_BTNBIT_B       (1u << _SC_BTNIDX_B)
 #define _SC_BTNBIT_C       (1u << _SC_BTNIDX_C)
+#define _SC_BTNBIT_X       (1u << _SC_BTNIDX_X)
+#define _SC_BTNBIT_Y       (1u << _SC_BTNIDX_Y)
+#define _SC_BTNBIT_Z       (1u << _SC_BTNIDX_Z)
 #define _SC_BTNBIT_START   (1u << _SC_BTNIDX_START)
+#define _SC_BTNBIT_MODE    (1u << _SC_BTNIDX_MODE)
 typedef struct _sc_input_s { char format; char flags; short buttons; } _sc_input_t __attribute__((aligned(4)));
 int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max);
 

@@ -228,10 +228,7 @@ int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max)
 			//Keyup or keydown - see if the key is one that we respond to
 			static const int keymap[512] = 
 			{
-				[SDL_SCANCODE_Q] = _SC_BTNBIT_L,
 				[SDL_SCANCODE_W] = _SC_BTNBIT_UP,
-				[SDL_SCANCODE_E] = _SC_BTNBIT_R,
-				
 				[SDL_SCANCODE_A] = _SC_BTNBIT_LEFT,				
 				[SDL_SCANCODE_S] = _SC_BTNBIT_DOWN,
 				[SDL_SCANCODE_D] = _SC_BTNBIT_RIGHT,
@@ -245,6 +242,7 @@ int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max)
 				[SDL_SCANCODE_L] = _SC_BTNBIT_C,
 
 				[SDL_SCANCODE_RETURN] = _SC_BTNBIT_START,
+				[SDL_SCANCODE_BACKSPACE] = _SC_BTNBIT_MODE,
 			};
 			
 			int bbit = keymap[e.key.keysym.scancode % 512];
