@@ -90,8 +90,11 @@ void I_StartTic (void)
 				[_SC_BTNIDX_B] = KEY_RSHIFT,
 				[_SC_BTNIDX_C] = ' ',	
 				
-				[_SC_BTNIDX_X] = KEY_RALT,
-				[_SC_BTNIDX_Y] = '1',
+				//[_SC_BTNIDX_X] = '1',
+				//[_SC_BTNIDX_Y] = KEY_RALT,
+				//[_SC_BTNIDX_Z] = '2',
+				[_SC_BTNIDX_X] = ',',
+				[_SC_BTNIDX_Y] = '.',
 				[_SC_BTNIDX_Z] = '2',
 				
 				[_SC_BTNIDX_START] = KEY_ENTER,				
