@@ -27,7 +27,7 @@ uint16_t fbs[2][240][320];
 int fb_next;
 
 //Text buffer
-uint8_t textbuf[15][40];
+uint8_t textbuf[14][38];
 uint8_t textcol;
 uint8_t textrow;
 
@@ -67,7 +67,7 @@ static void font_draw_ch(int y, int x, char ch)
 			
 			if(gfx_font_8x16_bits[(((uint8_t)ch)*16)+rr] & (1<<cc))
 			{
-				fbs[fb_next][y+rr][x+cc] = 0x0;
+				fbs[fb_next][y+rr+8][x+cc+4] = 0x0;
 			}
 		}
 	}	
@@ -281,5 +281,6 @@ int main(int argc, const char **argv)
 		fliptext(0x18);
 		usleep(500000);
 	}
+	_sc_halt();
 	exit(0);
 }
