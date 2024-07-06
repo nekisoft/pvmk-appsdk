@@ -18,15 +18,19 @@
 #include "subdiv.h"
 #include "trig.h"
 
+int moffs[3] = {0};
+
 int main(int argc, const char **argv)
 {
 	(void)argc;
 	(void)argv;
 	
 	ply_t *model = ply_load("cube.ply");
+	//ply_t *model = ply_load("sky.ply");
 	if(model == NULL)
 	{
-		perror("load cube.ply");
+		//perror("load cube.ply");
+		perror("load sky.ply");
 		exit(-1);
 	}
 	
@@ -46,8 +50,11 @@ int main(int argc, const char **argv)
 		mvp_ident();
 		mvp_persp(FV(90), FV(1.33333), FV(1), FV(65536));
 		mvp_translate(0, 0, -1024);
-		mvp_translate(0, 0, (FV(1) + trig_sind(FV(anim)/10)) * -10);
-		mvp_rotate(FV(1) * FV(anim/5) / FV(10), FV(0), FV(1), FV(0));
+		//mvp_translate(0, 0, (FV(1) + trig_sind(FV(anim)/10)) * -10);
+		
+		mvp_translate(moffs[0], moffs[1], moffs[2]);
+		
+		mvp_rotate(FV(1) * FV(anim) / FV(10), FV(0), FV(1), FV(0));
 		mvp_rotate(FV(1) * FV(anim/7) / FV(10), FV(1), FV(0), FV(0));
 		
 		//Transform some triangles and put into the span buffers
@@ -101,6 +108,17 @@ int main(int argc, const char **argv)
 		_sc_input_t input = {0};
 		while(_sc_input(&input, sizeof(input), sizeof(input)) > 0)
 		{
+			if(input.format != 'A')
+				continue;
+			
+			if(input.buttons & _SC_BTNBIT_UP)
+				moffs[1] += FV(1.0/60.0);
+			if(input.buttons & _SC_BTNBIT_DOWN)
+				moffs[1] += FV(-1.0/60.0);
+			if(input.buttons & _SC_BTNBIT_LEFT)
+				moffs[0] += FV(-1.0/60.0);
+			if(input.buttons & _SC_BTNBIT_RIGHT)
+				moffs[0] += FV(1.0/60.0);
 			
 		}
 	}

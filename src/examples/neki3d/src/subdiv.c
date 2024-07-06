@@ -14,17 +14,10 @@ void subdiv_tri(int tex,
 	const fix24p8_t *vc4, const int *tc2)
 {
 	//Note that this subdivision happens in homogenous space, before the perspective divide.
-	//This means more divisions and therefore more expense - but is perspective-correct.
-	
-	if(subdiv_level == 0)
-	{
-		if( ((vb4[0] - va4[0]) * (vc4[1] - va4[1])) < ((vb4[1] - va4[1]) * (vc4[0] - va4[0])) )
-			return; //backface
-	}
-	
+	//This means more divisions and therefore more expense - but is perspective-correct.	
 	if(subdiv_level < 4)
 	{
-		int thresh2 = 8192;
+		int thresh2 = 4096;
 		
 		int x_ab = ((int64_t)(FBX) * vb4[0] / vb4[3]) - ((int64_t)(FBX) * va4[0] / va4[3]);
 		int y_ab = ((int64_t)(FBY) * vb4[1] / vb4[3]) - ((int64_t)(FBY) * va4[1] / va4[3]);

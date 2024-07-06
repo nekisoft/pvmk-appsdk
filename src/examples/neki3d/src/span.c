@@ -29,37 +29,6 @@ static int span_used[FBY];
 static int span_l[FBY][4];
 static int span_r[FBY][4];
 
-//Inserts a span into the span buffer
-static void span_add(int y, int tex, int x0[4], int x1[4])
-{
-	if(y < 0 || y >= FBY)
-		return; //Off screen vertically
-	
-	if(x0[0] == x1[0])
-		return; //Zero length horizontally
-	
-	int ss = span_used[y];
-	if(ss >= SPAN_MAX)
-		return;	
-
-	//Flip so the x0 side is always on the left in screen-X
-	if(x0[0] < x1[0])
-	{
-		memcpy(spans[y][ss].x0, x0, sizeof(spans[y][ss].x0));
-		memcpy(spans[y][ss].x1, x1, sizeof(spans[y][ss].x1));
-	}
-	else
-	{
-		memcpy(spans[y][ss].x0, x1, sizeof(spans[y][ss].x0));
-		memcpy(spans[y][ss].x1, x0, sizeof(spans[y][ss].x1));
-	}
-	
-	spans[y][ss].tex = tex;
-	spans[y][ss].mip = 0;
-	
-	span_used[y]++;
-}
-
 //Clips the beginning of a span
 static void span_clip_beginning(int x0[4], int x1[4], int newbegin)
 {
@@ -97,6 +66,50 @@ static void span_clip_end(int x0[4], int x1[4], int newend)
 		x1[dd] = x0[dd] + ((int64_t)(x1[dd] - x0[dd]) * newlen / oldlen);
 	}	
 }
+
+//Inserts a span into the span buffer
+static void span_add(int y, int tex, int x0[4], int x1[4])
+{
+	if(y < 0 || y >= FBY)
+		return; //Off screen vertically
+	
+	if(x0[0] == x1[0])
+		return; //Zero length horizontally
+	
+	int ss = span_used[y];
+	if(ss >= SPAN_MAX)
+		return;	
+	
+	//Flip so the x0 side is always on the left in screen-X
+	if(x0[0] < x1[0])
+	{
+		memcpy(spans[y][ss].x0, x0, sizeof(spans[y][ss].x0));
+		memcpy(spans[y][ss].x1, x1, sizeof(spans[y][ss].x1));
+	}
+	else
+	{
+		memcpy(spans[y][ss].x0, x1, sizeof(spans[y][ss].x0));
+		memcpy(spans[y][ss].x1, x0, sizeof(spans[y][ss].x1));
+	}
+	
+	if(spans[y][ss].x0[0] < 0)
+	{
+		span_clip_beginning(spans[y][ss].x0, spans[y][ss].x1, 0);
+	}
+	
+	if(spans[y][ss].x1[0] > FBX)
+	{
+		span_clip_end(spans[y][ss].x0, spans[y][ss].x1, FBX);
+	}
+	
+	
+	spans[y][ss].tex = tex;
+	spans[y][ss].mip = 0;
+	
+	span_used[y]++;
+}
+
+
 
 //DDA (Bresenham lines) algorithm for working down triangle edges
 //The "X" is multidimensional as we interpolate screen X, depth, and two texture coordinates
@@ -168,46 +181,42 @@ void span_add_tri(int tex,
 	if(va4[3] <= 0 || vb4[3] <= 0 || vc4[3] <= 0)
 		return; //Behind the camera
 	
-	//Dehomogenize, turn to screen-space
+	//Compute NDC
 	fix24p8_t va3[5];
 	fix24p8_t vb3[5];
 	fix24p8_t vc3[5];
 	
+	//Copy texture coords over so they stay with the right vert
 	va3[3] = ta2[0]; va3[4] = ta2[1];
 	vb3[3] = tb2[0]; vb3[4] = tb2[1];
 	vc3[3] = tc2[0]; vc3[4] = tc2[1];
-	
-	//Todo - we're doing GL-style NDC as the output of the MVP transform
-	//Then we have to do this additional step to turn it into integer pixel-coords at reasonable precision
-	//We could combine this with the MVP stuff to save some time, once debugged like this
 
-	va3[2] = (int64_t)FV(65536) * va4[3] / va4[2]; //inverse Z for sorting/texturing
-	vb3[2] = (int64_t)FV(65536) * vb4[3] / vb4[2];
-	vc3[2] = (int64_t)FV(65536) * vc4[3] / vc4[2];
+	//Dehomogenize
+	va3[2] = FV(256) * va4[2] / va4[3];
+	vb3[2] = FV(256) * vb4[2] / vb4[3];
+	vc3[2] = FV(256) * vc4[2] / vc4[3];
 	
-	va3[1] = (int64_t)FBX * FV(1) * va4[0] / va4[3];
-	vb3[1] = (int64_t)FBX * FV(1) * vb4[0] / vb4[3];
-	vc3[1] = (int64_t)FBX * FV(1) * vc4[0] / vc4[3];
+	va3[1] = FV(256) * va4[0] / va4[3];
+	vb3[1] = FV(256) * vb4[0] / vb4[3];
+	vc3[1] = FV(256) * vc4[0] / vc4[3];
 
-	va3[0] = (int64_t)FBY * FV(1) * va4[1] / va4[3];
-	vb3[0] = (int64_t)FBY * FV(1) * vb4[1] / vb4[3];
-	vc3[0] = (int64_t)FBY * FV(1) * vc4[1] / vc4[3];
-	
-	va3[1] += FBX * FV(0.5);
-	vb3[1] += FBX * FV(0.5);
-	vc3[1] += FBX * FV(0.5);
+	va3[0] = FV(256) * va4[1] / va4[3];
+	vb3[0] = FV(256) * vb4[1] / vb4[3];
+	vc3[0] = FV(256) * vc4[1] / vc4[3];
+		
+	//Turn to pixel coordinates
+	va3[1] = ((va3[1] * FBX / 256) + FV(FBX / 2)) / FV(1);
+	vb3[1] = ((vb3[1] * FBX / 256) + FV(FBX / 2)) / FV(1);
+	vc3[1] = ((vc3[1] * FBX / 256) + FV(FBX / 2)) / FV(1);
 
-	va3[0] += FBY * FV(0.5);
-	vb3[0] += FBY * FV(0.5);
-	vc3[0] += FBY * FV(0.5);
+	va3[0] = ((va3[0] * FBY / 256) + FV(FBY / 2)) / FV(1);
+	vb3[0] = ((vb3[0] * FBY / 256) + FV(FBY / 2)) / FV(1);
+	vc3[0] = ((vc3[0] * FBY / 256) + FV(FBY / 2)) / FV(1);
 	
-	for(int dd = 0; dd < 3; dd++)
-	{
-		va3[dd] /= FV(1);
-		vb3[dd] /= FV(1);
-		vc3[dd] /= FV(1);
-	}
-	
+	va3[2] = va3[2] / FV(1);
+	vb3[2] = vb3[2] / FV(1);
+	vc3[2] = vc3[2] / FV(1);
+
 	//Figure out top, middle, bottom verts in Y
 	fix24p8_t *top = va3;
 	if(vb3[0] < top[0])
@@ -242,24 +251,22 @@ void span_add_tri(int tex,
 
 void span_finish(void)
 {
-	//This is where the actual rasterization / texture-mapping happens
-	uint16_t *fbline = fb_back;
+	//Clip spans on each line
 	for(int ll = 0; ll < FBY; ll++)
-	{		
-		//Clip spans
+	{
 		span_t *ls = spans[ll];
 		for(int aa = 0; aa < span_used[ll]; aa++)
 		{
 			for(int bb = aa+1; bb < span_used[ll]; bb++)
 			{				
-				int aa_beg = ls[aa].x0[0];
-				int aa_end = ls[aa].x1[0];
+				const int aa_beg = ls[aa].x0[0];
+				const int aa_end = ls[aa].x1[0];
 				
-				int bb_beg = ls[bb].x0[0];
-				int bb_end = ls[bb].x1[0];
+				const int bb_beg = ls[bb].x0[0];
+				const int bb_end = ls[bb].x1[0];
 				
-				int bb_far = ls[aa].x0[1] + ls[aa].x1[1];
-				int aa_far = ls[bb].x0[1] + ls[bb].x1[1];
+				const int aa_far = ls[aa].x0[1] + ls[aa].x1[1];
+				const int bb_far = ls[bb].x0[1] + ls[bb].x1[1];
 				
 				if(aa_end <= bb_beg)
 				{
@@ -360,46 +367,57 @@ void span_finish(void)
 				}
 			}
 		}
-		
+	}
+	
+	//Draw the contents of each span
+	//This is where the actual rasterization / texture-mapping happens
+	uint16_t *fbline = fb_back;
+	for(int ll = 0; ll < FBY; ll++)
+	{		
 		//Run through the spans and rasterize them
 		//Todo - maybe sort by texture or something for cache locality
+		span_t *sptr = spans[ll];
 		for(int ss = 0; ss < span_used[ll]; ss++)
 		{
-			const span_t *sptr = &(ls[ss]);
-			const fbpx_t *texdata = tex_data(sptr->tex);
-			
-			uint16_t ts = sptr->x0[2]; //0.16
-			uint16_t tt = sptr->x0[3]; //0.16
-			
-			int px_n = (sptr->x1[0] - sptr->x0[0]);
-			
-			uint16_t d_ts = (sptr->x1[2] - sptr->x0[2]) / px_n; //0.16
-			uint16_t d_tt = (sptr->x1[3] - sptr->x0[3]) / px_n; //0.16
-			
-			//Performance-critical pixel rasterization loop!
-			//int rand(void);
-			//int spancolor = rand();
-			for(int pp = sptr->x0[0]; pp < sptr->x1[0]; pp++)
+			if(sptr->x0[0] == sptr->x1[0])
 			{
-				fbpx_t sample = texdata[ (ts >> 8) + (tt & 0xFF00) ];
-				
-				fbline[pp] = sample;
-				
-				//Show wireframe outlines
-				//if(pp == sptr->x0[0] || pp == sptr->x1[0] -1 )
-				//	fbline[pp] = 0xFFFF;
-				
-				//Show how many times a pixel is touched (should be 1)
-				//(void)sample;
-				//fbline[pp] += 0x2104;
-				
-				//fbline[pp] = spancolor;
-				
-				ts += d_ts;
-				tt += d_tt;
+				//Empty
 			}
+			else if(sptr->tex == 0)
+			{
+				//Performance-critical pixel rasterization loop!	
+				for(int pp = sptr->x0[0]; pp < sptr->x1[0]; pp++)
+				{
+					fbline[pp] = 0;
+				}
+			}
+			else
+			{
+				const fbpx_t *texdata = tex_data(sptr->tex);
+				const int px_n = (sptr->x1[0] - sptr->x0[0]);
+				
+				uint32_t d_ts = (sptr->x1[2] - sptr->x0[2]) / px_n; //0.16
+				uint32_t d_tt = (sptr->x1[3] - sptr->x0[3]) / px_n; //0.16
+				
+				uint32_t ts = sptr->x0[2]; //0.16
+				uint32_t tt = sptr->x0[3]; //0.16
+			
+				//Performance-critical pixel rasterization loop!	
+				//Convoluted a bit to make ARM compile better.
+				uint16_t *pstart = &(fbline[sptr->x0[0]]);
+				for(int pp = 0; pp < px_n; pp++)
+				{
+					pstart[pp] = texdata[ ((ts >> 11) % 32) + (((tt >> 11)%32) << 5) ];
+					//if(pp == 0 || pp == px_n - 1)
+					//	pstart[pp] = 0xFFFF;
+					
+					ts += d_ts;
+					tt += d_tt;
+				}
+			}
+			
+			sptr++;
 		}
-		
 		fbline += FBX;
 	}
 	
@@ -407,6 +425,6 @@ void span_finish(void)
 	for(int ll = 0; ll < FBY; ll++)
 	{
 		span_used[ll] = 0;
-		span_add(ll, 0, (int[4]){0,0,0,0}, (int[4]){FBX,0,65536,65536});		
+		span_add(ll, 0, (int[4]){0,(1<<29),0,0}, (int[4]){FBX,(1<<29),65536,65536});		
 	}
 }

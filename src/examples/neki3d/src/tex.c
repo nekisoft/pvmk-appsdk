@@ -4,7 +4,7 @@
 
 #include "tex.h"
 
-#define STB_IMAGE_IMPLEMENTATION 1
+#define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG 1
 #define STBI_NO_THREAD_LOCALS 1
 #include "stb_image.h"
@@ -174,5 +174,5 @@ void tex_free(int tt)
 
 fbpx_t *tex_data(int tt)
 {
-	return &(textures[tt][0][0]);
+	return &(textures_3[tt][0][0]);
 }
