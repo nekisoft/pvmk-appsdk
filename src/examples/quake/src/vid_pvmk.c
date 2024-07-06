@@ -197,8 +197,10 @@ void Sys_SendKeyEvents(void)
 			[_SC_BTNIDX_Y] = 'y',
 			[_SC_BTNIDX_Z] = 'z',
 			
-			[_SC_BTNIDX_L] = 'l',
-			[_SC_BTNIDX_R] = 'r',
+			//[_SC_BTNIDX_L] = 'l',
+			//[_SC_BTNIDX_R] = 'r',
+			
+			[_SC_BTNIDX_MODE] = K_ESCAPE,
 			
 			[_SC_BTNIDX_START] = K_ENTER,
 		};
