@@ -41,6 +41,9 @@ int curchar;
 //Tick when advancing the next character
 int advtick;
 
+//Selected option
+int selection;
+
 //Switches screen
 void swscr(int parm)
 {
@@ -50,6 +53,7 @@ void swscr(int parm)
 	
 	curline = 0;
 	curchar = 0;
+	selection = 0;
 }
 
 //Definition of each screen
@@ -298,6 +302,15 @@ int main(void)
 		bgload_enq(screen_table[curscr].background);
 		bgload_tick();
 		
+		//If we're on a screen that references other screens, preload those too
+		for(int oo = 0; screen_table[curscr].options[oo] != NULL; oo++)
+		{
+			if(screen_table[curscr].options[oo]->func == swscr)
+			{
+				bgload_enq(screen_table[screen_table[curscr].options[oo]->parm].background);
+			}
+		}
+		
 		//Draw background from loaded background cache
 		const char *bgname = screen_table[curscr].background;
 		for(int bb = 0; bb < BGLOAD_MAX; bb++)
@@ -309,12 +322,30 @@ int main(void)
 			}
 		}
 		
+		//Compute where the text starts
+		int txy = 400;
+		txy -= curline * 16;
+		
+		int txx = 16;
+		
+		//Darken image
+		for(int yy = txy - 4; yy < 480; yy++)
+		{
+			for(int xx = 0; xx < 640; xx++)
+			{
+				fbs[fbnext][yy][xx] &= ~(1u << 0);
+				fbs[fbnext][yy][xx] &= ~(1u << 5);
+				fbs[fbnext][yy][xx] &= ~(1u << 11);
+				fbs[fbnext][yy][xx] >>= 1;
+			}
+		}
+		
 		//Draw complete lines
 		for(int ll = 0; ll < curline; ll++)
 		{
 			for(int cc = 0; cc < (int)strlen(screen_table[curscr].exposition[ll]); cc++)
 			{
-				drawchr(cc * 8, ll * 16, screen_table[curscr].exposition[ll][cc]);
+				drawchr(txx + cc * 8, txy + ll * 16, screen_table[curscr].exposition[ll][cc]);
 			}
 		}
 		
@@ -323,7 +354,7 @@ int main(void)
 		{
 			for(int cc = 0; cc < curchar; cc++)
 			{
-				drawchr(cc * 8, curline * 16, screen_table[curscr].exposition[curline][cc]);
+				drawchr(txx + cc * 8, txy + curline * 16, screen_table[curscr].exposition[curline][cc]);
 			}
 		}
 		
@@ -333,7 +364,7 @@ int main(void)
 			if(screen_table[curscr].exposition[curline] != NULL)
 			{
 				curchar++;
-				advtick = _sc_getticks() + 100;
+				advtick += 100;
 				if(curchar >= (int)strlen(screen_table[curscr].exposition[curline]))
 				{
 					curchar = 0;
@@ -351,9 +382,24 @@ int main(void)
 			{
 				for(int cc = 0; cc < (int)strlen(screen_table[curscr].options[pp]->label); cc++)
 				{
-					drawchr(cc * 8, (curline + 1 + pp) * 16, screen_table[curscr].options[pp]->label[cc]);
+					drawchr(
+						32 + txx + cc * 8, 
+						txy + (curline + 1 + pp) * 16, 
+						screen_table[curscr].options[pp]->label[cc]
+					);
 				}
 			}
+			
+			drawchr(
+				16 + txx,
+				txy + (curline + 1 + selection) * 16, 
+				'='
+			);
+			drawchr(
+				20 + txx,
+				txy + (curline + 1 + selection) * 16, 
+				'>'
+			);
 		}
 		
 		//Present the frame
@@ -373,7 +419,9 @@ int main(void)
 				advtick = 0;
 			}
 			
-			if(input.buttons & ~lastbuttons & _SC_BTNBIT_A)
+			int pressed = input.buttons & ~lastbuttons;
+			
+			if(pressed & _SC_BTNBIT_A)
 			{
 				//If we're not seeing options yet, advance by a line
 				if(screen_table[curscr].exposition[curline] != NULL)
@@ -381,7 +429,33 @@ int main(void)
 					curline++;
 					curchar = 0;
 				}
+				else
+				{
+					//Otherwise, select the given option
+					if(screen_table[curscr].options[selection]->func)
+					{
+						(*(screen_table[curscr].options[selection]->func))
+							(screen_table[curscr].options[selection]->parm);
+					}
+				}
 			}
+			
+			if(pressed & _SC_BTNBIT_DOWN)
+			{
+				//Next option
+				selection++;
+				if(screen_table[curscr].options[selection] == NULL)
+					selection--;
+			}
+			
+			if(pressed & _SC_BTNBIT_UP)
+			{
+				//Previous option
+				selection--;
+				if(selection < 0)
+					selection++;
+			}
+			
 			
 			lastbuttons = input.buttons;
 		}
