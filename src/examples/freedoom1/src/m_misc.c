@@ -247,7 +247,8 @@ default_t	defaults[] =
     {"key_fire",&key_fire, KEY_RCTRL},
     {"key_use",&key_use, ' '},
     {"key_strafe",&key_strafe, KEY_RALT},
-    {"key_speed",&key_speed, KEY_RSHIFT},
+  //  {"key_speed",&key_speed, KEY_RSHIFT},
+    {"key_speed",&key_speed, ' '}, //neki32 - put slow on same key as use
 
 #ifdef SNDSERV
     {"sndserver", (int *) &sndserver_filename, (uintptr_t) "sndserver"},

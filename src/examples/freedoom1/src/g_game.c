@@ -254,7 +254,7 @@ void G_BuildTiccmd (ticcmd_t* cmd)
  
     strafe = gamekeydown[key_strafe] || mousebuttons[mousebstrafe] 
 	|| joybuttons[joybstrafe]; 
-    speed = gamekeydown[key_speed] || joybuttons[joybspeed];
+    speed = !(gamekeydown[key_speed] || joybuttons[joybspeed]); //neki32 - alwaysrun
  
     forward = side = 0;
     

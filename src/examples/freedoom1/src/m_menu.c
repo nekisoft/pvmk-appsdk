@@ -1724,9 +1724,9 @@ static int cheatmenucode[] =
 	KEY_RIGHTARROW,
 	KEY_LEFTARROW,
 	KEY_RIGHTARROW,
-	KEY_RSHIFT,
+	KEY_RALT,
 	KEY_RCTRL,
-	KEY_ENTER,
+	KEY_PAUSE,
 	0
 };
 int cheatmenucode_next = 0;
@@ -1856,7 +1856,7 @@ boolean M_Responder (event_t* ev)
 	 //   break;
 				
 	  case KEY_ESCAPE:
-	  case KEY_RSHIFT:
+	  case KEY_RALT:
 	    saveStringEnter = 0;
 	    strcpy(&savegamestrings[saveSlot][0],saveOldString);
 	    break;
@@ -2100,7 +2100,7 @@ boolean M_Responder (event_t* ev)
 	return true;
 		
       case KEY_BACKSPACE:
-	case KEY_RSHIFT:
+	case KEY_RALT:
 	currentMenu->lastOn = itemOn;
 	if (currentMenu->prevMenu)
 	{
