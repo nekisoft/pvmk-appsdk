@@ -76,6 +76,7 @@ typedef struct rock_s
 	int ang;
 	int avel;
 	int shape[8][2];
+	int radius;
 } rock_t;
 rock_t rocks[ROCK_MAX];
 
@@ -422,6 +423,47 @@ int sin16(int ang16)
 	return cos16(ang16 + 16384);
 }
 
+//Generates two rocks
+void rocksplit(int pos[2], int radius)
+{
+	for(int rr = 0; rr < 2; rr++)
+	{
+		int rnum = -1;
+		for(int rr = 0; rr < ROCK_MAX; rr++)
+		{
+			if(rocks[rr].health <= 0)
+			{
+				rnum = rr;
+				break;
+			}
+		}
+		if(rnum == -1)
+			return;
+		
+		rocks[rnum].pos[0] = pos[0];
+		rocks[rnum].pos[1] = pos[1];
+		rocks[rnum].vel[0] = (rand() % 65536) - 32768;
+		rocks[rnum].vel[1] = (rand() % 65536) - 32768;
+		
+		rocks[rnum].ang = rand() % 65536;
+		rocks[rnum].avel = rand() % 256;
+		
+		rocks[rnum].health = 5;
+		
+		int rrand = radius / 4;
+		if(rrand == 0)
+			rrand = 1;
+		
+		for(int vv = 0; vv < 8; vv++)
+		{
+			rocks[rnum].shape[vv][0] = cos16(65536 * vv / 8) * (radius + (rand() % rrand)) / 65536;
+			rocks[rnum].shape[vv][1] = sin16(65536 * vv / 8) * (radius + (rand() % rrand)) / 65536;
+		}
+
+		rocks[rnum].radius = radius;
+	}
+}
+
 //Generates a new rock
 void rockspawn(void)
 {
@@ -440,23 +482,8 @@ void rockspawn(void)
 	int offsx = (rand() % 512) - 256;
 	int offsy = (rand() % 512) - 256;
 	
-	rocks[rnum].pos[0] = player_pos[0] + (offsx * 65536);
-	rocks[rnum].pos[1] = player_pos[1] + (offsy * 65536);
-	rocks[rnum].vel[0] = (rand() % 65536) - 32768;
-	rocks[rnum].vel[1] = (rand() % 65536) - 32768;
-	
-	rocks[rnum].ang = rand() % 65536;
-	rocks[rnum].avel = rand() % 256;
-	
-	rocks[rnum].health = 5;
-	
-	int radius = 25;
-	int rrand = 5;
-	for(int vv = 0; vv < 8; vv++)
-	{
-		rocks[rnum].shape[vv][0] = cos16(65536 * vv / 8) * (radius + (rand() % rrand)) / 65536;
-		rocks[rnum].shape[vv][1] = sin16(65536 * vv / 8) * (radius + (rand() % rrand)) / 65536;
-	}
+	int pos[2] = { player_pos[0] + (offsx * 65536) , player_pos[1] + (offsy * 65536) };
+	rocksplit(pos, 25);
 }
 
 //Enqueues a list of vertexes for drawing at the given worldspace position with rotation
@@ -840,11 +867,42 @@ void gametick(void)
 			int diffx = (rocks[rr].pos[0] - player_pos[0]) >> 16;
 			int diffy = (rocks[rr].pos[1] - player_pos[1]) >> 16;
 			int dd = (diffx * diffx) + (diffy * diffy);
-			if(dd < 25*25)
+			if(dd < rocks[rr].radius*rocks[rr].radius)
 			{
 				//Collision
 				death();
 				break;
+			}
+		}
+	}
+	
+	//Check if the player's bullets have hit a rock
+	for(int bb = 0; bb < BULLET_MAX; bb++)
+	{
+		if(bullets[bb].timeleft <= 0)
+			continue;
+		
+		for(int rr = 0; rr < ROCK_MAX; rr++)
+		{
+			if(rocks[rr].health <= 0)
+				continue;
+			
+			int diffx = (rocks[rr].pos[0] - bullets[bb].pos[0]) >> 16;
+			int diffy = (rocks[rr].pos[1] - bullets[bb].pos[1]) >> 16;
+			int dd = (diffx * diffx) + (diffy * diffy);
+			if(dd < (4+ rocks[rr].radius)*(4+ rocks[rr].radius))
+			{
+				//Collision
+				bullets[bb].timeleft = 0;
+				rocks[rr].health--;
+				dodebris(bullets[bb].pos);
+				dodebris(bullets[bb].pos);
+				dodebris(bullets[bb].pos);
+				if(rocks[rr].health <= 0)
+				{
+					if(rocks[rr].radius > 10)
+						rocksplit(rocks[rr].pos, rocks[rr].radius/2);
+				}
 			}
 		}
 	}
