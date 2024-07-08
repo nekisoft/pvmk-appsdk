@@ -79,6 +79,24 @@ typedef struct rock_s
 } rock_t;
 rock_t rocks[ROCK_MAX];
 
+//Debris
+#define DEBRIS_MAX 16
+typedef struct debris_s
+{
+	int life;
+	int pos[2];
+	int vel[2];
+	int ang;
+	int avel;
+} debris_t;
+debris_t debris[DEBRIS_MAX];
+
+//How many lives the player has left
+//int lives;
+
+//If the player is waiting to respawn, and for how long
+int spawntimer;
+
 //Draws a line into the current backbuffer. Bresenham spans algorithm.
 void drawline(int x0, int y0, int x1, int y1, uint16_t color)
 {
@@ -432,7 +450,7 @@ void rockspawn(void)
 	
 	rocks[rnum].health = 5;
 	
-	int radius = 10;
+	int radius = 25;
 	int rrand = 5;
 	for(int vv = 0; vv < 8; vv++)
 	{
@@ -468,13 +486,16 @@ void gamedraw(void)
 {
 	
 	//Player model
-	static const int plverts[][2] = 
+	if(spawntimer <= 0)
 	{
-		{  4, -4 },
-		{ -4, -4 },
-		{  0,  8 },
-	};
-	qmodel(plverts, sizeof(plverts)/sizeof(plverts[0]), player_pos, player_ang);
+		static const int plverts[][2] = 
+		{
+			{  4, -4 },
+			{ -4, -4 },
+			{  0,  8 },
+		};
+		qmodel(plverts, sizeof(plverts)/sizeof(plverts[0]), player_pos, player_ang);
+	}
 	
 	//Bullets
 	for(int bb = 0; bb < BULLET_MAX; bb++)
@@ -516,155 +537,220 @@ void gamedraw(void)
 		}
 	}
 	
+	//Debris
+	for(int dd = 0; dd < DEBRIS_MAX; dd++)
+	{
+		if(debris[dd].life <= 0)
+			continue;
+		
+		static const int fverts[][2] = 
+		{
+			{-2, 2},
+			{2, -2},
+		};
+		qmodel(fverts, sizeof(fverts)/sizeof(fverts[0]), debris[dd].pos, debris[dd].ang);	
+	}
+	
 	refresh();
+}
+
+//Spawns debris at the given position
+void dodebris(int spawnpos[2])
+{
+	for(int dd = 0; dd < DEBRIS_MAX; dd++)
+	{
+		if(debris[dd].life > 0)
+		{
+			//Slot already in use
+			continue;
+		}
+		
+		//Alright, have a spot to put the new debris.
+		debris[dd].pos[0] = spawnpos[0];
+		debris[dd].pos[1] = spawnpos[1];
+		debris[dd].ang = 0;
+		
+		debris[dd].vel[0] = (rand() % 65536) - 32768;
+		debris[dd].vel[1] = (rand() % 65536) - 32768;
+		debris[dd].avel = rand() % 16384;
+		
+		
+		debris[dd].life = 50;
+		return;
+	}
+}
+
+//Called when the player dies
+void death(void)
+{
+	//Spawn debris
+	dodebris(player_pos);
+	dodebris(player_pos);
+	dodebris(player_pos);
+	dodebris(player_pos);
+	
+	player_pos[0] = campos[0];
+	player_pos[1] = campos[1];
+	
+	camvel[0] = 0;
+	camvel[1] = 0;
+	
+	player_vel[0] = 0;
+	player_vel[1] = 0;
+	
+	//Wait for respawn
+	//lives--;
+	spawntimer = 100;
 }
 
 void gametick(void)
 {	
 	//Allow player controls
-	
-	//Tank controls (Asteroids style)
-	/*
-	if(buttons & _SC_BTNBIT_B)
+	if(spawntimer <= 0)
 	{
-		//Accelerate
-		player_vel[0] += sin16(player_ang) / 16;
-		player_vel[1] += -cos16(player_ang) / 16;
-	}
-	if(buttons & _SC_BTNBIT_Y)
-	{
-		//Reverse
-		player_vel[0] -= sin16(player_ang) / 16;
-		player_vel[1] -= -cos16(player_ang) / 16;
-	}
-	
-	if(buttons & _SC_BTNBIT_LEFT)
-	{
-		//Turn left
-		player_avel += 10;
-	}
-	
-	if(buttons & _SC_BTNBIT_RIGHT)
-	{
-		//Turn right
-		player_avel -= 10;
-	}*/
-	
-	//Direct controls (Sinistar style)
-	int intended_angle = 0;
-	int nodirection = 0;
-	if(buttons & _SC_BTNBIT_RIGHT)
-	{
-		if(buttons & _SC_BTNBIT_UP)
+		//Tank controls (Asteroids style)
+		/*
+		if(buttons & _SC_BTNBIT_B)
 		{
-			intended_angle = 8192 * 1;
+			//Accelerate
+			player_vel[0] += sin16(player_ang) / 16;
+			player_vel[1] += -cos16(player_ang) / 16;
 		}
-		else if(buttons & _SC_BTNBIT_DOWN)
+		if(buttons & _SC_BTNBIT_Y)
 		{
-			intended_angle = 8192 * -1;
+			//Reverse
+			player_vel[0] -= sin16(player_ang) / 16;
+			player_vel[1] -= -cos16(player_ang) / 16;
 		}
-		else
+		
+		if(buttons & _SC_BTNBIT_LEFT)
 		{
-			intended_angle = 0;
+			//Turn left
+			player_avel += 10;
 		}
-	}
-	else if(buttons & _SC_BTNBIT_LEFT)
-	{
-		if(buttons & _SC_BTNBIT_UP)
+		
+		if(buttons & _SC_BTNBIT_RIGHT)
 		{
-			intended_angle = 8192 * 3;
-		}
-		else if(buttons & _SC_BTNBIT_DOWN)
+			//Turn right
+			player_avel -= 10;
+		}*/
+		
+		//Direct controls (Sinistar style)
+		int intended_angle = 0;
+		int nodirection = 0;
+		if(buttons & _SC_BTNBIT_RIGHT)
 		{
-			intended_angle = 8192 * 5;
-		}
-		else
-		{
-			intended_angle = 8192 * 4;
-		}
-	}
-	else if(buttons & _SC_BTNBIT_UP)
-	{
-		intended_angle = 8192 * 2;
-	}
-	else if(buttons & _SC_BTNBIT_DOWN)
-	{
-		intended_angle = 8192 * 6;
-	}
-	else
-	{
-		intended_angle = player_ang;
-		nodirection = 1;
-	}
-	
-	if(intended_angle - player_ang > 32768)
-		intended_angle -= 65536;
-	if(intended_angle - player_ang < -32768)
-		intended_angle += 65536;
-	
-	player_ang *= 7;
-	player_ang += intended_angle;
-	player_ang /= 8;
-	
-	if( abs(intended_angle - player_ang) < 8192 && !nodirection)
-	{
-		//Accelerate
-		player_vel[0] += sin16(player_ang) / 16;
-		player_vel[1] += -cos16(player_ang) / 16;
-	}
-	
-	
-	if(buttons & _SC_BTNBIT_A)
-	{
-		//Shoot
-		if(refire <= 0)
-		{
-			for(int bb = 0; bb < BULLET_MAX; bb++)
+			if(buttons & _SC_BTNBIT_UP)
 			{
-				if(bullets[bb].timeleft == 0)
+				intended_angle = 8192 * 1;
+			}
+			else if(buttons & _SC_BTNBIT_DOWN)
+			{
+				intended_angle = 8192 * -1;
+			}
+			else
+			{
+				intended_angle = 0;
+			}
+		}
+		else if(buttons & _SC_BTNBIT_LEFT)
+		{
+			if(buttons & _SC_BTNBIT_UP)
+			{
+				intended_angle = 8192 * 3;
+			}
+			else if(buttons & _SC_BTNBIT_DOWN)
+			{
+				intended_angle = 8192 * 5;
+			}
+			else
+			{
+				intended_angle = 8192 * 4;
+			}
+		}
+		else if(buttons & _SC_BTNBIT_UP)
+		{
+			intended_angle = 8192 * 2;
+		}
+		else if(buttons & _SC_BTNBIT_DOWN)
+		{
+			intended_angle = 8192 * 6;
+		}
+		else
+		{
+			intended_angle = player_ang;
+			nodirection = 1;
+		}
+		
+		if(intended_angle - player_ang > 32768)
+			intended_angle -= 65536;
+		if(intended_angle - player_ang < -32768)
+			intended_angle += 65536;
+		
+		player_ang *= 7;
+		player_ang += intended_angle;
+		player_ang /= 8;
+		
+		if( abs(intended_angle - player_ang) < 8192 && !nodirection)
+		{
+			//Accelerate
+			player_vel[0] += sin16(player_ang) / 16;
+			player_vel[1] += -cos16(player_ang) / 16;
+		}
+		
+		
+		if(buttons & _SC_BTNBIT_A)
+		{
+			//Shoot
+			if(refire <= 0)
+			{
+				for(int bb = 0; bb < BULLET_MAX; bb++)
 				{
-					bullets[bb].vel[0] = player_vel[0] + (4 *  sin16(player_ang));
-					bullets[bb].vel[1] = player_vel[1] + (4 * -cos16(player_ang));
-					bullets[bb].pos[0] = player_pos[0];
-					bullets[bb].pos[1] = player_pos[1];
-					bullets[bb].timeleft = 100;
-					refire += 10;
-					break;
+					if(bullets[bb].timeleft == 0)
+					{
+						bullets[bb].vel[0] = player_vel[0] + (4 *  sin16(player_ang));
+						bullets[bb].vel[1] = player_vel[1] + (4 * -cos16(player_ang));
+						bullets[bb].pos[0] = player_pos[0];
+						bullets[bb].pos[1] = player_pos[1];
+						bullets[bb].timeleft = 100;
+						refire += 10;
+						break;
+					}
 				}
 			}
 		}
-	}
-	
-	if(refire > 0)
-		refire--;
-	
-	
-	//Cap and accumulate player momentum
-	#define MAXVEL 256 * 65536
-	for(int dd = 0; dd < 2; dd++)
-	{
-		if(player_vel[dd] > MAXVEL)
-			player_vel[dd] = MAXVEL;
-		if(player_vel[dd] < -MAXVEL)
-			player_vel[dd] = -MAXVEL;
 		
-		player_pos[dd] += player_vel[dd];
+		if(refire > 0)
+			refire--;
+		
+		
+		//Cap and accumulate player momentum
+		#define MAXVEL 256 * 65536
+		for(int dd = 0; dd < 2; dd++)
+		{
+			if(player_vel[dd] > MAXVEL)
+				player_vel[dd] = MAXVEL;
+			if(player_vel[dd] < -MAXVEL)
+				player_vel[dd] = -MAXVEL;
+			
+			player_pos[dd] += player_vel[dd];
+		}
+		
+		#define MAXAVEL 256 * 65536
+		if(player_avel > MAXAVEL)
+			player_avel = MAXAVEL;
+		if(player_avel < -MAXAVEL)
+			player_avel = -MAXAVEL;
+		
+		player_ang += player_avel;
+		player_ang = player_ang % 65536;
+		
+		//Decay momentum
+		player_avel = (player_avel * 31) / 32;
+		player_vel[0] = (player_vel[0] * 255) / 256;
+		player_vel[1] = (player_vel[1] * 255) / 256;
 	}
-	
-	#define MAXAVEL 256 * 65536
-	if(player_avel > MAXAVEL)
-		player_avel = MAXAVEL;
-	if(player_avel < -MAXAVEL)
-		player_avel = -MAXAVEL;
-	
-	player_ang += player_avel;
-	player_ang = player_ang % 65536;
-	
-	//Decay momentum
-	player_avel = (player_avel * 31) / 32;
-	player_vel[0] = (player_vel[0] * 255) / 256;
-	player_vel[1] = (player_vel[1] * 255) / 256;
-	
+		
 	//Move bullets
 	for(int bb = 0; bb < BULLET_MAX; bb++)
 	{
@@ -694,6 +780,18 @@ void gametick(void)
 		rocks[rr].pos[1] += rocks[rr].vel[1];
 		rocks[rr].ang += rocks[rr].avel;
 		rocks[rr].ang %= 65536;
+	}
+	
+	//Move debris
+	for(int dd = 0; dd < DEBRIS_MAX; dd++)
+	{
+		if(debris[dd].life <= 0)
+			continue;
+		
+		debris[dd].pos[0] += debris[dd].vel[0];
+		debris[dd].pos[1] += debris[dd].vel[1];
+		debris[dd].ang += debris[dd].avel;
+		debris[dd].life--;
 	}
 	
 	//Move camera
@@ -729,6 +827,32 @@ void gametick(void)
 			bgflurry[yy][xx][2] += 16;
 			bgflurry[yy][xx][2] &= 0xFFFF;
 		}
+	}
+	
+	//Check if the player has run into a rock
+	if(spawntimer <= 0)
+	{
+		for(int rr = 0; rr < ROCK_MAX; rr++)
+		{
+			if(rocks[rr].health <= 0)
+				continue;
+			
+			int diffx = (rocks[rr].pos[0] - player_pos[0]) >> 16;
+			int diffy = (rocks[rr].pos[1] - player_pos[1]) >> 16;
+			int dd = (diffx * diffx) + (diffy * diffy);
+			if(dd < 25*25)
+			{
+				//Collision
+				death();
+				break;
+			}
+		}
+	}
+	
+	//Respawn player
+	if(spawntimer > 0)
+	{
+		spawntimer--;
 	}
 }
 
@@ -784,13 +908,20 @@ int dolevel(int levelnum)
 		{
 			gametick();
 			simulated += 10;
+			
+			/*if(lives <= 0)
+			{
+				//Ran out of lives
+				return 0;
+			}*/
 		}
 		
 		//Render
 		gamedraw();
 	}
 	
-	return 0;
+	//Success
+	return 1;
 }
 
 
@@ -810,6 +941,7 @@ int main(void)
 	{
 		mainmenu();
 		
+		//lives = 3;
 		int level = 0;
 		while(dolevel(level)) { level++; }
 		
