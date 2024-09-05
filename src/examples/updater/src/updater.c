@@ -164,10 +164,82 @@ void failure(const char *fmt, ...)
 	exit(-1);
 }
 
+void prompt_em(void)
+{
+	while(1)
+	{
+		paint_clear();
+		
+		const char *updtitle = "Neki32 System Update";
+		
+		paint_text_ega(320 - (4 * strlen(updtitle)),  96, 11, 0, updtitle);
+		paint_rect(320 - (4 * strlen(updtitle)) - 8, 96 - 4, 320 + 8 + (4 * strlen(updtitle)), 96 + 20, 0xEEEE);
+		
+		const char *upd_str = " A system update is available. ";
+		const char *warn_str = "This game may not function correctly without it.";
+		const char *start_str = "Press START or A to apply the update.";
+		const char *nope_str = "Press MODE to continue without updating.";
+		
+		int yiter = 128;
+		int first = 1;
+		const char *strs[] = { upd_str, warn_str, "", start_str, nope_str, NULL };
+		for(const char **ss = strs; *ss != NULL; ss++)
+		{
+			paint_text_ega(320 - (4 * strlen(*ss)), yiter, first ? 0 : 3, first ? 3 : 0, *ss);
+			yiter += 32;
+			first = 0;
+		}
+		
+		paint_flip();
+		
+		_sc_input_t input = {0};
+		static int lastbuttons = ~0ul;
+		while(_sc_input(&input, sizeof(input), sizeof(input)) > 0)
+		{
+			if(input.format != 'A')
+				continue;
+			
+			inputok = 1; //Valid input, wait for the user
+			
+			int newbuttons = input.buttons & ~lastbuttons;
+			lastbuttons = input.buttons;
+			
+			for(int bb = 0; bb < 16; bb++)
+			{
+				if(!(newbuttons & (1u << bb)))
+					continue;
+				
+				switch(bb)
+				{
+					case _SC_BTNIDX_START:
+					case _SC_BTNIDX_A:
+						return; //Go ahead
+					
+					case _SC_BTNIDX_MODE:
+						exit(0); //Abort without updating
+				}
+			}
+		}
+		
+		//If we've been sitting here for a long time with no controller data, just do it
+		if(!inputok)
+		{
+			if(_sc_getticks() > 300000)
+			{
+				return; //Go ahead
+			}
+		}
+	}			
+}
+	
+
 int main(int argc, const char **argv)
 {
 	(void)argc;
 	(void)argv;
+	
+	//There's an update on this card. Ask the player what to do.
+	prompt_em();
 	
 	text_printf("Neki32 System Updater\n");
 	text_printf("Version " BUILDVERSION "\n");
