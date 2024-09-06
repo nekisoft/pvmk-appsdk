@@ -18,6 +18,21 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "cdfs.h"
+
+//Table of open files on the CD filesystem
+typedef struct _user_file_s
+{
+	int valid;
+	uint32_t ino;
+	int pos;
+} _user_file_t;
+#define USER_FILE_MIN 4
+#define USER_FILE_MAX 256
+_user_file_t _user_file_table[USER_FILE_MAX];
+uint32_t _user_cwd;
+
+
 //Define this to placate cxx things that expect dynamic linking
 int __dso_handle = 0;
 
@@ -76,81 +91,98 @@ static int _pvmk_sysret_errno(int sysret)
 
 //Non-variadic version of openat.
 static int _openatm(int fd, const char *path, int flags, mode_t mode)
-{
-	if(fd == AT_FDCWD)
-		fd = -1;
+{		
+	if( (flags & O_ACCMODE) == O_WRONLY)
+	{
+		errno = EROFS;
+		return -1;
+	}
 	
-	int fd_ret = -ENOSYS;
+	if( (flags & O_ACCMODE) == O_RDWR  )
+	{
+		errno = EROFS;
+		return -1;
+	}
 	
 	//If they didn't specify a type of file, default to a "regular file" mode.
 	if((mode & S_IFMT) == 0)
 		mode |= S_IFREG;
 	
-	
-	//Translate "flag" from picolibc definition to PVMK system call definition
-	int sysflags = 0;
-	if(flags & O_CLOEXEC ) sysflags |= _SC_OPEN_CLOEXEC;
-	if(flags & O_EXCL    ) sysflags |= _SC_OPEN_EXCL;
-	if(flags & O_CREAT   ) sysflags |= _SC_OPEN_CREAT;
-	if(flags & O_EXEC    ) sysflags |= _SC_OPEN_X;
-	if(flags & O_NOFOLLOW) sysflags |= _SC_OPEN_NOFOLLOW;
-	
-	if( (flags & O_ACCMODE) == O_RDONLY) sysflags |= _SC_OPEN_R;
-	if( (flags & O_ACCMODE) == O_WRONLY) sysflags |= _SC_OPEN_W;
-	if( (flags & O_ACCMODE) == O_RDWR  ) sysflags |= _SC_OPEN_R | _SC_OPEN_W;
-	
-	//Translate "mode" from picolibc definition to PVMK system call definition
-	int sysmode = mode & 0777;
-	switch(mode & S_IFMT)
+	//Find a spot for the new file
+	int newfd = -1;
+	for(int uu = USER_FILE_MIN; uu < USER_FILE_MAX; uu++)
 	{
-		case S_IFREG: sysmode |= _SC_S_IFREG; break;
-		case S_IFDIR: sysmode |= _SC_S_IFDIR; break;
-		case S_IFLNK: sysmode |= _SC_S_IFLNK; break;
-		default: errno = EINVAL; return -1;
+		if(_user_file_table[uu].valid == 0)
+		{
+			newfd = uu;
+			break;
+		}
 	}
-	
-	fd_ret = _sc_open(fd, path, sysflags, sysmode, 0);
-	if(fd_ret < 0)
+	if(newfd < 0)
 	{
-		errno = _pvmk_sysret_errno(fd_ret);
+		//No room
+		errno = EMFILE;
 		return -1;
 	}
 	
-	//Alright, we've got the file open.
-	
-	//Set our user-level nonblocking flag for it.
-	//if(fd_ret >= 0 && fd_ret < FD_NONBLOCKING_MAX)
-	//	_fd_nonblocking[fd_ret] = (flags & O_NONBLOCK) ? 1 : 0;
-	
-	//If we only wanted to open a directory, make sure it is.
-	if(flags & O_DIRECTORY)
+	//Pathname lookup
+	uint32_t dir_ino = _cdfs_rootino();
+	if(path[0] != '/')
 	{
-		_sc_stat_t st = {0};
-		int st_err = _sc_stat(fd_ret, &st, sizeof(st));
-		if(st_err < 0)
+		//They passed a relative path - check the given file descriptor for what it's relative to
+		if(fd == AT_FDCWD)
 		{
-			//Failed to stat the file we just opened...?
-			errno = _pvmk_sysret_errno(st_err);
-			_sc_close(fd_ret);
-			fd_ret = -1;
+			//They passed CWD as their starting point
+			dir_ino = _user_cwd;
+		}
+		else
+		{
+			if(fd < USER_FILE_MIN)
+			{
+				//They passed stdin/stdout/stderr
+				errno = ENOTDIR;
+				return -1;
+			}
+			if(fd >= USER_FILE_MAX)
+			{
+				//They passed a bad file descriptor
+				errno = EBADF;
+				return -1;
+			}
+			dir_ino = _user_file_table[fd].ino;
+		}
+	}
+	
+	while(*path != '\0')
+	{
+		while(*path == '/')
+			path++;
+		
+		char component_buf[256] = {0};
+		int component_len = 0;
+		for(const char *cc = path; *cc != '/' && *cc != '\0'; cc++)
+		{
+			component_buf[component_len] = *cc;
+			component_len++;
+			path++;
+			if(component_len+1 >= (int)sizeof(component_buf))
+				break;
 		}
 		
-		if(!S_ISDIR(st.mode))
+		int component_lookup = _cdfs_search(dir_ino, component_buf);
+		if(component_lookup < 0)
 		{
-			//Wanted to only open a directory, but this isn't one.
-			errno = ENOTDIR;
-			_sc_close(fd_ret);
-			fd_ret = -1;
+			errno = _pvmk_sysret_errno(component_lookup);
+			return -1;
 		}
+		
+		dir_ino = component_lookup;
 	}
 	
-	//If we wanted to append, go to the end of the file
-	if(flags & O_APPEND)
-	{
-		_sc_seek(fd_ret, 0, SEEK_END);
-	}
-			
-	return fd_ret;
+	_user_file_table[newfd].ino = dir_ino;
+	_user_file_table[newfd].pos = 0;
+	_user_file_table[newfd].valid = 1;
+	return newfd;
 }
 
 
@@ -255,6 +287,10 @@ void _pvmk_callmain(void)
 	//}
 	//_sc_sig_mask(SIG_SETMASK, 0); //none masked
 	
+	//Validate filesystem on card
+	_cdfs_init();
+	_user_cwd = _cdfs_rootino();
+	
 	//Call constructors
 	extern void __libc_init_array();
 	__libc_init_array();
@@ -318,106 +354,194 @@ int openat(int fd, const char *path, int flags, ...)
 
 int close(int fd)
 {
-	int result = _sc_close(fd);
-	if(result < 0)
+	if(fd < USER_FILE_MIN)
 	{
-		errno = _pvmk_sysret_errno(result);
+		//Don't allow closing stdin/stdout/stderr
+		errno = ENOSYS;
 		return -1;
 	}
+	
+	if(fd >= USER_FILE_MAX)
+	{
+		//Out of range
+		errno = EBADF;
+		return -1;
+	}
+	
+	if(!_user_file_table[fd].valid)
+	{
+		//No file open here...
+		errno = EBADF;
+		return -1;
+	}
+	
+	//Clear this file entry
+	memset(&(_user_file_table[fd]), 0, sizeof(_user_file_table[fd]));
 	return 0;
 }
 
 ssize_t read(int fd, void *buf, size_t nbyte)
 {
-	//Pain in the ass here.
-	//Everybody agrees that read() can return less data than requested, for a number of reasons.
-	//Doom decides to just barf if that happens, though. I defer to Doom.
-	size_t nread = 0;
-	char *bufb = (char*)buf;
-	while(nbyte > 0)
+	if(fd < USER_FILE_MIN)
 	{
-		ssize_t result = _sc_read(fd, bufb, nbyte);
-		if(result == -_SC_EAGAIN)
-		{
-			_sc_pause();
-			continue;
-		}
+		//Do a read system-call to operate on system-level files (stdin/stdout/stderr)
 		
-		if( (result < 0) && (nread == 0) )
+		//Pain in the ass here.
+		//Everybody agrees that read() can return less data than requested, for a number of reasons.
+		//Doom decides to just barf if that happens, though. I defer to Doom.
+		size_t nread = 0;
+		char *bufb = (char*)buf;
+		while(nbyte > 0)
 		{
-			errno = _pvmk_sysret_errno(result);
+			ssize_t result = _sc_read(fd, bufb, nbyte);
+			if(result == -_SC_EAGAIN)
+			{
+				_sc_pause();
+				continue;
+			}
+			
+			if( (result < 0) && (nread == 0) )
+			{
+				errno = _pvmk_sysret_errno(result);
+				return -1;
+			}
+			
+			if(result <= 0)
+			{
+				return nread;
+			}
+			
+			nbyte -= result;
+			nread += result;
+			bufb += result;
+			
+		}
+		return nread;	
+	}
+	else if(fd >= USER_FILE_MAX || !_user_file_table[fd].valid)
+	{
+		//Bad file descriptor
+		errno = EBADF;
+		return -1;
+	}
+	else 
+	{
+		//User-level file read
+		int nread = _cdfs_read(_user_file_table[fd].ino, _user_file_table[fd].pos, buf, nbyte);
+		if(nread < 0)
+		{
+			errno = _pvmk_sysret_errno(nread);
 			return -1;
 		}
 		
-		if(result <= 0)
-		{
-			return nread;
-		}
-		
-		nbyte -= result;
-		nread += result;
-		bufb += result;
-		
+		_user_file_table[fd].pos += nread;
+		return nread;
 	}
-	return nread;
+	
+
 }
 
 ssize_t write(int fd, const void *buf, size_t nbyte)
 {
-	size_t nwritten = 0;
-	const char *bufb = (const char*)buf;
-	while(nbyte > 0)
+	if(fd < USER_FILE_MIN)
 	{
-		size_t to_write = nbyte;
-		if(to_write > 65536)
-			to_write = 65536;
-		
-		ssize_t result = _sc_write(fd, bufb, to_write);
-		if(result == -_SC_EAGAIN)
+		//Do a write system-call to operate on system-level files (stdin/stdout/stderr)
+			
+		size_t nwritten = 0;
+		const char *bufb = (const char*)buf;
+		while(nbyte > 0)
 		{
-			_sc_pause();
-			continue;
+			size_t to_write = nbyte;
+			if(to_write > 65536)
+				to_write = 65536;
+			
+			ssize_t result = _sc_write(fd, bufb, to_write);
+			if(result == -_SC_EAGAIN)
+			{
+				_sc_pause();
+				continue;
+			}
+			
+			if( (result < 0) && (nwritten == 0) )
+			{
+				errno = _pvmk_sysret_errno(result);
+				return -1;
+			}
+			
+			if(result <= 0)
+			{
+				return nwritten;
+			}
+			
+			nbyte -= result;
+			nwritten += result;
+			bufb += result;
 		}
-		
-		if( (result < 0) && (nwritten == 0) )
-		{
-			errno = _pvmk_sysret_errno(result);
-			return -1;
-		}
-		
-		if(result <= 0)
-		{
-			return nwritten;
-		}
-		
-		nbyte -= result;
-		nwritten += result;
-		bufb += result;
+		return nwritten;
 	}
-	return nwritten;
+	else
+	{
+		errno = EROFS;
+		return -1;
+	}
 }
 
 off_t lseek(int fd, off_t offset, int whence)
 {
-	//Translate "whence" from picolibc definition to PVMK system call definition
-	int syswhence = 0;
-	switch(whence)
+	if(fd < USER_FILE_MIN)
 	{
-		case SEEK_SET: syswhence = _SC_SEEK_SET; break;
-		case SEEK_CUR: syswhence = _SC_SEEK_CUR; break;
-		case SEEK_END: syswhence = _SC_SEEK_END; break;
-		default:       errno = EINVAL; return -1;
+		/*
+		//Translate "whence" from picolibc definition to PVMK system call definition
+		int syswhence = 0;
+		switch(whence)
+		{
+			case SEEK_SET: syswhence = _SC_SEEK_SET; break;
+			case SEEK_CUR: syswhence = _SC_SEEK_CUR; break;
+			case SEEK_END: syswhence = _SC_SEEK_END; break;
+			default:       errno = EINVAL; return -1;
+		}
+		
+		int result = _sc_seek(fd, offset, syswhence);
+		if(result < 0)
+		{
+			errno = _pvmk_sysret_errno(result);
+			return -1;
+		}
+		else
+		{
+			return result;
+		}*/
+		errno = ESPIPE;
+		return -1;
 	}
-	
-	int result = _sc_seek(fd, offset, syswhence);
-	if(result < 0)
+	else if(fd >= USER_FILE_MAX || !_user_file_table[fd].valid)
 	{
-		errno = _pvmk_sysret_errno(result);
+		//Bad file descriptor
+		errno = EBADF;
 		return -1;
 	}
 	else
 	{
-		return result;
+		//Seek in the CD-based file
+		struct stat st = {0};
+		int stat_result = fstat(fd, &st);
+		if(stat_result < 0)
+			return stat_result;
+		
+		int whence_val = 0;
+		switch(whence)
+		{
+			case SEEK_SET: whence_val = 0; break;
+			case SEEK_CUR: whence_val = _user_file_table[fd].pos; break;
+			case SEEK_END: whence_val = st.st_size; break; 
+			default: errno = EINVAL; return -1;
+		}
+		
+		_user_file_table[fd].pos = whence_val + offset;
+		if(_user_file_table[fd].pos < 0)
+			_user_file_table[fd].pos = 0;
+		
+		return _user_file_table[fd].pos;
 	}
 }
 
@@ -506,27 +630,57 @@ void *sbrk(ptrdiff_t nbytes)
 
 int fstat(int fd, struct stat *out)
 {
-	//Performing a stat on an open file is the way our kernel works natively.
-	_sc_stat_t _sc_stat_buf = {0};
-	int stat_err = _sc_stat(fd, &_sc_stat_buf, sizeof(_sc_stat_buf));
-	if(stat_err < 0)
+	
+	
+	if(fd < USER_FILE_MIN)
 	{
-		errno = -stat_err;
+		/*
+		//Performing a stat on an open file is the way our kernel works natively.
+		_sc_stat_t _sc_stat_buf = {0};
+		int stat_err = _sc_stat(fd, &_sc_stat_buf, sizeof(_sc_stat_buf));
+		if(stat_err < 0)
+		{
+			errno = _pvmk_sysret_errno(stat_err);
+			return -1;
+		}
+		//Convert kernel stat struct to libc struct.
+		//Todo - is it worth defining these to be the same?
+		//Seems like there might be reasons not to, but I can't come up with any.
+		memset(out, 0, sizeof(*out));
+		out->st_dev = _sc_stat_buf.part;
+		out->st_ino = _sc_stat_buf.ino;
+		out->st_mode = _sc_stat_buf.mode;
+		out->st_size = _sc_stat_buf.size;
+		out->st_rdev = _sc_stat_buf.rdev;
+		out->st_blocks = _sc_stat_buf.used / 512;
+		*/
+		
+		out->st_dev = 0;
+		out->st_ino = 0;
+		out->st_mode = S_IFCHR;
+		out->st_size = 0;
+		out->st_rdev = fd;
+		out->st_blocks = 0;
+		return 0;
+	}
+	else if(fd >= USER_FILE_MAX || !_user_file_table[fd].valid)
+	{
+		//Bad file descriptor
+		errno = EBADF;
 		return -1;
 	}
-	
-	//Convert kernel stat struct to libc struct.
-	//Todo - is it worth defining these to be the same?
-	//Seems like there might be reasons not to, but I can't come up with any.
-	memset(out, 0, sizeof(*out));
-	out->st_dev = _sc_stat_buf.part;
-	out->st_ino = _sc_stat_buf.ino;
-	out->st_mode = _sc_stat_buf.mode;
-	out->st_size = _sc_stat_buf.size;
-	out->st_rdev = _sc_stat_buf.rdev;
-	out->st_blocks = _sc_stat_buf.used / 512;
-	
-	return 0;
+	else
+	{
+		//Stat the file on the CD
+		int cdstat = _cdfs_stat(_user_file_table[fd].ino, out);
+		if(cdstat < 0)
+		{
+			errno = _pvmk_sysret_errno(cdstat);
+			return -1;
+		}
+	}
+
+	return 0;	
 }
 
 int fstatat(int at_fd, const char *path, struct stat *out, int flag)
@@ -543,9 +697,12 @@ int fstatat(int at_fd, const char *path, struct stat *out, int flag)
 	
 	//Got the file open for stat. Stat it.
 	int fstat_err = fstat(fd, out); //can set errno on failure
-
+	int saved_errno = errno;
+	
 	//Either success or failure, just close the file and return what happened.
-	_sc_close(fd);
+	close(fd);
+	
+	errno = saved_errno;
 	return fstat_err;
 }
 
@@ -657,7 +814,7 @@ int settimeofday(const struct timeval *tp, const struct timezone *tzp)
 struct _DIR_s
 {
 	int fd; //Underlying file descriptor
-	char buf[512]; //Space 
+	char buf[256]; //Space 
 };
 
 DIR *fdopendir(int fd)
@@ -701,16 +858,11 @@ DIR *opendir(const char *filename)
 struct dirent *readdir(DIR *dirp)
 {
 	//Ask kernel to read the directory, getting a directory entry
-	_sc_dirent_t d = {0};
-	int read_result = _sc_read(dirp->fd, &d, sizeof(d));
-	if(read_result < 0)
+	struct _dirent_storage d = {0};
+	int read_result = read(dirp->fd, &d, sizeof(d));
+	if(read_result <= 0)
 	{
-		errno = -read_result;
-		return NULL;
-	}
-	if(read_result == 0)
-	{
-		return NULL;
+		return NULL; //read sets errno
 	}
 
 	//Use the dirent buffer in the DIR structure, and clear it
@@ -718,12 +870,11 @@ struct dirent *readdir(DIR *dirp)
 	struct dirent *retval = (struct dirent*)(dirp->buf);
 	
 	//Copy the inode number and name from the directory entry to the dirent buffer
-	retval->d_ino = d.ino;
-	strncpy(dirp->buf + sizeof(struct dirent), d.name, sizeof(dirp->buf) - sizeof(struct dirent) - 1);
+	memcpy(dirp->buf, &d, sizeof(dirp->buf));
 	
 	//Stat the file to find its type, and put in the dirent buffer
 	struct stat st = {0};
-	if(fstatat(dirp->fd, d.name, &st, AT_SYMLINK_NOFOLLOW) >= 0)
+	if(fstatat(dirp->fd, d.d_name, &st, AT_SYMLINK_NOFOLLOW) >= 0)
 	{
 		retval->d_type = st.st_mode & S_IFMT;
 	}
@@ -747,6 +898,14 @@ mode_t umask(mode_t numask)
 //It solves an important problem though ("unlink exactly this file I've been looking at") so we copy it.
 int funlinkat(int dfd, const char *path, int fd, int flag)
 {
+	(void)dfd;
+	(void)path;
+	(void)fd;
+	(void)flag;
+	return -1;
+	errno = EROFS;
+	
+	/*
 	(void)flag;
 	
 	if(dfd == AT_FDCWD)
@@ -792,6 +951,7 @@ int funlinkat(int dfd, const char *path, int fd, int flag)
 		}
 		return 0;
 	}
+	*/
 }
 
 int unlinkat(int dfd, const char *path, int flag)
@@ -801,9 +961,11 @@ int unlinkat(int dfd, const char *path, int flag)
 		return -1;
 	
 	int result = funlinkat(dfd, path, fd, flag);
+	int saved_errno = errno;
 	
-	_sc_close(fd);
+	close(fd);
 	
+	errno = saved_errno;
 	return result;
 }
 

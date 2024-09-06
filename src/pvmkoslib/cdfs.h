@@ -4,28 +4,30 @@
 #ifndef CDFS_H
 #define CDFS_H
 
-#include "kstd.h"
-#include "sc.h"
+#include <sc.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <sys/statvfs.h>
 
 //Looks for and initializes CD filesystem at beginning of block device
-void cdfs_init(void);
+void _cdfs_init(void);
 
 //Returns the size of the CD filesystem in bytes - the first free byte-offset of the block device afterwards.
-uint64_t cdfs_fslen(void);
+uint64_t _cdfs_fslen(void);
 
 //Returns the inode number of the CD's root directory
-uint32_t cdfs_rootino(void);
+uint32_t _cdfs_rootino(void);
 
 //Returns status information about an inode
-int cdfs_stat(uint32_t ino, _sc_stat_t *buf);
+int _cdfs_stat(uint32_t ino, struct stat *buf);
 
 //Returns status information about the CD filesystem
-int cdfs_statvfs(_sc_statvfs_t *buf);
+int _cdfs_statvfs(struct statvfs *buf);
 
 //Reads from an inode
-int cdfs_read(uint32_t ino, uint32_t off, void *buf, int len);
+int _cdfs_read(uint32_t ino, uint32_t off, void *buf, int len);
 
 //Searches a directory inode for a link with the given name, returning its referenced inode
-int cdfs_search(uint32_t ino, const char *filename);
+int _cdfs_search(uint32_t ino, const char *filename);
 
 #endif //CDFS_H

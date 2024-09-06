@@ -14,6 +14,13 @@ struct dirent
 	char d_name[]; //Filename string of entry
 };
 
+struct _dirent_storage
+{
+	ino_t d_ino; //File serial number
+	mode_t d_type; //Mode with permission bits masked out (for Linux compatibility)
+	char d_name[256]; //Filename string of entry	
+};
+
 //For Linux compatibility with d_type field
 #define DT_DIR S_IFDIR
 #define DT_REG S_IFREG

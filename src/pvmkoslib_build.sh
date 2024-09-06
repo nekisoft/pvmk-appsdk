@@ -4,7 +4,7 @@
 #Bryan E. Topp <betopp@betopp.com> 2024
 
 
-CFLAGS="-nostdinc -nostdlib -std=c99 -Wall -Werror -Wextra -pedantic -fno-short-enums -fsigned-char -Iout/picolibc/arm-none-eabi/include -Isrc/libsc -O1"
+CFLAGS="-nostdinc -nostdlib -std=c99 -Wall -Werror -Wextra -pedantic -fno-short-enums -fsigned-char -Iout/picolibc/arm-none-eabi/include -Isrc/libsc -O1 -g"
 CC="arm-none-eabi-gcc"
 AR="arm-none-eabi-ar"
 
@@ -19,10 +19,11 @@ cp src/pvmkoslib/sys/*.h ${OUTDIR}/include/sys/
 #Compile library objects
 mkdir -p obj/pvmkoslib
 ${CC} ${CFLAGS} -c src/pvmkoslib/pvmkoslib.c -o obj/pvmkoslib/pvmkoslib.o
+${CC} ${CFLAGS} -c src/pvmkoslib/cdfs.c -o obj/pvmkoslib/cdfs.o
 
 #Make library archive in target
 mkdir -p ${OUTDIR}/lib/
-${AR} -r ${OUTDIR}/lib/libpvmkoslib.a obj/pvmkoslib/pvmkoslib.o
+${AR} -r ${OUTDIR}/lib/libpvmkoslib.a obj/pvmkoslib/pvmkoslib.o obj/pvmkoslib/cdfs.o
 
 
 
