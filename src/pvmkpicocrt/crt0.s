@@ -36,6 +36,13 @@ _start:
 	svc 0x92       //system call
 	
 _start.initial:
+
+	//The program is newly started.
+
+	//Make a system call to set ABI version
+	mov r0, #0xFF //version
+	mov r1, #1
+	svc 0x92
 	
 	//Make a system call to allocate space for BSS
 	.extern _DATA_END //Where the memory space will end, after loading
