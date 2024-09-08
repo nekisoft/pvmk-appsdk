@@ -1,0 +1,11 @@
+README for neki_upd.tar
+Bryan E. Topp <betopp@betopp.com> 2024
+
+This directory contains the official Neki32 System Updates package, neki_upd.tar.
+
+It contains the latest System Software for each variant of the Neki32 console.
+
+Include this in your game card and reference it with an El Torito boot entry, using platform ID 0x22.
+
+The Neki32 will find this on boot and prompt the user to update, if the package contains a newer system software for their console.
+
