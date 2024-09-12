@@ -53,23 +53,16 @@ CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 CFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
 
+#Title of ISO volume
+GAMENAME=
+
 #Name of ISO image to build
 GAMEIMG=$(IMGDIR)/game.iso
-
-#Which savegame image to append after ISO image
-SAVEIMG=$(PVMKSDK)/savepart/save64mb.jpfs
-
-#Append game filesystem + save filesystem to make card image
-$(IMGDIR)/card.img : $(GAMEIMG) $(SAVEIMG)
-	mkdir -p $(@D)
-	cp $(GAMEIMG) $(GAMEIMG).padded
-	truncate -s%4096 $(GAMEIMG).padded
-	cat $(GAMEIMG).padded $(SAVEIMG) > $@
 
 #Build filesystem with the game contents
 $(GAMEIMG) : $(BINDIR)/boot.nne $(shell find -H $(CARDROOT))
 	mkdir -p $(@D)
-	mkisofs -R -posix-L -o $@ $(CARDROOT)
+	mkisofs -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -R -posix-L -o $@ $(CARDROOT)
 	
 #This symlink already exists but Make gets confused. We're building bin/boot.nne and using it as cardroot/boot.nne.
 $(CARDROOT)/boot.nne : $(BINDIR)/boot.nne
