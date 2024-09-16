@@ -20,3 +20,5 @@ mkdir obj
 ./src/sdlsc_build.sh
 ./src/updates_build.sh 
 ./src/examples_build.sh
+./src/docs_build.sh
+
