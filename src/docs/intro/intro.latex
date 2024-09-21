@@ -6,6 +6,7 @@
 
 \usepackage{geometry}
 \usepackage{comment}
+\usepackage{listings}
 \usepackage{graphicx}
 \usepackage[hidelinks]{hyperref}
 \hypersetup{linktoc=all}
@@ -21,11 +22,18 @@
 \newcommand{\Reg}[1]{\texttt{#1}}
 \newcommand{\Const}[1]{\texttt{#1}}
 \newcommand{\Instr}[1]{\texttt{#1}}
+\newcommand{\CType}[1]{\texttt{#1}}
+\newcommand{\VarName}[1]{\texttt{#1}}
+
+%Formatting of system-call listings
+\newcommand{\SysCall}[4]{\item{\texttt{{\Undie}sc{\Undie}#1} : \Reg{r0} = \Const{#2}} \\ #3 \begin{itemize} #4 \end{itemize}}
+\newcommand{\SysParm}[4]{\item \Reg{#1} : \CType{#2} \VarName{#3}\\ #4 }
+\newcommand{\SysRetn}[2]{\item Returns : \CType{#1} \\ #2}
 
 \begin{document}
 
-\author{Bryan E. Topp}
-\title{\includegraphics[width=10cm]{logo.png}\\Introduction to \Neki32 Software Development}
+\author{Nekisoft Pty Ltd}
+\title{\includegraphics[width=10cm]{logo.png}\\The \Neki32 Software Development Manual}
 \date{16 September 2024}
 \maketitle
 
@@ -210,10 +218,37 @@ The return value is stored in \Reg{r0} after the call finishes.
 Typically, system-calls will return a negative error number if they fail, or a nonnegative value on success.
 
 System-calls are nonblocking. If a long-term operation is started, its system-call returns with \Const{-{\Undie}SC{\Undie}EAGAIN}.
-The call should then be repeated until it completes, returning a successful result.
+The call can be repeated until it completes, returning a successful result.
+In the mean time, the \Const{{\Undie}sc{\Undie}pause} system-call can be used to block the caller.
+For example the following code would wait for any input events to be delivered:
+\begin{lstlisting}[language=C]
+_sc_input_t input_buffer[8] = {0};
+while(_sc_input(input_buffer, sizeof(input_buffer[0]), sizeof(input_buffer)) == -_SC_EAGAIN) { _sc_pause(); }
+\end{lstlisting}
+
+
+\subsection{Basics}
+
+There is a single mandatory system-call.
+A call to \Const{{\Undie}sc{\Undie}version} must be the first system-call made when a new program is loaded.
+Otherwise, any other system-calls will fail and return \Const{-{\Undie}SC{\Undie}ENOSYS}.
+
+\begin{itemize}
+\SysCall{version}{0xFF}
+{
+	Selects the version of the operating system ABI in use by the caller.
+	The kernel will return the best compatible ABI version it can provide.
+	If the kernel is simply incompatible, a negative error number will be returned.
+	Presently, version 1 is defined. All kernels will support version 1.
+	All applications must, at this time, request version 1.
+}
+{
+	\SysParm{r1}{int}{version}{The desired version of the system-call interface. Should be 1.}
+	\SysRetn{int}{The version of the system-call interface that the kernel will use.}
+}
+\end{itemize}
 
 \begin{comment}
-
 // _sc_none //
 //Does nothing.
 SYSCALL_DECL void _sc_none(void)
@@ -228,7 +263,8 @@ SYSCALL_DECL void _sc_none(void)
 SYSCALL_DECL void _sc_pause(void)
 	#define  _SC_PAUSE_N 0x01
 	{ _SC(_SC_PAUSE_N, 0, 0, 0, 0, 0); }
-
+	
+	
 // _sc_getticks //
 //Returns the number of milliseconds since the system was booted.
 //Does not fail.
@@ -236,130 +272,44 @@ SYSCALL_DECL int _sc_getticks(void)
 	#define _SC_GETTICKS_N 0x02
 	{ return _SC(_SC_GETTICKS_N, 0, 0, 0, 0, 0); }
 
-// _sc_exit //
-//Generally obliterates the calling process.
-//Optionally reports a signal that was responsible for its demise.
-SYSCALL_DECL _NORETURN void _sc_exit(int exitcode, int signal)
-	#define  _SC_EXIT_N 0x07
-	{ _SC(_SC_EXIT_N, exitcode, signal, 0, 0, 0); _DONTRETURN; }
 
-// _sc_env_save //
-//Appends the given data to the kernel's argument/environment buffer for the calling process.
-//Subsequent calls append to the buffer; call with buf=len=0 to reset the buffer.
-//This buffer is preserved across calls to exec() and mexec_apply().
-//Conventionally it should contain a series of NUL-terminated argument strings,
-//then an extra NUL, then a series of NUL-terminated environment strings.
-//Returns the number of bytes written or a negative error number.
-SYSCALL_DECL int _sc_env_save(const void *buf, int len)
-	#define _SC_ENV_SAVE_N 0x08
-	{ return _SC(_SC_ENV_SAVE_N, buf, len, 0, 0, 0); }
+\end{comment}
 
-// _sc_env_load //
-//Reads from the kernel's argument/environment buffer for the calling process.
-//Writes the result into the calling process's user memory, usually after an exec() or mexec_apply().
-//Unlike _sc_env_save, starts from the beginning each time it's called.
-//Returns the number of bytes copied or a negative error number.
-SYSCALL_DECL int _sc_env_load(void *buf, int len)
-	#define _SC_ENV_LOAD_N 0x09
-	{ return _SC(_SC_ENV_LOAD_N, buf, len, 0, 0, 0); }
+\subsection{Game input/output}
 
-// _sc_read //
-//Reads from a file. Writes up to "len" bytes into the buffer at "buf".
-//fd will generally be 0 (STDIN_FILENO), as games aren't allowed to open more kernel-level files.
-//Returns the number of bytes read if any are successfully read.
-//Returns a negative error number if an error occurs before any bytes are read.
-//Returns 0 to indicate that the end-of-file has been reached.
-SYSCALL_DECL int _sc_read(int fd, void *buf, int len)
-	#define _SC_READ_N 0x11
-	{ return _SC(_SC_READ_N, fd, buf, len, 0, 0); }
+These system-calls relate to the user's gamepads and television.
+No setup or configuration is necessary to use these system-calls.
+Each program starts with the audio-visual and input peripherals ready to use.
 
-// _sc_write //
-//Writes to a file. Reads up to "len" bytes from the buffer at "buf".
-//fd will generally be 1 (STDOUT_FILENO) or 2 (STDERR_FILENO), as games aren't allowed to open more kernel-level files.
-//Returns the number of bytes written if any were successfully written.
-//Returns a negative error number if an error occurs before any bytes are written.
-SYSCALL_DECL int _sc_write(int fd, const void *buf, int len)
-	#define _SC_WRITE_N 0x12
-	{ return _SC(_SC_WRITE_N, fd, buf, len, 0, 0); }
+\begin{itemize}
+\SysCall{gfx{\Undie}flip}{0x30}
+{
+	Enqueues a change of the video front-buffer.
+	The given buffer will become the front-buffer at the next vertical-blanking interval.
+	If the given mode is 0, text-mode will be displayed, and buffer must be given as NULL.
+	If the given mode is nonzero, a valid buffer must be specified, and large enough for one full-screen image.
+	Returns the address of the buffer currently displayed. 
+	The return value may be 0 if the current front-buffer belongs to another process.
+	This call may occasionally take effect immediately, and return its buffer parameter, if the call is made just before vertical blanking.
+	The following mode values are allowed:
+	\begin{tabular}{l l l}
+	Mode & Number & Description \\
+	\Const{{\Undie}SC{\Undie}GFX{\Undie}MODE{\Undie}TEXT}          & 0 & No framebuffer; kernel text mode only \\
+	\Const{{\Undie}SC{\Undie}GFX{\Undie}MODE{\Undie}VGA{\Undie}16BPP}     & 1 & 640x480@60Hz RGB565, 1280 bytes/line \\ 
+	\Const{{\Undie}SC{\Undie}GFX{\Undie}MODE{\Undie}320X240{\Undie}16BPP} & 2 & 320x240@60Hz RGB565, 640 bytes/line
+	\end{tabular}
+}
+{
+	\SysParm{r1}{int}{mode}{The video mode in which to display the new buffer.}
+	\SysParm{r2}{const void *}{buffer}{The location of the buffer in memory to display.}
+	\SysRetn{int}{The currently-displayed image buffer, or a negative error number.}
+}
 
-//Signal numbers defined in the kernel
-#define _SC_SIGZERO 0
-#define _SC_SIGHUP 1
-#define _SC_SIGINT 2
-#define _SC_SIGQUIT 3
-#define _SC_SIGILL 4
-#define _SC_SIGTRAP 5
-#define _SC_SIGABRT 6
-#define _SC_SIGEMT 7
-#define _SC_SIGFPE 8
-#define _SC_SIGKILL 9
-#define _SC_SIGBUS 10
-#define _SC_SIGSEGV 11
-#define _SC_SIGSYS 12
-#define _SC_SIGPIPE 13
-#define _SC_SIGALRM 14
-#define _SC_SIGTERM 15
-#define _SC_SIGURG 16
-#define _SC_SIGSTOP 17
-#define _SC_SIGTSTP 18
-#define _SC_SIGCONT 19
-#define _SC_SIGCHLD 20
-#define _SC_SIGTTIN 21
-#define _SC_SIGTTOU 22
-#define _SC_SIGXCPU 23
-#define _SC_SIGXFSZ 24
-#define _SC_SIGVTALRM 25
-#define _SC_SIGPROF 26
-#define _SC_SIGWINCH 27
-#define _SC_SIGINFO 28
-#define _SC_SIGUSR1 29
-#define _SC_SIGUSR2 30
 
-//Ways to alter the signal mask of a thread.
-#define _SC_SIGMASK_BLOCK 0
-#define _SC_SIGMASK_UNBLOCK 1
-#define _SC_SIGMASK_SETMASK 2
 
-// _sc_sig_mask //
-//Alters the signal mask of the calling thread.
-//Returns the OLD mask.
-SYSCALL_DECL int _sc_sig_mask(int how, int bits)
-	#define _SC_SIG_MASK_N 0x20
-	{ return _SC(_SC_SIG_MASK_N, how, bits, 0, 0, 0); }
+\end{itemize}
 
-// _sc_sig_return //
-//Returns from a signal handler.
-SYSCALL_DECL _NORETURN void _sc_sig_return(void)
-	#define  _SC_SIG_RETURN_N 0x22
-	{ _SC(_SC_SIG_RETURN_N, 0, 0, 0, 0, 0); _DONTRETURN; }
-	
-// _sc_mem_sbrk //
-//Changes the size of the calling process's memory space, adding "req" new bytes.
-//(The memory space cannot ever be reduced, except by calling exec() with a smaller image.)
-//The new bytes are appended at the old end-of-process address. The OLD end-of-process is returned.
-//A negative error number is returned on failure (probably, -_SC_ENOMEM).
-SYSCALL_DECL int _sc_mem_sbrk(int req)
-	#define _SC_MEM_SBRK_N 0x40
-	{ return _SC(_SC_MEM_SBRK_N, req, 0, 0, 0, 0); }
-	
-//Graphics modes that are used with _sc_gfx_flip.
-#define _SC_GFX_MODE_TEXT          0 //No framebuffer supplied; kernel text mode only
-#define _SC_GFX_MODE_VGA_16BPP     1 //640x480@60Hz RGB565, 1280 bytes per line
-#define _SC_GFX_MODE_320X240_16BPP 2 //320x240@60Hz RGB565, 640 bytes per line
-#define _SC_GFX_MODE_MAX           3 //Number of modes supported; mode parameter must be less than this
-
-// _sc_gfx_flip //
-//Enqueues a change of the system front-buffer to the given buffer.
-//Only takes effect during vertical blanking.
-//If mode is 0 (text), buffer must be NULL.
-//If mode is nonzero, buffer must be given and large enough for one framebuffer.
-//Returns the address of the image currently displayed.
-//Can return 0 if the currently-displayed image belongs to another process.
-//Returns a negative error number on failure (if nothing was enqueued).
-SYSCALL_DECL int _sc_gfx_flip(int mode, const void *buffer)
-	#define _SC_GFX_FLIP_N 0x30
-	{ return _SC(_SC_GFX_FLIP_N, mode, buffer, 0, 0, 0); }
-
+\begin{comment}
 //Audio modes that are used with _sc_snd_play.
 #define _SC_SND_MODE_SILENT      0 //Stops all sounds
 #define _SC_SND_MODE_48K_16B_2C  1 //Linear PCM, 48KHz, 16-bit stereo, native byte order, left-then-right
@@ -417,25 +367,11 @@ typedef struct _sc_input_s
 SYSCALL_DECL int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max)
 	#define _SC_INPUT_N 0x50
 	{ return _SC(_SC_INPUT_N, buffer_ptr, bytes_per_event, bytes_max, 0, 0); }
+\end{comment}
 
-// _sc_nvm_save //
-//Writes data to the configured nonvolatile memory record, overwriting any previous data.
-//The contents should be in the buffer at "data", of length "len".
-//Writes are atomic and update the whole record each time. No partial writes are possible.
-//Returns the number of bytes written on success or a negative error number.
-SYSCALL_DECL int _sc_nvm_save(const void *data, int len)
-	#define _SC_NVM_SAVE_N 0x81
-	{ return _SC(_SC_NVM_SAVE_N, data, len, 0, 0, 0); }
+\subsection{Data access}
 
-// _sc_nvm_load //
-//Reads from the configured nonvolatile memory record into the given buffer.
-//The buffer to place the results in is at "buf", of length "len".
-//Reads are protected by SHA256; corruption will result in the file being lost (-_SC_ENOENT).
-//Returns the number of bytes read on success or a negative error number.
-SYSCALL_DECL int _sc_nvm_load(void *buf, int len)
-	#define _SC_NVM_LOAD_N 0x82
-	{ return _SC(_SC_NVM_LOAD_N, buf, len, 0, 0, 0); }
-	
+\begin{comment}
 // _sc_disk_read2k //
 //Reads a 2048-byte sector from the disk into the given buffer.
 //The sector number is given in units of 2KByte, i.e. not a byte-offset.
@@ -454,6 +390,137 @@ SYSCALL_DECL int _sc_disk_write2k(int sector_num, const void *buf2k)
 	#define _SC_DISK_WRITE2K_N 0x92
 	{ return _SC(_SC_DISK_WRITE2K_N, sector_num, buf2k, 0, 0, 0); }
 	
+
+// _sc_nvm_save //
+//Writes data to the configured nonvolatile memory record, overwriting any previous data.
+//The contents should be in the buffer at "data", of length "len".
+//Writes are atomic and update the whole record each time. No partial writes are possible.
+//Returns the number of bytes written on success or a negative error number.
+SYSCALL_DECL int _sc_nvm_save(const void *data, int len)
+	#define _SC_NVM_SAVE_N 0x81
+	{ return _SC(_SC_NVM_SAVE_N, data, len, 0, 0, 0); }
+
+// _sc_nvm_load //
+//Reads from the configured nonvolatile memory record into the given buffer.
+//The buffer to place the results in is at "buf", of length "len".
+//Reads are protected by SHA256; corruption will result in the file being lost (-_SC_ENOENT).
+//Returns the number of bytes read on success or a negative error number.
+SYSCALL_DECL int _sc_nvm_load(void *buf, int len)
+	#define _SC_NVM_LOAD_N 0x82
+	{ return _SC(_SC_NVM_LOAD_N, buf, len, 0, 0, 0); }
+
+// _sc_read //
+//Reads from a file. Writes up to "len" bytes into the buffer at "buf".
+//fd will generally be 0 (STDIN_FILENO), as games aren't allowed to open more kernel-level files.
+//Returns the number of bytes read if any are successfully read.
+//Returns a negative error number if an error occurs before any bytes are read.
+//Returns 0 to indicate that the end-of-file has been reached.
+SYSCALL_DECL int _sc_read(int fd, void *buf, int len)
+	#define _SC_READ_N 0x11
+	{ return _SC(_SC_READ_N, fd, buf, len, 0, 0); }
+
+// _sc_write //
+//Writes to a file. Reads up to "len" bytes from the buffer at "buf".
+//fd will generally be 1 (STDOUT_FILENO) or 2 (STDERR_FILENO), as games aren't allowed to open more kernel-level files.
+//Returns the number of bytes written if any were successfully written.
+//Returns a negative error number if an error occurs before any bytes are written.
+SYSCALL_DECL int _sc_write(int fd, const void *buf, int len)
+	#define _SC_WRITE_N 0x12
+	{ return _SC(_SC_WRITE_N, fd, buf, len, 0, 0); }
+
+
+	
+
+
+
+	
+\end{comment}
+
+\subsection{Process setup}
+
+\begin{comment}
+
+// _sc_mem_sbrk //
+//Changes the size of the calling process's memory space, adding "req" new bytes.
+//(The memory space cannot ever be reduced, except by calling exec() with a smaller image.)
+//The new bytes are appended at the old end-of-process address. The OLD end-of-process is returned.
+//A negative error number is returned on failure (probably, -_SC_ENOMEM).
+SYSCALL_DECL int _sc_mem_sbrk(int req)
+	#define _SC_MEM_SBRK_N 0x40
+	{ return _SC(_SC_MEM_SBRK_N, req, 0, 0, 0, 0); }
+	
+//Signal numbers defined in the kernel
+#define _SC_SIGZERO 0
+#define _SC_SIGHUP 1
+#define _SC_SIGINT 2
+#define _SC_SIGQUIT 3
+#define _SC_SIGILL 4
+#define _SC_SIGTRAP 5
+#define _SC_SIGABRT 6
+#define _SC_SIGEMT 7
+#define _SC_SIGFPE 8
+#define _SC_SIGKILL 9
+#define _SC_SIGBUS 10
+#define _SC_SIGSEGV 11
+#define _SC_SIGSYS 12
+#define _SC_SIGPIPE 13
+#define _SC_SIGALRM 14
+#define _SC_SIGTERM 15
+#define _SC_SIGURG 16
+#define _SC_SIGSTOP 17
+#define _SC_SIGTSTP 18
+#define _SC_SIGCONT 19
+#define _SC_SIGCHLD 20
+#define _SC_SIGTTIN 21
+#define _SC_SIGTTOU 22
+#define _SC_SIGXCPU 23
+#define _SC_SIGXFSZ 24
+#define _SC_SIGVTALRM 25
+#define _SC_SIGPROF 26
+#define _SC_SIGWINCH 27
+#define _SC_SIGINFO 28
+#define _SC_SIGUSR1 29
+#define _SC_SIGUSR2 30
+
+//Ways to alter the signal mask of a thread.
+#define _SC_SIGMASK_BLOCK 0
+#define _SC_SIGMASK_UNBLOCK 1
+#define _SC_SIGMASK_SETMASK 2
+
+// _sc_sig_mask //
+//Alters the signal mask of the calling thread.
+//Returns the OLD mask.
+SYSCALL_DECL int _sc_sig_mask(int how, int bits)
+	#define _SC_SIG_MASK_N 0x20
+	{ return _SC(_SC_SIG_MASK_N, how, bits, 0, 0, 0); }
+
+// _sc_sig_return //
+//Returns from a signal handler.
+SYSCALL_DECL _NORETURN void _sc_sig_return(void)
+	#define  _SC_SIG_RETURN_N 0x22
+	{ _SC(_SC_SIG_RETURN_N, 0, 0, 0, 0, 0); _DONTRETURN; }
+	
+
+// _sc_env_save //
+//Appends the given data to the kernel's argument/environment buffer for the calling process.
+//Subsequent calls append to the buffer; call with buf=len=0 to reset the buffer.
+//This buffer is preserved across calls to exec() and mexec_apply().
+//Conventionally it should contain a series of NUL-terminated argument strings,
+//then an extra NUL, then a series of NUL-terminated environment strings.
+//Returns the number of bytes written or a negative error number.
+SYSCALL_DECL int _sc_env_save(const void *buf, int len)
+	#define _SC_ENV_SAVE_N 0x08
+	{ return _SC(_SC_ENV_SAVE_N, buf, len, 0, 0, 0); }
+
+// _sc_env_load //
+//Reads from the kernel's argument/environment buffer for the calling process.
+//Writes the result into the calling process's user memory, usually after an exec() or mexec_apply().
+//Unlike _sc_env_save, starts from the beginning each time it's called.
+//Returns the number of bytes copied or a negative error number.
+SYSCALL_DECL int _sc_env_load(void *buf, int len)
+	#define _SC_ENV_LOAD_N 0x09
+	{ return _SC(_SC_ENV_LOAD_N, buf, len, 0, 0, 0); }
+
 // _sc_mexec_append //
 //Appends the given data to the kernel's pending memory image for the calling process.
 //Subsequent calls append to the buffer; call with buf=len=0 to reset the buffer.
@@ -472,73 +539,58 @@ SYSCALL_DECL int _sc_mexec_append(const void *buf, int len)
 SYSCALL_DECL _NORETURN void _sc_mexec_apply(void)
 	#define  _SC_MEXEC_APPLY_N 0xA2
 	{ _SC(_SC_MEXEC_APPLY_N, 0, 0, 0, 0, 0); _DONTRETURN; }
-	
-	
-// _sc_version //
-//Tells the kernel what version of the system-call interface is expected by the calling application.
-//Returns the version of system-call interface that the kernel will then use.
-//Returns a negative error number on failure - if the kernel and application are simply incompatible.
-//System-call versions are set per-process. Currently only version "1" is supported.
-SYSCALL_DECL int _sc_version(int version)
-	#define _SC_VERSION_N 0xFF
-	{ return _SC(_SC_VERSION_N, version, 0, 0, 0, 0); }
 
-//Error numbers that may be returned by the kernel.
-//They are defined positively here, but are returned as negative values by the kernel.
-//These attempt to be the same as Linux error numbers, but please don't rely on that.
-#define _SC_EPERM         1 //Operation not permitted.
-#define _SC_ENOENT        2 //No such file or directory.
-#define _SC_ESRCH         3 //No such process.
-#define _SC_EINTR         4 //Interrupted function.
-#define _SC_EIO           5 //I/O error.
-#define _SC_ENXIO         6 //No such device or address.
-#define _SC_E2BIG         7 //Argument list too long.
-#define _SC_ENOEXEC       8 //Executable file format error.
-#define _SC_EBADF         9 //Bad file descriptor.
-#define _SC_ECHILD       10 //No child processes.
-#define _SC_EAGAIN       11 //Resource unavailable, try again (may be the same value as EWOULDBLOCK).
-#define _SC_EWOULDBLOCK  11 //Operation would block (may be the same value as EAGAIN).
-#define _SC_ENOMEM       12 //Not enough space.
-#define _SC_EACCES       13 //Permission denied.
-#define _SC_EFAULT       14 //Bad address.
-#define _SC_EBUSY        16 //Device or resource busy.
-#define _SC_EEXIST       17 //File exists.
-#define _SC_EXDEV        18 //Cross-device link.
-#define _SC_ENODEV       19 //No such device.
-#define _SC_ENOTDIR      20 //Not a directory or a symbolic link to a directory.
-#define _SC_EISDIR       21 //Is a directory.
-#define _SC_EINVAL       22 //Invalid argument.
-#define _SC_ENFILE       23 //Too many files open in system.
-#define _SC_EMFILE       24 //File descriptor value too large.
-#define _SC_ENOTTY       25 //Inappropriate I/O control operation.
-#define _SC_ETXTBSY      26 //Text file busy.
-#define _SC_EFBIG        27 //File too large.
-#define _SC_ENOSPC       28 //No space left on device.
-#define _SC_ESPIPE       29 //Invalid seek.
-#define _SC_EROFS        30 //Read-only file system.
-#define _SC_EMLINK       31 //Too many links.
-#define _SC_EPIPE        32 //Broken pipe.
-#define _SC_EDOM         33 //Mathematics argument out of domain of function.
-#define _SC_ERANGE       34 //Result too large.
-#define _SC_EDEADLK      35 //Resource deadlock would occur.
-#define _SC_EDEADLOCK    35 //Resource deadlock would occur.
-#define _SC_ENAMETOOLONG 36 //Filename too long.
-#define _SC_ENOLCK       37 //No locks available.
-#define _SC_ENOSYS       38 //Functionality not supported.
-#define _SC_ENOTEMPTY    39 //Directory not empty.
-#define _SC_ELOOP        40 //Too many levels of symbolic links.
-#define _SC_ENOMSG       42 //No message of the desired type.
-#define _SC_EIDRM        43 //Identifier removed.
+
+// _sc_exit //
+//Generally obliterates the calling process.
+//Optionally reports a signal that was responsible for its demise.
+SYSCALL_DECL _NORETURN void _sc_exit(int exitcode, int signal)
+	#define  _SC_EXIT_N 0x07
+	{ _SC(_SC_EXIT_N, exitcode, signal, 0, 0, 0); _DONTRETURN; }
 
 \end{comment}
 
+\pagebreak
 
-\subsection{Game input/output}
-
-\subsection{Data access}
-
-\subsection{Process setup}
-
+\subsection{Error codes}
+The following error codes may be returned by the kernel.
+These values are defined as positive integers here.
+When returned by a system-call, they are usually negated.
+For example, a system-call which fails because there is not enough memory might then return -12.
+\\
+\\
+\begin{tabular}{l l l}
+\textbf{Error} & \textbf{Number} & \textbf{Description} \\
+\Const{{\Undie}SC{\Undie}EPERM}       &  1 & Operation not permitted. \\
+\Const{{\Undie}SC{\Undie}ENOENT}      &  2 & No such file or directory. \\
+\Const{{\Undie}SC{\Undie}ESRCH}       &  3 & No such process. \\
+\Const{{\Undie}SC{\Undie}EIO}         &  5 & I/O error. \\
+\Const{{\Undie}SC{\Undie}ENXIO}       &  6 & No such device or address. \\
+\Const{{\Undie}SC{\Undie}E2BIG}       &  7 & Argument list too long. \\
+\Const{{\Undie}SC{\Undie}ENOEXEC}     &  8 & Executable file format error. \\
+\Const{{\Undie}SC{\Undie}EBADF}       &  9 & Bad file descriptor. \\
+\Const{{\Undie}SC{\Undie}ECHILD}      & 10 & No child processes. \\
+\Const{{\Undie}SC{\Undie}EAGAIN}      & 11 & Resource unavailable, try again. \\
+\Const{{\Undie}SC{\Undie}ENOMEM}      & 12 & Not enough space. \\
+\Const{{\Undie}SC{\Undie}EFAULT}      & 14 & Bad address. \\
+\Const{{\Undie}SC{\Undie}EBUSY}       & 16 & Device or resource busy. \\
+\Const{{\Undie}SC{\Undie}EEXIST}      & 17 & File exists. \\
+\Const{{\Undie}SC{\Undie}ENOTDIR}     & 20 & Not a directory or a symbolic link to a directory. \\
+\Const{{\Undie}SC{\Undie}EISDIR}      & 21 & Is a directory. \\
+\Const{{\Undie}SC{\Undie}EINVAL}      & 22 & Invalid argument. \\
+\Const{{\Undie}SC{\Undie}ENFILE}      & 23 & Too many files open in system. \\
+\Const{{\Undie}SC{\Undie}EMFILE}      & 24 & File descriptor value too large. \\
+\Const{{\Undie}SC{\Undie}ENOTTY}      & 25 & Inappropriate I/O control operation. \\
+\Const{{\Undie}SC{\Undie}EFBIG}       & 27 & File too large. \\
+\Const{{\Undie}SC{\Undie}ENOSPC}      & 28 & No space left on device. \\
+\Const{{\Undie}SC{\Undie}ESPIPE}      & 29 & Invalid seek. \\
+\Const{{\Undie}SC{\Undie}EPIPE}       & 32 & Broken pipe. \\
+\Const{{\Undie}SC{\Undie}EDEADLOCK}   & 35 & Resource deadlock would occur. \\
+\Const{{\Undie}SC{\Undie}ENAMETOOLONG}& 36 & Filename too long. \\
+\Const{{\Undie}SC{\Undie}ENOSYS}      & 38 & Functionality not supported. \\
+\Const{{\Undie}SC{\Undie}ENOTEMPTY}   & 39 & Directory not empty. \\
+\Const{{\Undie}SC{\Undie}ELOOP}       & 40 & Too many levels of symbolic links. \\
+\end{tabular}
 
 \section{The C SDK}
 \subsection{C Runtime}
