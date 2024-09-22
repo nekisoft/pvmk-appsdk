@@ -29,7 +29,7 @@
 \newcommand{\VarName}[1]{\texttt{#1}}
 
 %Formatting of system-call listings
-\newcommand{\SysCall}[4]{\subsubsection{\texttt{{\Undie}sc{\Undie}#1}} Called with: \Reg{r0} = \Const{#2}. \\ \\ #3 \begin{itemize} #4 \end{itemize}}
+\newcommand{\SysCall}[4]{\subsubsection{\texttt{{\Undie}sc{\Undie}#1}} Called with: \Reg{r0} = \Const{#2}. \\ #3 \begin{itemize} #4 \end{itemize}}
 \newcommand{\SysParm}[4]{\item \Reg{#1} : \CType{#2} \VarName{#3}\\ #4 }
 \newcommand{\SysRetn}[2]{\item Returns : \CType{#1} \\ #2}
 \newcommand{\SysParmNone}[0]{\item No parameters. }
@@ -48,10 +48,14 @@
 
 \pagebreak
 
-\section*{Conventions}
+\section*{Preface}
 
 Numbers are in decimal (base-10) unless otherwise stated.\\
 Numbers beginning with a \Const{0x} prefix are hexadecimal (base-16).
+\\
+\\
+\copyright2024 Nekisoft Pty Ltd\\
+Australian Company Number 680 583 251
 
 \section{Introduction}
 
@@ -70,6 +74,7 @@ The \Neki32 console itself is powered by USB-C.
 It outputs audio and video to an HDMI TV.
 Games are distributed on read-only SD cards. 
 There are four controller ports, compatible with Genesis and Mega-Drive controllers.
+There is 4MBytes of internal memory for savegames of 128KBytes per game.
 
 (Picture of the console goes here.)
 
@@ -218,17 +223,20 @@ The \Instr{svc 0x92} instruction is used to trigger system-calls. Other \Instr{s
 \section{System calls}
 
 System-calls are used to access hardware features in a backward- and forward-compatible way.
+The system-call interface for Neki32 comprises 21 different calls.
 
-To run a system call, place its inputs in registers. The call number is passed in register \Reg{r0}.
+To run a system call, first place its inputs in CPU registers. The call number is passed in register \Reg{r0}.
 Parameters, if any, are passed in registers \Reg{r1} to \Reg{r5}. Then, use the \Instr{svc 0x92} instruction.
+The kernel will perform the requested operation.
 The return value is stored in \Reg{r0} after the call finishes.
 
 Typically, system-calls will return a negative error number if they fail, or a nonnegative value on success.
+They may read or write in the memory of the caller.
 
 System-calls are nonblocking. If a long-term operation is started, its system-call returns with \Const{-{\Undie}SC{\Undie}EAGAIN}.
 The call can be repeated until it completes, returning a successful result.
 In the mean time, the \Const{{\Undie}sc{\Undie}pause} system-call can be used to block the caller.
-For example the following code would wait for any input events to be delivered:
+For example, the following code would wait for any input events:
 \begin{lstlisting}[language=C]
 _sc_input_t mybuf[8] = {0};
 while(_sc_input(mybuf, sizeof(mybuf[0]), sizeof(mybuf)) == -_SC_EAGAIN)
@@ -680,9 +688,35 @@ Number & Name\\
 \end{tabular}
 
 \section{The C SDK}
+The C SDK is an easy way to start writing programs for Neki32.
+It provides a runtime environment that behaves like a POSIX-compatible system, such as Linux or FreeBSD.
+The SDK includes the following parts.
+\subsection{Compiler Wrappers}
+The compiler wrappers help to invoke GCC or LLVM with the right options for building a Neki32 executable.
+You must have an appropriate GCC or LLVM compiler installed, of course. It needs to be able to target the ARMv5TE architecture.
 \subsection{C Runtime}
-\subsection{PVMK OS library}
+The C Runtime is what initially starts running when the Neki32 kernel loads your program.
+It requests memory for all your variables, unmasks signals, and calls your main function.
+It also contains the linker configuration, so the linker can make an executable in the right format (a flat 0-based binary).
 \subsection{Picolibc}
+This is a port of PicoLibC to the Neki32. PicoLibC is a portable C Standard Library. It provides functions like printf and strcpy.
+\subsection{PVMK OS library}
+The OS Library is a link between the PicoLibC code and the system-calls available on the Neki32.
+It handles some things that aren't implemented in the kernel itself.
+
+For example, the system-call interface on Neki32 provides block-level access to sectors from the game card.
+The system doesn't care what kind of filesystem is on the card.
+So, when your application calls fopen(), someone has to go understand the filesystem on the card and find the file you wanted.
+The code is in this library, so you can open/read/close like normal.
+\subsection{Updates Package}
+This is the official Neki32 system-update package from Nekisoft.
+This can be included on game media to ensure that players have the latest system software.
+Note that a license is required to distribute this - you must adhere to our software quality and marketing guidelines.
+See the licensing section for more information.
+\subsection{SDL System-Call Shims}
+This is an implementation of some system-calls on top of the SDL2 library.
+Using this, instead of the real system-call library, you can build and test your code on a desktop Linux machine.
+Then, you could compile the same application for Neki32 with minimal changes.
 
 \section{Examples}
 \subsection{Just Assembly}
