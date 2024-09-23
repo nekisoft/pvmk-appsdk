@@ -27,6 +27,7 @@
 \newcommand{\Instr}[1]{\texttt{#1}}
 \newcommand{\CType}[1]{\texttt{#1}}
 \newcommand{\VarName}[1]{\texttt{#1}}
+\newcommand{\PathName}[1]{\texttt{#1}}
 
 %Formatting of system-call listings
 \newcommand{\SysCall}[4]{\subsubsection{\texttt{{\Undie}sc{\Undie}#1}} Called with: \Reg{r0} = \Const{#2}. \\ #3 \begin{itemize} #4 \end{itemize}}
@@ -691,16 +692,17 @@ Number & Name\\
 The C SDK is an easy way to start writing programs for Neki32.
 It provides a runtime environment that behaves like a POSIX-compatible system, such as Linux or FreeBSD.
 The SDK includes the following parts.
-\subsection{Compiler Wrappers}
+\subsection{SDK Contents}
+\subsubsection{Compiler Wrappers}
 The compiler wrappers help to invoke GCC or LLVM with the right options for building a Neki32 executable.
 You must have an appropriate GCC or LLVM compiler installed, of course. It needs to be able to target the ARMv5TE architecture.
-\subsection{C Runtime}
+\subsubsection{C Runtime}
 The C Runtime is what initially starts running when the Neki32 kernel loads your program.
 It requests memory for all your variables, unmasks signals, and calls your main function.
 It also contains the linker configuration, so the linker can make an executable in the right format (a flat 0-based binary).
-\subsection{Picolibc}
+\subsubsection{Picolibc}
 This is a port of PicoLibC to the Neki32. PicoLibC is a portable C Standard Library. It provides functions like printf and strcpy.
-\subsection{PVMK OS library}
+\subsubsection{PVMK OS library}
 The OS Library is a link between the PicoLibC code and the system-calls available on the Neki32.
 It handles some things that aren't implemented in the kernel itself.
 
@@ -708,20 +710,34 @@ For example, the system-call interface on Neki32 provides block-level access to 
 The system doesn't care what kind of filesystem is on the card.
 So, when your application calls fopen(), someone has to go understand the filesystem on the card and find the file you wanted.
 The code is in this library, so you can open/read/close like normal.
-\subsection{Updates Package}
+\subsubsection{Updates Package}
 This is the official Neki32 system-update package from Nekisoft.
 This can be included on game media to ensure that players have the latest system software.
 Note that a license is required to distribute this - you must adhere to our software quality and marketing guidelines.
 See the licensing section for more information.
-\subsection{SDL System-Call Shims}
+\subsubsection{SDL System-Call Shims}
 This is an implementation of some system-calls on top of the SDL2 library.
 Using this, instead of the real system-call library, you can build and test your code on a desktop Linux machine.
 Then, you could compile the same application for Neki32 with minimal changes.
 
 \section{Examples}
 \subsection{Just Assembly}
+It is possible to make a bootable Neki32 game card using only an ARM assembler. The executable code can be written in assembly, of course.
+The same assembly can be used to make ISO9660 and El Torito structures, referencing the executable code.
+For simplicity, we can place the executable at the beginning of the disk image.
+Then, a byte location in the disk, the executable, and the process memory are all the same.
+
+Source code for this example is found in \PathName{examples/allasm} in the SDK.
+
 \subsection{Assembly and some Data}
+A program running on the Neki32 can load more data off the game card. The system-call \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k} is used to perform this operation.
+The previous example can be extended to load more data off the game card, after the boot program is already running.
+
+Source code for this example is found in \PathName{examples/asmdata} in the SDK.
+
 \subsection{Assembly in a Filesystem}
+
+
 \subsection{Adding some Freestanding C}
 \subsection{Using the C SDK Instead}
 
