@@ -384,39 +384,21 @@ ssize_t read(int fd, void *buf, size_t nbyte)
 {
 	if(fd < USER_FILE_MIN)
 	{
-		//Do a read system-call to operate on system-level files (stdin/stdout/stderr)
-		
-		//Pain in the ass here.
-		//Everybody agrees that read() can return less data than requested, for a number of reasons.
-		//Doom decides to just barf if that happens, though. I defer to Doom.
-		size_t nread = 0;
-		char *bufb = (char*)buf;
-		while(nbyte > 0)
+		if(fd == 0)
 		{
-			ssize_t result = _sc_read(fd, bufb, nbyte);
-			if(result == -_SC_EAGAIN)
-			{
-				_sc_pause();
-				continue;
-			}
-			
-			if( (result < 0) && (nread == 0) )
-			{
-				errno = _pvmk_sysret_errno(result);
-				return -1;
-			}
-			
-			if(result <= 0)
-			{
-				return nread;
-			}
-			
-			nbyte -= result;
-			nread += result;
-			bufb += result;
-			
+			//stdin just ends
+			return 0;
 		}
-		return nread;	
+		else if(fd == 1 || fd == 2)
+		{
+			//Can't read back from stdout/stderr
+			return 0;
+		}
+		else
+		{
+			errno = EBADF;
+			return -1;
+		}
 	}
 	else if(fd >= USER_FILE_MAX || !_user_file_table[fd].valid)
 	{
@@ -437,8 +419,6 @@ ssize_t read(int fd, void *buf, size_t nbyte)
 		_user_file_table[fd].pos += nread;
 		return nread;
 	}
-	
-
 }
 
 ssize_t write(int fd, const void *buf, size_t nbyte)
@@ -446,38 +426,21 @@ ssize_t write(int fd, const void *buf, size_t nbyte)
 	if(fd < USER_FILE_MIN)
 	{
 		//Do a write system-call to operate on system-level files (stdin/stdout/stderr)
-			
-		size_t nwritten = 0;
-		const char *bufb = (const char*)buf;
-		while(nbyte > 0)
+		if(fd == 0)
 		{
-			size_t to_write = nbyte;
-			if(to_write > 65536)
-				to_write = 65536;
-			
-			ssize_t result = _sc_write(fd, bufb, to_write);
-			if(result == -_SC_EAGAIN)
-			{
-				_sc_pause();
-				continue;
-			}
-			
-			if( (result < 0) && (nwritten == 0) )
-			{
-				errno = _pvmk_sysret_errno(result);
-				return -1;
-			}
-			
-			if(result <= 0)
-			{
-				return nwritten;
-			}
-			
-			nbyte -= result;
-			nwritten += result;
-			bufb += result;
+			//Can't write to stdin
+			return 0;
 		}
-		return nwritten;
+		if(fd == 1 || fd == 2)
+		{
+			//Print out stdout/stderr to text-mode console
+			return _sc_print(buf, nbyte);
+		}
+		else
+		{
+			errno = EBADF;
+			return -1;
+		}
 	}
 	else
 	{
@@ -490,29 +453,17 @@ off_t lseek(int fd, off_t offset, int whence)
 {
 	if(fd < USER_FILE_MIN)
 	{
-		/*
-		//Translate "whence" from picolibc definition to PVMK system call definition
-		int syswhence = 0;
-		switch(whence)
+		//Can't seek stdin/stdout/whatever
+		if(fd == 0 || fd == 1 || fd == 2)
 		{
-			case SEEK_SET: syswhence = _SC_SEEK_SET; break;
-			case SEEK_CUR: syswhence = _SC_SEEK_CUR; break;
-			case SEEK_END: syswhence = _SC_SEEK_END; break;
-			default:       errno = EINVAL; return -1;
-		}
-		
-		int result = _sc_seek(fd, offset, syswhence);
-		if(result < 0)
-		{
-			errno = _pvmk_sysret_errno(result);
+			errno = ESPIPE;
 			return -1;
 		}
 		else
 		{
-			return result;
-		}*/
-		errno = ESPIPE;
-		return -1;
+			errno = EBADF;
+			return -1;
+		}
 	}
 	else if(fd >= USER_FILE_MAX || !_user_file_table[fd].valid)
 	{
