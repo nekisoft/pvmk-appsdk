@@ -46,12 +46,6 @@ handle_signal:
 //  Code entry point jumps here if entered with r0 == 0
 process_setup:
 
-	//Declare the system-call interface version we use.
-	//This must be the first system-call made.
-	mov r0, #0xFF //Syscall number - _sc_version()
-	mov r1, #1    //Syscall parameter - interface version 1
-	svc 0x92      //Run syscall
-
 	//Make room for our variables.
 	//The process, once loaded, will extend to load_end.
 	//We want it to also encompass memory for our variables, to vars_end.

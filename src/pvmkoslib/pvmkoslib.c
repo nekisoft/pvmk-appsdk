@@ -192,12 +192,6 @@ static char *argenv_buffer[4096 / sizeof(void*)];
 //Called from crt0 to call main
 void _pvmk_callmain(void)
 {
-	//Tell kernel about what system-call interface we expect
-	//Todo - handle older versions if we lack some system-calls or something
-	int32_t our_version = 1;
-	int32_t version_to_use = _sc_version(our_version);
-	(void)version_to_use;
-	
 	//Default arguments/environments if something goes wrong
 	int argc = 1;
 	char **argv = (char*[]){ "argv0",         NULL };
