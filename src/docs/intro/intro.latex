@@ -1,7 +1,7 @@
 %intro.latex
 %Introductory document for Neki32 developers
 %Bryan E. Topp <betopp@betopp.com> 2024
-
+ 
 \documentclass[12pt]{article}
 
 \usepackage{geometry}
@@ -20,6 +20,9 @@
 %For underscores in variable names
 \def\Undie{{\_}}
 
+%For lists
+\def\BL{{\;} \\ \hspace{1em}{\;}{\textbullet}{\;}\hspace{0.5em}}
+
 %Formatting of memory addresses, registers, etc
 \newcommand{\MemAddr}[1]{\texttt{#1}}
 \newcommand{\Reg}[1]{\texttt{#1}}
@@ -36,6 +39,7 @@
 \newcommand{\SysParmNone}[0]{\item No parameters. }
 \newcommand{\SysRetnNone}[0]{\item No return value. }
 \newcommand{\SysRetnDead}[0]{\item This call does not return. }
+
 
 \begin{document}
 
@@ -201,7 +205,6 @@ The second eight bytes should be the entry point as a 64-bit little-endian value
 This value must always be \MemAddr{0x1000}.
 
 Once the game executable is loaded, the game process starts executing it from \MemAddr{0x1000}, with all registers zeroed.
-The game must then make its first system-call with \Reg{r0} set to \Const{0xFF} and \Reg{r1} set to \Const{1} to declare the version of the system ABI it expects.
 
 \subsection{Failures}
 
@@ -249,21 +252,6 @@ while(_sc_input(mybuf, sizeof(mybuf[0]), sizeof(mybuf)) == -_SC_EAGAIN)
 \subsection{Basics}
 
 These system-calls relate to the general usage of the system-call interface.
-A call to \Const{{\Undie}sc{\Undie}version} must be the first system-call made when a new program is loaded.
-Otherwise, any other system-calls will fail and return \Const{-{\Undie}SC{\Undie}ENOSYS}.
-
-\SysCall{version}{0xFF}
-{
-	Selects the version of the operating system ABI in use by the caller.
-	The kernel will return the best compatible ABI version it can provide.
-	If the kernel is simply incompatible, a negative error number will be returned.
-	Presently, version 1 is defined. All kernels will support version 1.
-	All applications must, at this time, request version 1.
-}
-{
-	\SysParm{r1}{int}{version}{The desired version of the system-call interface. Should be 1.}
-	\SysRetn{int}{The version of the system-call interface that the kernel will use.}
-}
 
 \SysCall{none}{0x00}
 {
@@ -288,6 +276,21 @@ Otherwise, any other system-calls will fail and return \Const{-{\Undie}SC{\Undie
 	\SysParmNone
 	\SysRetnNone
 }
+
+\SysCall{print}{0xB0}
+{
+	Prints output to the text-mode screen.
+	Prints the sequence of bytes at buf{\Undie}ptr of length buf{\Undie}len bytes.
+	Currently supports very few control sequences.
+	Basically only used for debugging.
+	Returns the number of bytes printed.
+	Note - does NOT stop at NULs!
+}
+{
+	\SysParm{r1}{const char*}{buf{\Undie}ptr}{Location of data to print.}
+	\SysParm{r2}{int}{buf{\Undie}len}{Number of bytes to print.}
+	\SysRetn{int}{The number of bytes printed, or a negative error number.}
+}	
 
 \subsection{Game input/output}
 
@@ -461,37 +464,7 @@ Each program starts with the audio-visual and input peripherals ready to use.
 	\SysRetn{int}{The number of bytes read or a negative error number.}
 }
 
-\SysCall{read}{0x11}
-{
-	Reads from a file. Writes up to "len" bytes into the buffer at "buf".
-	fd will generally be 0 (\Const{STDIN{\Undie}FILENO}), as games aren't allowed to open more kernel-level files.
-	Returns the number of bytes read if any are successfully read.
-	Returns a negative error number if an error occurs before any bytes are read.
-	Returns 0 to indicate that the end-of-file has been reached.
-}
-{
-	\SysParm{r1}{int}{fd}{Which kernel-level file descriptor to read from, probably 0.}
-	\SysParm{r2}{void *}{buf}{The location in memory to put the data once read.}
-	\SysParm{r3}{int}{len}{How many bytes to read.}
-	\SysRetn{int}{The number of bytes read or a negative error number.}
-}
-
-\SysCall{write}{0x12}
-{
-	Writes to a file. Reads up to "len" bytes from the buffer at "buf".
-	fd will generally be 1 (\Const{STDOUT{\Undie}FILENO}) or 2 (\Const{STDERR{\Undie}FILENO}), as games aren't allowed to open more kernel-level files.
-	Returns the number of bytes written if any were successfully written.
-	Returns a negative error number if an error occurs before any bytes are written.
-}
-{
-	\SysParm{r1}{int}{fd}{Which kernel-level file descriptor to write to, probably 1 or 2.}
-	\SysParm{r2}{const void *}{buf}{The data in memory to write to the file.}
-	\SysParm{r3}{int}{len}{How many bytes to write.}
-	\SysRetn{int}{The number of bytes written or a negative error number.}
-}
-
 \subsection{Process setup}
-
 
 \SysCall{mem{\Undie}sbrk}{0x40}
 {
@@ -671,8 +644,6 @@ Number & Name\\
 \Const{0x07} &\VarName{{\Undie}sc{\Undie}exit}\\
 \Const{0x08} &\VarName{{\Undie}sc{\Undie}env{\Undie}save}\\
 \Const{0x09} &\VarName{{\Undie}sc{\Undie}env{\Undie}load}\\
-\Const{0x11} &\VarName{{\Undie}sc{\Undie}read}\\
-\Const{0x12} &\VarName{{\Undie}sc{\Undie}write}\\
 \Const{0x20} &\VarName{{\Undie}sc{\Undie}sig{\Undie}mask}\\
 \Const{0x22} &\VarName{{\Undie}sc{\Undie}sig{\Undie}return}\\
 \Const{0x30} &\VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}\\
@@ -685,7 +656,7 @@ Number & Name\\
 \Const{0x92} &\VarName{{\Undie}sc{\Undie}disk{\Undie}write2k}\\
 \Const{0xA1} &\VarName{{\Undie}sc{\Undie}mexec{\Undie}append}\\
 \Const{0xA2} &\VarName{{\Undie}sc{\Undie}mexec{\Undie}apply}\\
-\Const{0xFF} &\VarName{{\Undie}sc{\Undie}version}
+\Const{0xB0} &\VarName{{\Undie}sc{\Undie}print}\\
 \end{tabular}
 
 \section{The C SDK}
@@ -736,9 +707,113 @@ The previous example can be extended to load more data off the game card, after 
 Source code for this example is found in \PathName{examples/asmdata} in the SDK.
 
 \subsection{Assembly in a Filesystem}
-
-
 \subsection{Adding some Freestanding C}
 \subsection{Using the C SDK Instead}
+
+\section{Common Errors}
+This section contains examples of why a program may not work as expected. 
+\subsection{System call failures}
+Most system-calls in PVMK will always complete predictably if given valid parameters.
+Unexpected failures are rare due to the restricted nature of the environment.
+An enumeration of system-calls and potential failures follows.
+\\
+
+\subsubsection{\Const{0x00} \VarName{{\Undie}sc{\Undie}none}}
+\BL This call cannot fail. 
+
+\subsubsection{\Const{0x01} \VarName{{\Undie}sc{\Undie}pause}}
+\BL This call cannot fail. 
+
+\subsubsection{\Const{0x02} \VarName{{\Undie}sc{\Undie}getticks}}
+\BL This call cannot fail. 
+\BL Note that this returns ticks since the system booted, not since the program began executing. 
+\BL When using the debugger, this may also show discontinuities. 
+
+\subsubsection{\Const{0x07} \VarName{{\Undie}sc{\Undie}exit}}
+\BL This call cannot fail. 
+\BL The system may try to re-launch a game that exits, up to 3 times.
+
+\subsubsection{\Const{0x08} \VarName{{\Undie}sc{\Undie}env{\Undie}save}}
+\BL This call can fail if the buffer is not in valid memory. 
+\BL This call can fail if the environment buffer is already full. 
+\BL This call can fail if the pointer is NULL but the length is nonzero. 
+\BL This call can fail if the length is zero but the pointer is non-NULL. 
+\BL This call can fail if the length is too large for the environment at all. 
+\BL Note that subsequent calls append to the buffer, not starting again. 
+
+\subsubsection{\Const{0x09} \VarName{{\Undie}sc{\Undie}env{\Undie}load}}
+\BL This call can fail if no data is in the environment buffer already. 
+\BL This call can fail if the buffer is not in valid memory. 
+\BL This call can fail if the given buffer is too small for the environment stored. 
+\BL Note that subsequent calls do not continue reading from the buffer, instead starting again. 
+
+\subsubsection{\Const{0x20} \VarName{{\Undie}sc{\Undie}sig{\Undie}mask}}
+\BL This call can fail if the ``how" parameter is invalid. 
+\BL This call can cause a signal to be taken immediately when unmasked, if it was already pending. 
+
+\subsubsection{\Const{0x22} \VarName{{\Undie}sc{\Undie}sig{\Undie}return}}
+\BL This call only restores a single saved context. 
+\BL This call will certainly misbehave if called before a signal is handled, or called twice for one signal. 
+\BL Enabling signals again in a signal handler may cause the old saved context to be lost. 
+
+\subsubsection{\Const{0x30} \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}}
+\BL This call can fail if an invalid buffer pointer is given. 
+\BL This call can fail if an invalid mode value is given. 
+\BL This call can fail if the mode is ``text" mode (0) but the buffer is non-NULL. 
+\BL This call can fail if the mode is not ``text" (nonzero) but the buffer is NULL. 
+\BL This call can occasionally return the buffer it was given, immediately. This happens if the call is made just as the system enters vertical blanking. 
+\BL This call can return 0 if the currently-displayed buffer belongs to another process. 
+
+\subsubsection{\Const{0x40} \VarName{{\Undie}sc{\Undie}mem{\Undie}sbrk}}
+\BL This call can fail if the system is out of memory. 
+\BL This call can fail if the amount of memory requested is zero or negative. 
+
+\subsubsection{\Const{0x50} \VarName{{\Undie}sc{\Undie}input}}
+\BL This call can fail if the buffer is not in valid memory. 
+\BL This call can fail if the buffer sizes are zero or negative. 
+\BL This call can fail if the buffer size overall is not a multiple of the buffer element size. 
+
+\subsubsection{\Const{0x60} \VarName{{\Undie}sc{\Undie}snd{\Undie}play}}
+\BL This call can fail if the chunk size is too large for the kernel to buffer at all. 
+\BL This call can fail if the maximum buffered size is set too low. 
+\BL This call can fail if the buffer is not in valid memory. 
+\BL This call can fail if the mode given is invalid. The only valid mode currently is 1. 
+
+\subsubsection{\Const{0x81} \VarName{{\Undie}sc{\Undie}nvm{\Undie}save}}
+\BL This call can fail if the user chose not to make space for the game to save. A game does not need to handle this case.
+\BL This call can fail if the buffer pointer and length do not refer to valid memory. 
+\BL This call can fail if the buffer is oversized. 
+\BL This call can fail if the game did not provide a valid name in its ISO9660 Primary Volume Descriptor, to identify the NVM record. 
+
+\subsubsection{\Const{0x82} \VarName{{\Undie}sc{\Undie}nvm{\Undie}load}}
+\BL This call can return a buffer full of 0xFF or 0x00 if the save record was just created. 
+\BL This call can fail for the same reasons as \VarName{{\Undie}sc{\Undie}nvm{\Undie}save}. 
+
+\subsubsection{\Const{0x91} \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k}}
+\BL This call can fail if the sector number is invalid. 
+\BL This call can fail if the buffer is not in valid memory. 
+
+\subsubsection{\Const{0x92} \VarName{{\Undie}sc{\Undie}disk{\Undie}write2k}}
+\BL This call can fail if the sector number is invalid.
+\BL This call can fail if the buffer is not in valid memory.
+\BL This call can fail if the card is write-protected. 
+
+\subsubsection{\Const{0xA1} \VarName{{\Undie}sc{\Undie}mexec{\Undie}append}}
+\BL This call can fail if the pending memory image is already too large. 
+\BL This call can fail if the given buffer is not in valid memory. 
+\BL This call can fail if the given buffer is too large for the pending memory image. 
+\BL This call can fail if the buffer pointer is NULL but the length is nonzero. 
+\BL This call can fail if the buffer length is zero but the pointer is non-NULL. 
+
+\subsubsection{\Const{0xA2} \VarName{{\Undie}sc{\Undie}mexec{\Undie}apply}}
+\BL This call cannot fail. 
+\BL If the pending memory image is not valid, the process will die from a segfault. 
+
+\subsubsection{\Const{0xB0} \VarName{{\Undie}sc{\Undie}print}}
+\BL This call can fail if the buffer is not in valid memory. 
+\BL This call can fail if the length is invalid. 
+\BL This call may perform unexpectedly as it does not stop at NULs in the given buffer. 
+
+
 
 \end{document}
