@@ -212,6 +212,35 @@ If any of these steps encounters a missing magic-number or a failure to read the
 Instead of launching the game, the console will drop to its system menu.
 The system menu allows users to see the data saved on their console or turn it off.
 
+\section{Nonvolatile Memory saving}
+
+The Neki32 console includes memory for savegames.
+This allows games to be distributed on common SD cards made read-only, without requiring partially-read-only cards.
+Each game can save up to 128KBytes of data. The console has space for 30 such savegames, in a region of 4MBytes of NOR Flash.
+
+To use NVM saving, a game must have a valid title set in the Volume ID of its ISO9660 Primary Volume Descriptor.
+The title must be nonempty, not all spaces, and not \Const{CDROM} or \Const{cdrom}.
+Additionally, the title must not start with a \Const{-} character.
+Games that do not use NVM saving should start their Volume ID with a \Const{-} character.
+
+When the system reads a valid name from the Primary Volume Descriptor, it will set up NVM saving before booting the game.
+If insufficient space is available, the user will be warned at that time. They can continue anyway or clean up space.
+This all happens before launching the game.
+
+Once the game is running, it may assume that NVM saving is available and working.
+Generally, once set up, the \VarName{{\Undie}sc{\Undie}nvm{\Undie}save} and \VarName{{\Undie}sc{\Undie}nvm{\Undie}load} calls will not fail.
+The game can freely load and store a region of up to 128KBytes.
+There is no need to handle no-space-available errors or to prompt the user about making space.
+
+NVM records are protected by SHA256 hashes and double-buffered.
+A single free record is always kept for saving the new version of an existing record.
+This means that interrupted saves will not corrupt the existing data. The old version will be used until the new version is written entirely.
+There is no need for a game to warn the user about interrupting a save.
+
+The first time a game starts, before any data is saved, it is still valid to call \VarName{{\Undie}sc{\Undie}nvm{\Undie}load}.
+The savegame will have been created during the boot process.
+A newly allocated savegame will contain all \Const{0xFF} bytes.
+
 \section{The instruction set}
 
 The game executable runs in user-mode on an ARMv5TE processor, including both ARM and Thumb modes.
@@ -710,7 +739,7 @@ Source code for this example is found in \PathName{examples/asmdata} in the SDK.
 \subsection{Adding some Freestanding C}
 \subsection{Using the C SDK Instead}
 
-\section{Common Errors}
+\section{Common errors}
 This section contains examples of why a program may not work as expected. 
 \subsection{System call failures}
 Most system-calls in PVMK will always complete predictably if given valid parameters.
@@ -719,15 +748,19 @@ An enumeration of system-calls and potential failures follows.
 \\
 
 \subsubsection{\Const{0x00} \VarName{{\Undie}sc{\Undie}none}}
-\BL This call cannot fail. 
+\BL This call cannot fail.
+\BL In some sense, it also cannot succeed.
 
 \subsubsection{\Const{0x01} \VarName{{\Undie}sc{\Undie}pause}}
-\BL This call cannot fail. 
+\BL This call cannot fail.
+\BL Note that this call may return spuriously for a number of reasons. A previous system-call may have triggered an unpause which has been ignored. Or, the timing of a following system-call may not be predictable.
+\BL To block waiting on a system-call result, retry the call, and use \VarName{{\Undie}sc{\Undie}pause} in a loop. Call pause if and only if an \Const{-{\Undie}SC{\Undie}EAGAIN} result is returned from the call in question.
 
 \subsubsection{\Const{0x02} \VarName{{\Undie}sc{\Undie}getticks}}
 \BL This call cannot fail. 
 \BL Note that this returns ticks since the system booted, not since the program began executing. 
 \BL When using the debugger, this may also show discontinuities. 
+\BL The units are milliseconds. As the value is 32-bit, the tick count may overflow if the user leaves the console running for 25 days. Games do not need to handle this, but may choose to handle the overflow or to crash.
 
 \subsubsection{\Const{0x07} \VarName{{\Undie}sc{\Undie}exit}}
 \BL This call cannot fail. 
