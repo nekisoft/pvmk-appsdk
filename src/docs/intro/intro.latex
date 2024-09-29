@@ -68,12 +68,12 @@ Thank you for your interest in developing software for \Neki32!
 
 \subsection{What is \Neki32?}
 
-\Neki32 is a 32-bit game console that delivers a fast no-nonsense experience to both gamers and game developers.
+\Neki32 is a 32-bit game console that delivers a focused experience to both gamers and game developers.
 The system runs on an ARM9 CPU clocked at 300MHz. Up to 24MBytes of memory is available for the game process.
 Software-rendering is used to produce bitmapped graphics and digital sound.
 
-An operating system hides details of the hardware.
-The application format and interface is kept to a minimum.
+An operating system hides details of the hardware. Its custom kernel is called ``PVMK'', the Puny Video Machine Kernel.
+The system interface is kept to a minimum, to ensure plug-and-play compatibility.
 
 The \Neki32 console itself is powered by USB-C.
 It outputs audio and video to an HDMI TV.
@@ -212,6 +212,36 @@ If any of these steps encounters a missing magic-number or a failure to read the
 Instead of launching the game, the console will drop to its system menu.
 The system menu allows users to see the data saved on their console or turn it off.
 
+\section{The instruction set}
+
+The game executable runs in user-mode on an ARMv5TE processor, including both ARM and Thumb modes.
+The system will always start executing the game in ARM mode, with the program counter at \MemAddr{0x1000}.
+Thumb interworking instructions may be used to transfer into and out of Thumb mode.
+
+No floating-point instructions are available.
+Floating-point emulation works well enough to run Quake, at least, if you really want that.
+
+The \Instr{svc 0x92} instruction is used to trigger system-calls. Other \Instr{svc} instructions should not be used.
+
+\section{Signals}
+
+The kernel of Neki32, ``PVMK'', provides virtualized handling of processor exceptions.
+This means that an illegal memory access or invalid opcode is caught by the operating system.
+When this happens, a signal is made pending on the process which caused it.
+
+By default, all signals are masked, and will not be handled.
+Of course, this means that no action can be taken by the process to correct the situation.
+So the process is killed and the game crashes, when an exception causes a masked signal to become pending.
+
+At its option, a game can unmask signals, and handle them instead.
+When a signal is pending and unmasked, it is handled by the process.
+The process resets due to the signal at \MemAddr{0x1000}, the same as its initial entry point.
+However, the signal number is stored in \Reg{r0}, rather than 0.
+All signals are masked when this happens, and the signal taken is no longer pending.
+
+The interrupted context, from before the signal, is saved by the kernel.
+It can be resumed by using the \VarName{{\Undie}sc{\Undie}sig{\Undie}return} system call.
+
 \section{Nonvolatile memory system (NVMs)}
 
 The Neki32 console includes memory for savegames.
@@ -240,17 +270,6 @@ There is no need for a game to warn the user about interrupting a save.
 The first time a game starts, before any data is saved, it is still valid to call \VarName{{\Undie}sc{\Undie}nvm{\Undie}load}.
 The savegame will have been created during the boot process.
 A newly allocated savegame will contain all \Const{0xFF} bytes.
-
-\section{The instruction set}
-
-The game executable runs in user-mode on an ARMv5TE processor, including both ARM and Thumb modes.
-The system will always start executing the game in ARM mode, with the program counter at \MemAddr{0x1000}.
-Thumb interworking instructions may be used to transfer into and out of Thumb mode.
-
-No floating-point instructions are available.
-Floating-point emulation works well enough to run Quake, at least, if you really want that.
-
-The \Instr{svc 0x92} instruction is used to trigger system-calls. Other \Instr{svc} instructions should not be used.
 
 \pagebreak
 \section{System calls}
@@ -704,7 +723,7 @@ It also contains the linker configuration, so the linker can make an executable 
 This is a port of PicoLibC to the Neki32. PicoLibC is a portable C Standard Library. It provides functions like printf and strcpy.
 \subsubsection{PVMK OS library}
 The OS Library is a link between the PicoLibC code and the system-calls available on the Neki32.
-It handles some things that aren't implemented in the kernel itself.
+It handles some things that aren't implemented in the ``PVMK'' kernel itself.
 
 For example, the system-call interface on Neki32 provides block-level access to sectors from the game card.
 The system doesn't care what kind of filesystem is on the card.
@@ -724,28 +743,101 @@ Then, you could compile the same application for Neki32 with minimal changes.
 \subsection{Development workflows}
 \subsubsection{Just Assembly}
 It is possible to make a bootable Neki32 game card using only an ARM assembler. The executable code can be written in assembly, of course.
-The same assembly can be used to make structures for ISO9660 and El Torito, referencing the executable code.
+The same assembly can also be used to make structures for ISO9660 and El Torito, referencing the executable code.
 For simplicity, we can place the executable at the beginning of the disk image.
 Then, a byte location in the disk, the executable, and the process memory are all the same.
+The output of the assembler is directly used as the disk image.
+
+This approach can be used for simple games which fit entirely into the 24MByte RAM budget of the Neki32.
+That's 5 times bigger than the biggest Genesis cartridge!
 
 Source code for this example is found in \PathName{examples/allasm} in the SDK.
+It doesn't require anything but GNU Make and the GNU Assembler for ARM.
 
 \subsubsection{Assembly and some Data}
 A program running on the Neki32 can load more data off the game card. The system-call \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k} is used to perform this operation.
 The previous example can be extended to load more data off the game card, after the boot program is already running.
 
+This approach can be used for games which swap out graphical assets in simple ways.
+It has some advantages over using a filesystem - namely, that all locations are resolved at link-time.
+This makes the game a bit faster and more reliable.
+No overhead is spent accessing file metadata.
+
 Source code for this example is found in \PathName{examples/asmdata} in the SDK.
+It doesn't require anything but GNU Make and the GNU Assembler and linker for ARM.
 
 \subsubsection{Assembly in a Filesystem}
+
+For games with lots of data, it is helpful to keep the data in a filesystem.
+This aids in managing the data during development, and makes the environment more similar to a desktop workstation.
+
+The ISO9660 filesystem is simple enough that it can be parsed from assembly code.
+The assembly code can then access any number of different files included in the ISO9660 filesystem.
+
+In this case, the assembler is used to make an executable by itself (we call this format a ``no-nonsense executable'', or NNE).
+Then, mkisofs is used to put this executable in a bootable El Torito / ISO9660 image.
+Once running, the code can look through the ISO9660 filesystem to find its data files.
+
+Source code for this example is found in \PathName{examples/asmdata} in the SDK.
+It requires GNU Make and the GNU Assembler and linker for ARM, as well as the mkisofs utility.
+
 \subsubsection{Adding some Freestanding C}
+
+It is unlikely that you want to write an entire game in assembly.
+The previous examples can be extended by linking them against freestanding C code.
+This provides a barebones environment, lacking a standard library.
+It does, however, allow writing C while retaining control of the entire resulting executable.
+
+Source code for this example is found in \PathName{examples/freestanding} in the SDK.
+It requires GNU Make and the GNU Assembler and linker for ARM, as well as the mkisofs utility, and the GNU C Compiler for ARM.
+
 \subsubsection{Using the C SDK Instead}
+
+For convenience, a C SDK is provided which gets the basics of a C runtime environment handled.
+It includes a port of Picolibc with an ISO9660 implementation providing file access via \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k}.
+It also includes startup files necessary to call \VarName{main()} in a sane way.
 
 \subsection{System call usage}
 
 \subsubsection{Double-buffered animation}
 
+Double-buffering can be used to synchronize the game code and video output.
+This is the simpler option, in contrast to triple-buffering.
+
+Double-buffering means that memory for two video frames is used.
+At any time, one is used by the CPU to draw the next frame, while the other is being sent to the TV.
+The buffer that the CPU accesses is called the back buffer, and the buffer being sent to the TV is the front buffer.
+Note that it takes almost an entire frame of time, to send that one frame of data to the TV.
+
+When the TV is in vertical blanking, the buffers can be interchanged, called ``swapping'' or ``flipping'' the buffers.
+Then the CPU can re-draw to the buffer which was previously displayed, as the next one is sent to the TV.
+In this way, a series of complete frames is sent to the TV.
+
+In double-buffering on Neki32, the \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} system call is used in a loop with \VarName{{\Undie}sc{\Undie}pause}.
+Until \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} indicates that the desired buffer is being displayed, the game continues to pause.
+Effectively, the game blocks on the ``flip'' syscall and proceeds when the new image is displayed.
+
+Source code for this example is found in \PathName{examples/dblbuf} in the SDK.
+
 \subsubsection{Triple-buffered animation}
 
+Triple-buffering is more complicated than double-buffering, but has some speed advantages.
+At any time, one image is being sent to the TV, one is being drawn by the CPU, and one is kept spare.
+
+In double-buffering, if the CPU has finished drawing a frame, it must wait for the prior frame to be entirely sent to the TV.
+In triple-buffering, an additional spare buffer is kept. Therefore, the CPU can move on to render the following frame immediately.
+If the CPU is running fast, it can continue to render a series of frames, independently of the TV scanout.
+It ping-pongs between the two buffers which are not being sent to the TV. 
+Whenever one frame is done being sent to the TV, there is always another complete frame ready to go.
+
+This requires three frame buffers to be allocated instead of two, of course.
+When \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} is called, the game does not wait on its result.
+Instead, the game evaluates the situation and continues each time it calls \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}.
+The parameter to \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} will be enqueued for display at the next vertical-blanking interval.
+The return value from \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} is the buffer currently displayed, at that moment.
+Therefore, the game finds whichever buffer is neither of those. It continues rendering into that one.
+
+Source code for this example is found in \PathName{examples/tplbuf} in the SDK.
 
 \subsubsection{Saving saves}
 It is simple to save the player's progress to Nonvolatile Memory in the console.
@@ -762,7 +854,7 @@ The system will make sure there is space allocated, at boot, before the game exe
 The system will keep checksums and double-buffer the saved data, to protect against data loss.
 Physical writes are ordered to ensure reliability.
 
-Source code for this example is found in \PathName{examples/nvmsave}
+Source code for this example is found in \PathName{examples/nvmsave} in the SDK.
 
 \section{Common errors}
 This section contains examples of why a program may not work as expected. 
@@ -872,6 +964,21 @@ An enumeration of system-calls and potential failures follows.
 \BL This call can fail if the length is invalid. 
 \BL This call may perform unexpectedly as it does not stop at NULs in the given buffer. 
 
+\subsection{Crashes}
 
+A processor exception will result in a crash if the corresponding signal is blocked.
+The following things can cause this:
+
+\BL Accessing an invalid memory location will cause \Const{SIGSEGV}.
+\\
+Valid memory locations start at \MemAddr{0x1000} and extend to one byte before the size of the process.
+The size of the process can be ascertained by calling \VarName{{\Undie}sc{\Undie}mem{\Undie}sbrk} with a parameter of \Const{0} bytes.
+(The initial size of the game process is determined by the size given in the El Torito boot entry for it.)
+
+\BL Accessing a misaligned word or halfword will cause \Const{SIGBUS}.
+\\
+Memory accesses on ARM must be naturally-aligned.
+This means that a 32-bit (word) access must be to an address which is a multiple of \Const{4}, and a 16-bit (halfword) access must be to an address which is a multiple of \Const{2}.
+Otherwise, an alignment-check fault results and causes this signal.
 
 \end{document}
