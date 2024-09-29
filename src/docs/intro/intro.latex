@@ -128,7 +128,7 @@ The El Torito boot record points at the executable file for the game.
 
 The game executable is a flat, 0-mapped binary image of the game's initial memory content.
 For example, if the game executable is 3MBytes in size, the system will load it into virtual memory addresses \MemAddr{0} to \MemAddr{3145727}.
-The zero page, afterward, is inaccessible. Memory from addres \MemAddr{0} to \MemAddr{4095} always faults.
+The zero page, afterward, is inaccessible. An access of address \MemAddr{0} to \MemAddr{4095} always faults.
 A small magic number is placed here instead.
 
 The game starts execution at address \MemAddr{4096}, the first accessible address.
@@ -212,7 +212,7 @@ If any of these steps encounters a missing magic-number or a failure to read the
 Instead of launching the game, the console will drop to its system menu.
 The system menu allows users to see the data saved on their console or turn it off.
 
-\section{Nonvolatile Memory saving}
+\section{Nonvolatile memory system (NVMs)}
 
 The Neki32 console includes memory for savegames.
 This allows games to be distributed on common SD cards made read-only, without requiring partially-read-only cards.
@@ -721,23 +721,48 @@ Using this, instead of the real system-call library, you can build and test your
 Then, you could compile the same application for Neki32 with minimal changes.
 
 \section{Examples}
-\subsection{Just Assembly}
+\subsection{Development workflows}
+\subsubsection{Just Assembly}
 It is possible to make a bootable Neki32 game card using only an ARM assembler. The executable code can be written in assembly, of course.
-The same assembly can be used to make ISO9660 and El Torito structures, referencing the executable code.
+The same assembly can be used to make structures for ISO9660 and El Torito, referencing the executable code.
 For simplicity, we can place the executable at the beginning of the disk image.
 Then, a byte location in the disk, the executable, and the process memory are all the same.
 
 Source code for this example is found in \PathName{examples/allasm} in the SDK.
 
-\subsection{Assembly and some Data}
+\subsubsection{Assembly and some Data}
 A program running on the Neki32 can load more data off the game card. The system-call \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k} is used to perform this operation.
 The previous example can be extended to load more data off the game card, after the boot program is already running.
 
 Source code for this example is found in \PathName{examples/asmdata} in the SDK.
 
-\subsection{Assembly in a Filesystem}
-\subsection{Adding some Freestanding C}
-\subsection{Using the C SDK Instead}
+\subsubsection{Assembly in a Filesystem}
+\subsubsection{Adding some Freestanding C}
+\subsubsection{Using the C SDK Instead}
+
+\subsection{System call usage}
+
+\subsubsection{Double-buffered animation}
+
+\subsubsection{Triple-buffered animation}
+
+
+\subsubsection{Saving saves}
+It is simple to save the player's progress to Nonvolatile Memory in the console.
+
+An area of memory can be allocated in the game process, big enough to hold the saved data.
+When the game starts, the system-call \VarName{{\Undie}sc{\Undie}nvm{\Undie}load} is used to populate the area with the saved data.
+Then, whenever appropriate, the system-call \VarName{{\Undie}sc{\Undie}nvm{\Undie}save} can be used to store it back to the console.
+
+It is only necessary to check, on start-up, that the region is not all \Const{0xFF}.
+In this case, no data was previously saved, and the savegame region should be initialized in RAM before calling \VarName{{\Undie}sc{\Undie}nvm{\Undie}save}.
+
+It is not necessary to handle failures to save, or corruption from interrupted saves.
+The system will make sure there is space allocated, at boot, before the game executes.
+The system will keep checksums and double-buffer the saved data, to protect against data loss.
+Physical writes are ordered to ensure reliability.
+
+Source code for this example is found in \PathName{examples/nvmsave}
 
 \section{Common errors}
 This section contains examples of why a program may not work as expected. 
