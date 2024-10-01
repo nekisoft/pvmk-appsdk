@@ -428,7 +428,14 @@ ssize_t write(int fd, const void *buf, size_t nbyte)
 		if(fd == 1 || fd == 2)
 		{
 			//Print out stdout/stderr to text-mode console
-			return _sc_print(buf, nbyte);
+			for(size_t bb = 0; bb < nbyte; bb++)
+			{
+				char twochar[2];
+				twochar[0] = ((const char*)buf)[bb];
+				twochar[1] = '\0';
+				_sc_print(twochar);
+			}
+			return nbyte;
 		}
 		else
 		{
