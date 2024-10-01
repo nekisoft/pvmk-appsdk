@@ -328,15 +328,13 @@ These system-calls relate to the general usage of the system-call interface.
 \SysCall{print}{0xB0}
 {
 	Prints output to the text-mode screen.
-	Prints the sequence of bytes at buf{\Undie}ptr of length buf{\Undie}len bytes.
+	Prints the sequence of bytes at buf{\Undie}ptr until a terminating NUL.
 	Currently supports very few control sequences.
 	Basically only used for debugging.
 	Returns the number of bytes printed.
-	Note - does NOT stop at NULs!
 }
 {
 	\SysParm{r1}{const char*}{buf{\Undie}ptr}{Location of data to print.}
-	\SysParm{r2}{int}{buf{\Undie}len}{Number of bytes to print.}
 	\SysRetn{int}{The number of bytes printed, or a negative error number.}
 }	
 
@@ -961,8 +959,6 @@ An enumeration of system-calls and potential failures follows.
 
 \subsubsection{\Const{0xB0} \VarName{{\Undie}sc{\Undie}print}}
 \BL This call can fail if the buffer is not in valid memory. 
-\BL This call can fail if the length is invalid. 
-\BL This call may perform unexpectedly as it does not stop at NULs in the given buffer. 
 
 \subsection{Crashes}
 
