@@ -128,6 +128,7 @@ The El Torito boot record points at the executable file for the game.
 
 The game executable is a flat, 0-mapped binary image of the game's initial memory content.
 For example, if the game executable is 3MBytes in size, the system will load it into virtual memory addresses \MemAddr{0} to \MemAddr{3145727}.
+The game process is initially 24 megabytes in size, and the rest will be filled with \Const{0x00} bytes.
 The zero page, afterward, is inaccessible. An access of address \MemAddr{0} to \MemAddr{4095} always faults.
 A small magic number is placed here instead.
 
@@ -195,9 +196,10 @@ It should be obtained from Nekisoft and included verbatim.
 
 Once the location of the game executable is found in the El Torito Boot Catalog, the system begins to load it.
 The game executable is loaded into a new virtual memory space, by itself.
-The virtual memory space starts at address \MemAddr{0} and extends to the size specified in the El Torito Boot Catalog.
+The virtual memory space starts at address \MemAddr{0} and extends to \MemAddr{24M - 1}.
+Data is filled to the size specified in the El Torito Boot Catalog. The remaining memory is all \Const{0x00}.
 As the size is given as a 16-bit number in units of \Const{512} bytes, up to 32MBytes could be specified.
-However, a game on Neki32 is limited to 24MBytes of memory at any time.
+However, a game on Neki32 is limited to 24MBytes of memory.
 
 After loading, the zero page is checked for an appropriate magic number.
 The first eight bytes should be \Const{NNEARM32}.
@@ -953,6 +955,7 @@ The following things can cause this:
 Valid memory locations start at \MemAddr{0x1000} and extend to one byte before the size of the process.
 The size of the game process, by default, is always \Const{24*1024*1024} (24 megabytes).
 If \VarName{{\Undie}sc{\Undie}mexec{\Undie}apply} has been used to load a new program, the process size is the total number of bytes appended by \VarName{{\Undie}sc{\Undie}mexec{\Undie}append} beforehand.
+Note that the caller is required to set the total size of the new process, including the \VarName{.bss} section, by appending that many bytes.
 New memory cannot be added to the process once it is running.
 
 \BL Accessing a misaligned word or halfword will cause \Const{SIGBUS}.
