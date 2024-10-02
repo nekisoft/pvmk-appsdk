@@ -75,6 +75,9 @@ SECTIONS {
 	
 	_LINK_END = .;
 	
+	/* Globally defined on Neki32 - game process starts with all 24MBytes. */
+	/* If you execute some other program be sure to append that many zeroes at the end. */
+	_HEAP_END = 24*1024*1024;
 	
 	
 	/* Stabs debugging sections.  */

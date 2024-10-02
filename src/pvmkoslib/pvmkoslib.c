@@ -502,82 +502,47 @@ void _exit(int status)
 	_sc_exit(status, 0);
 }
 
-//Annoyingly, the picolibc malloc isn't configurable in the following ways:
-//1. Can't handle an sbrk that only goes up
-//2. Asks for dumb shit like 40 bytes at a time
-//So we'll manage a real and a phony sbrk, allocate big chunks, and drip them out to callers.
-static size_t _sbrk_top_real;
+//Implementation of sbrk allowing growing the process from the size as-linked up to 24MBytes in total
 static size_t _sbrk_top_fake;
 void *sbrk(ptrdiff_t nbytes)
 {
-	while(1)
+	if(_sbrk_top_fake == 0)
 	{
-		if(_sbrk_top_real == 0 && _sbrk_top_fake == 0)
+		//Assume we can start using memory after the process as-linked
+		extern uint8_t _LINK_END[]; //From linker script
+		_sbrk_top_fake = (size_t)(uintptr_t)_LINK_END; //What our process can allocate beyond
+		if(_sbrk_top_fake % 16)
 		{
-			//First call, no reserved memory available for the caller.
-			//Grab a big chunk. This gives us the old size-of-process, and some memory to work with.
-			int initial_request = 0x1337;
-			int result = _sc_mem_sbrk(initial_request);
-			if(result < 0)
-			{
-				//System doesn't have room for what we're asking for
-				errno = _pvmk_sysret_errno(result);
-				return (void*)(-1);
-			}
-			
-			//We now know the "real" top-of-process, which is our new size.
-			//The "fake" top-of-process - visible to callers - is how it was before this call.
-			_sbrk_top_real = result + initial_request;
-			_sbrk_top_fake = result;
-		}
-		
-		//Return value will always be the old "fake" top of process
-		void *retval = (void*)_sbrk_top_fake;
-		
-		//Always allow giving back memory
-		if(nbytes < 0)
-		{
-			_sbrk_top_fake += nbytes; //nbytes is negative
-			return retval;
-		}
-		
-		//Can we service the request already?
-		size_t wanted_top = _sbrk_top_fake + nbytes;
-		if(wanted_top <= _sbrk_top_real)
-		{
-			//Can provide this, without another real hit to _sc_mem_sbrk.
-			_sbrk_top_fake = wanted_top;
-			return retval;
-		}
-		
-		//Need to actually get more memory.
-		int request_more = nbytes;
-		if(request_more < 0xbff00)
-			request_more = 0xbff00; //Kinda arbitrary but big-ish
-		
-		int real_result = _sc_mem_sbrk(request_more);
-		if(real_result < 0)
-		{
-			//Needed more memory but the system couldn't provide it.
-			errno = _pvmk_sysret_errno(real_result);
-			return (void*)(-1);
-		}
-		
-		//The old real top-of-process, where more memory was added, should be what we expect.
-		if((size_t)real_result != _sbrk_top_real)
-		{
-			//Someone else has adjusted the real size of the process, underneath us.
-			//Have to give up and reset.
-			_sbrk_top_real = 0;
-			_sbrk_top_fake = 0;
-		}
-		else
-		{
-			//We now know the real top-of-process has been expanded by what we asked for.
-			//We can try again to raise the fake top-of-process.
-			_sbrk_top_real += request_more;
+			//Discard a few bytes immediately after the image as linked, to 16-byte align
+			_sbrk_top_fake += 16;
+			_sbrk_top_fake -= _sbrk_top_fake % 16;
 		}
 	}
+	
+	//Return value will always be the old "fake" top of process
+	void *retval = (void*)_sbrk_top_fake;
+	
+	//Always allow giving back memory
+	if(nbytes < 0)
+	{
+		_sbrk_top_fake += nbytes; //nbytes is negative
+		return retval;
+	}
+	
+	//Can we service the request?
+	//Assume that we have 24MBytes to work with (Neki32 standard) in our process.
+	size_t wanted_top = _sbrk_top_fake + nbytes;
+	extern uint8_t _HEAP_END[]; //From linker script
+	if(wanted_top <= (size_t)(uintptr_t)_HEAP_END)
+	{
+		//Can provide this
+		_sbrk_top_fake = wanted_top;
+		return retval;
+	}
+	
+	//Needed more memory than we're allowed
+	errno = ENOMEM;
+	return (void*)(-1);
 }
 
 int fstat(int fd, struct stat *out)

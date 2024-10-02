@@ -39,15 +39,6 @@ _start.initial:
 
 	//The program is newly started.
 	
-	//Make a system call to allocate space for BSS
-	.extern _DATA_END //Where the memory space will end, after loading
-	.extern _LINK_END //Where we want the memory space to end
-	mov r0, #0x40 //sbrk
-	ldr r1, =_LINK_END
-	ldr r2, =_DATA_END
-	sub r1, r2
-	svc 0x92
-	
 	//Use initial stack
 	ldr sp, =_stack.top
 	

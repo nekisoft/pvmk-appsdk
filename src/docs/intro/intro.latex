@@ -512,18 +512,6 @@ Each program starts with the audio-visual and input peripherals ready to use.
 
 \subsection{Process setup}
 
-\SysCall{mem{\Undie}sbrk}{0x40}
-{
-	Changes the size of the calling process's memory space, adding "req" new bytes.
-	(The memory space cannot ever be reduced, except by calling exec() with a smaller image.)
-	The new bytes are appended at the old end-of-process address. The OLD end-of-process is returned.
-	A negative error number is returned on failure (probably, \Const{-{\Undie}SC{\Undie}ENOMEM}).
-}
-{
-	\SysParm{r1}{int}{req}{The number of bytes to add to the process memory space.}
-	\SysRetn{int}{The previous size of the process, before adding the new bytes. Or, a negative error number.}
-}
-
 \SysCall{sig{\Undie}mask}{0x20}
 {
 	Alters the signal mask of the calling thread.
@@ -693,7 +681,6 @@ Number & Name\\
 \Const{0x20} &\VarName{{\Undie}sc{\Undie}sig{\Undie}mask}\\
 \Const{0x22} &\VarName{{\Undie}sc{\Undie}sig{\Undie}return}\\
 \Const{0x30} &\VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}\\
-\Const{0x40} &\VarName{{\Undie}sc{\Undie}mem{\Undie}sbrk}\\
 \Const{0x50} &\VarName{{\Undie}sc{\Undie}input}\\
 \Const{0x60} &\VarName{{\Undie}sc{\Undie}snd{\Undie}play}\\
 \Const{0x81} &\VarName{{\Undie}sc{\Undie}nvm{\Undie}save}\\
@@ -912,10 +899,6 @@ An enumeration of system-calls and potential failures follows.
 \BL This call can occasionally return the buffer it was given, immediately. This happens if the call is made just as the system enters vertical blanking. 
 \BL This call can return 0 if the currently-displayed buffer belongs to another process. 
 
-\subsubsection{\Const{0x40} \VarName{{\Undie}sc{\Undie}mem{\Undie}sbrk}}
-\BL This call can fail if the system is out of memory. 
-\BL This call can fail if the amount of memory requested is zero or negative. 
-
 \subsubsection{\Const{0x50} \VarName{{\Undie}sc{\Undie}input}}
 \BL This call can fail if the buffer is not in valid memory. 
 \BL This call can fail if the buffer sizes are zero or negative. 
@@ -968,8 +951,9 @@ The following things can cause this:
 \BL Accessing an invalid memory location will cause \Const{SIGSEGV}.
 \\
 Valid memory locations start at \MemAddr{0x1000} and extend to one byte before the size of the process.
-The size of the process can be ascertained by calling \VarName{{\Undie}sc{\Undie}mem{\Undie}sbrk} with a parameter of \Const{0} bytes.
-(The initial size of the game process is determined by the size given in the El Torito boot entry for it.)
+The size of the game process, by default, is always \Const{24*1024*1024} (24 megabytes).
+If \VarName{{\Undie}sc{\Undie}mexec{\Undie}apply} has been used to load a new program, the process size is the total number of bytes appended by \VarName{{\Undie}sc{\Undie}mexec{\Undie}append} beforehand.
+New memory cannot be added to the process once it is running.
 
 \BL Accessing a misaligned word or halfword will cause \Const{SIGBUS}.
 \\
