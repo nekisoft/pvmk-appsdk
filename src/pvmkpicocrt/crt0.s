@@ -33,7 +33,7 @@ _start:
 	
 	//Return from signal
 	ldr r0, =#0x22 //_sc_sig_return
-	svc 0x92       //system call
+	udf 0x92       //system call
 	
 _start.initial:
 
@@ -86,7 +86,7 @@ sigsetjmp:
 		mov r0, #0x20 //_sc_sig_mask
 		mov r1, #0 //SIG_BLOCK - but we're passing 0, so nothing is blocked
 		mov r2, #0 //Block nothing
-		svc 0x92 //System call
+		udf 0x92 //System call
 		
 		mov r3, r0 //Set aside return value
 		
@@ -113,7 +113,7 @@ siglongjmp:
 		mov r0, #0x20 //_sc_sig_mask
 		mov r1, #2 //SIG_SETMASK
 		mov r2, r2 //Saved mask
-		svc 0x92 //System call
+		udf 0x92 //System call
 		
 		pop {r0, lr} //restore env
 	siglongjmp.nosigs:

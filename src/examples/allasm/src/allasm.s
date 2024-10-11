@@ -39,7 +39,7 @@ handle_signal:
 	mov r2, r0    //Syscall parameter - signal causing termination
 	mov r1, #0xFF //Syscall parameter - exit code
 	mov r0, #0x07 //Syscall number - _sc_exit()
-	svc 0x92      //Run syscall
+	udf 0x92      //Run syscall
 	.ltorg
 	
 //Process setup
@@ -52,13 +52,13 @@ process_setup:
 	mov r0, #0x40                //Syscall number - _sc_mem_sbrk()
 	.equ extra_memory, vars_end - load_end
 	ldr r1, =extra_memory            //Syscall parameter - memory to add
-	svc 0x92                     //Run syscall
+	udf 0x92                     //Run syscall
 	
 	//Unblock all signals so we have a chance to handle them
 	mov r0, #0x20 //Syscall number - _sc_sig_mask()
 	mov r1, #1    //Syscall parameter - how to modify mask: unblock
 	mov r2, #-1   //Syscall parameter - signals to modify
-	svc 0x92      //Run syscall
+	udf 0x92      //Run syscall
 	
 	//Just assume that it worked. Go ahead to run main.
 	b main_example
@@ -83,7 +83,7 @@ main_example:
 	mov r0, #0x30          //Syscall number - _sc_gfx_flip()
 	mov r1, #2             //Syscall parameter - graphics mode: 320x240 16bpp
 	ldr r2, =framebuffer   //Syscall parameter - framebuffer to display
-	svc 0x92               //Run syscall
+	udf 0x92               //Run syscall
 	
 	//Loop
 	b main_example

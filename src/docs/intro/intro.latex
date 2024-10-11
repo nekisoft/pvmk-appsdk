@@ -136,7 +136,7 @@ The game starts execution at address \MemAddr{4096}, the first accessible addres
 All registers are zeroed on entry.
 The process starts in ARM mode but may switch to Thumb mode at its choice.
 
-System-calls can be made using a \Instr{svc 0x92} instruction.
+System-calls can be made using a \Instr{udf 0x92} instruction.
 The call number is placed in \Reg{r0}, while parameters are placed in \Reg{r1} through \Reg{r5}.
 Return values are left in \Reg{r0} after the call is performed.
 
@@ -223,7 +223,7 @@ Thumb interworking instructions may be used to transfer into and out of Thumb mo
 No floating-point instructions are available.
 Floating-point emulation works well enough to run Quake, at least, if you really want that.
 
-The \Instr{svc 0x92} instruction is used to trigger system-calls. Other \Instr{svc} instructions should not be used.
+The \Instr{udf 0x92} instruction, encoded as \Const{0xe7f009f2}, is used to trigger system-calls. Other \Instr{udf} instructions should not be used. (If you are curious, we use a \Instr{udf} instruction because GDB ARM refuses to single-step over an \Instr{svc} instruction.) This implies that system-calls must be made from ARM mode, not Thumb mode.
 
 \section{Signals}
 
