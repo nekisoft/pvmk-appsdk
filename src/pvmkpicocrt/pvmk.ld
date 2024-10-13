@@ -3,7 +3,7 @@
  * Bryan E. Topp <betopp@betopp.com> 2023
  */
 
-ENTRY(_header)
+ENTRY(_start)
 
 SECTIONS {
 	. = 0;
@@ -12,10 +12,13 @@ SECTIONS {
 	.flat :
 	{
 		*(.header)
+		KEEP(*(.header))
+		KEEP(*(_header))
 		
 		_TEXT_START = .;
 		*(.text.first)
 		*(.text*)
+		
 		
 		/* lists of constructors and destructors */
 		PROVIDE_HIDDEN ( __preinit_array_start = . );
