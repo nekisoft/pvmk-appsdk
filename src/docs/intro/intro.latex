@@ -915,13 +915,14 @@ An enumeration of system-calls and potential failures follows.
 \BL This call can fail if the mode given is invalid. The only valid mode currently is 1. 
 
 \subsubsection{\Const{0x81} \VarName{{\Undie}sc{\Undie}nvm{\Undie}save}}
-\BL This call can fail if the user chose not to make space for the game to save. A game does not need to handle this case.
 \BL This call can fail if the buffer pointer and length do not refer to valid memory. 
 \BL This call can fail if the buffer is oversized. 
-\BL This call can fail if the game did not provide a valid name in its ISO9660 Primary Volume Descriptor, to identify the NVM record. 
+\BL If the game did not provide a valid name in its ISO9660 Primary Volume Descriptor, this call will not actually write to nonvolatile memory.
+\BL If the user chose not to make space for the game, this call will not actually write to nonvolatile memory.
+\BL In cases where no nonvolatile memory record is prepared, this call writes to a temporary buffer for the process instead.
 
 \subsubsection{\Const{0x82} \VarName{{\Undie}sc{\Undie}nvm{\Undie}load}}
-\BL This call can return a buffer full of 0xFF or 0x00 if the save record was just created. 
+\BL This call can return 0 bytes if the save record was just created.
 \BL This call can fail for the same reasons as \VarName{{\Undie}sc{\Undie}nvm{\Undie}save}. 
 
 \subsubsection{\Const{0x91} \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k}}
@@ -965,5 +966,16 @@ New memory cannot be added to the process once it is running.
 Memory accesses on ARM must be naturally-aligned.
 This means that a 32-bit (word) access must be to an address which is a multiple of \Const{4}, and a 16-bit (halfword) access must be to an address which is a multiple of \Const{2}.
 Otherwise, an alignment-check fault results and causes this signal.
+
+\BL Executing an undefined instruction will cause \Const{SIGILL}.
+\\
+The Neki32 supports the ARMv5TE instruction set.
+It additionally uses a single architecturally-undefined instruction, \Instr{udf 0x92}, to initiate a system-call.
+Any instructions outside this set will trigger an undefined opcode fault and raise this signal.
+
+\BL System-calls do not work from Thumb mode.
+\\
+Currently the system only supports the ARM encoding of the \Instr{udf 0x92} instruction (\Const{0xe7f009f2}).
+Thumb code therefore must switch back to ARM mode to execute a system-call.
 
 \end{document}
