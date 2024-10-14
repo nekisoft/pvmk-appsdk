@@ -260,18 +260,20 @@ If insufficient space is available, the user will be warned at that time. They c
 This all happens before launching the game.
 
 Once the game is running, it may assume that NVM saving is available and working.
-Generally, once set up, the \VarName{{\Undie}sc{\Undie}nvm{\Undie}save} and \VarName{{\Undie}sc{\Undie}nvm{\Undie}load} calls will not fail.
+Generally, the \VarName{{\Undie}sc{\Undie}nvm{\Undie}save} and \VarName{{\Undie}sc{\Undie}nvm{\Undie}load} calls will not fail.
 The game can freely load and store a region of up to 128KBytes.
 There is no need to handle no-space-available errors or to prompt the user about making space.
+If the user chooses not to make space, a temporary buffer in RAM is accessed by these system-calls instead.
 
 NVM records are protected by SHA256 hashes and double-buffered.
 A single free record is always kept for saving the new version of an existing record.
-This means that interrupted saves will not corrupt the existing data. The old version will be used until the new version is written entirely.
+This means that interrupted writes will not corrupt the existing data.
+The old version will be used until the new version is written entirely.
 There is no need for a game to warn the user about interrupting a save.
 
 The first time a game starts, before any data is saved, it is still valid to call \VarName{{\Undie}sc{\Undie}nvm{\Undie}load}.
 The savegame will have been created during the boot process.
-A newly allocated savegame will contain all \Const{0xFF} bytes.
+A newly allocated savegame will contain 0 bytes when read back.
 
 \pagebreak
 \section{System calls}
