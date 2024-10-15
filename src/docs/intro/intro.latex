@@ -279,10 +279,10 @@ A newly allocated savegame will contain 0 bytes when read back.
 \section{System calls}
 
 System-calls are used to access hardware features in a backward- and forward-compatible way.
-The system-call interface for Neki32 comprises 21 different calls.
+The system-call interface for Neki32 comprises 18 different calls.
 
 To run a system call, first place its inputs in CPU registers. The call number is passed in register \Reg{r0}.
-Parameters, if any, are passed in registers \Reg{r1} to \Reg{r5}. Then, use the \Instr{svc 0x92} instruction.
+Parameters, if any, are passed in registers \Reg{r1} to \Reg{r5}. Then, use the \Instr{udf 0x92} instruction.
 The kernel will perform the requested operation.
 The return value is stored in \Reg{r0} after the call finishes.
 
