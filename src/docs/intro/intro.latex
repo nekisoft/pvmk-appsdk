@@ -490,13 +490,14 @@ Each program starts with the audio-visual and input peripherals ready to use.
 
 \SysCall{nvm{\Undie}save}{0x81}
 {
-	Writes data to the configured nonvolatile memory record, overwriting any previous data.
-	The contents should be in the buffer at "data", of length "len".
+	Writes data to the configured nonvolatile memory record, overwriting all previous data.
+	The contents should be in the buffer at ``data", of length ``len".
 	Writes are atomic and update the whole record each time. No partial writes are possible.
+	If no record is configured, this call writes to a temporary per-process buffer instead.
 	Returns the number of bytes written on success or a negative error number.
 }
 {
-	\SysParm{r1}{const void *}{data}{The data in memory to store to nonvolatile memory.}
+	\SysParm{r1}{const void *}{data}{Location of data in memory to store to nonvolatile memory.}
 	\SysParm{r2}{int}{len}{How many bytes to store.}
 	\SysRetn{int}{The number of bytes written or a negative error number.}
 }
@@ -504,8 +505,9 @@ Each program starts with the audio-visual and input peripherals ready to use.
 \SysCall{nvm{\Undie}load}{0x82}
 {
 	Reads from the configured nonvolatile memory record into the given buffer.
-	The buffer to place the results in is at "buf", of length "len".
+	The buffer to place the results in is at ``buf", of length ``len".
 	Reads are protected by SHA256; corruption will result in the file being lost (\Const{-{\Undie}SC{\Undie}ENOENT}).
+	If no record is configured, this call reads from a temporary per-process buffer instead.
 	Returns the number of bytes read on success or a negative error number.
 }
 {
@@ -524,11 +526,11 @@ Each program starts with the audio-visual and input peripherals ready to use.
 	
 	\begin{tabular}{l l l}
 	Signal Name & Number & Description \\
-	\Const{{\Undie}SC{\Undie}SIGILL} &4 & Illegal operation, i.e. bad opcode\\
-	\Const{{\Undie}SC{\Undie}SIGTRAP} &5 & Debug trap requested\\
-	\Const{{\Undie}SC{\Undie}SIGKILL} &9 & Killed (cannot be blocked)\\
+	\Const{{\Undie}SC{\Undie}SIGILL}  &4  & Illegal operation, i.e. bad opcode\\
+	\Const{{\Undie}SC{\Undie}SIGTRAP} &5  & Debug trap requested\\
+	\Const{{\Undie}SC{\Undie}SIGKILL} &9  & Killed (cannot be blocked)\\
+	\Const{{\Undie}SC{\Undie}SIGBUS}  &10 & Bus fault, i.e. misaligned access\\
 	\Const{{\Undie}SC{\Undie}SIGSEGV} &11 & Segmentation violation, i.e. out-of-bounds memory access\\
-	\Const{{\Undie}SC{\Undie}SIGPIPE} &13 & Pipe broken when writing to kernel-level file\\
 	\Const{{\Undie}SC{\Undie}SIGCHLD} &20 & Child process changed state (not applicable to game processes)
 	\end{tabular}
 	\\
