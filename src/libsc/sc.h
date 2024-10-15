@@ -1,1 +1,1 @@
-../../../sysimg/shared/libraries/libsc/include/sc.h
+../../../kernel/shared/libsc/include/sc.h
