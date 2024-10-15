@@ -980,4 +980,26 @@ Any instructions outside this set will trigger an undefined opcode fault and rai
 Currently the system only supports the ARM encoding of the \Instr{udf 0x92} instruction (\Const{0xe7f009f2}).
 Thumb code therefore must switch back to ARM mode to execute a system-call.
 
+\section{Secret Codes}
+
+These features of the Neki32 console may assist in development.
+
+\subsection{At power-on}
+
+The Neki32 console stores its default system software, called Kernel Zero, in read-only memory.
+It can also store a single updated version of the system software.
+If the updated version is valid, it will be booted automatically instead of the original.
+To boot the original version instead of the updated version, hold the Down direction on controller D while turning the system on.
+
+If system software updates are present on a game card, the system will find the newest one matching the hardware.
+It will prompt the user to update if it is newer than the current version.
+To force this prompt to always appear, regardless of the version numbers, hold Y on controller A while turning the system on.
+To skip this prompt, regardless of the version numbers, hold X on controller A while turning the system on.
+
+\subsection{At the boot menu}
+
+Some additional information is available from the Neki32 system menu.
+To see additional hardware test features, enter the code ``XYZZY" on controller A at the main menu.
+To see the version number, and a message about why no game was booted, hold the Z and Mode buttons on controller A at the main menu.
+
 \end{document}
