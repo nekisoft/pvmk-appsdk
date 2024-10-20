@@ -35,6 +35,7 @@ disk_start:
 //Signal handler
 //  Code entry point jumps here if entered with r0 != 0
 handle_signal:
+	//Note that we do not unblock any signals, so this should not happen.
 	//We could do something more intelligent here, like show an error during development
 	mov r2, r0    //Syscall parameter - signal causing termination
 	mov r1, #0xFF //Syscall parameter - exit code
@@ -53,12 +54,6 @@ process_setup:
 	.equ extra_memory, vars_end - load_end
 	ldr r1, =extra_memory            //Syscall parameter - memory to add
 	udf 0x92                     //Run syscall
-	
-	//Unblock all signals so we have a chance to handle them
-	mov r0, #0x20 //Syscall number - _sc_sig_mask()
-	mov r1, #1    //Syscall parameter - how to modify mask: unblock
-	mov r2, #-1   //Syscall parameter - signals to modify
-	udf 0x92      //Run syscall
 	
 	//Just assume that it worked. Go ahead to run main.
 	b main_example

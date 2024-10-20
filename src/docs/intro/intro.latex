@@ -746,7 +746,8 @@ Source code for this example is found in \PathName{examples/allasm} in the SDK.
 It doesn't require anything but GNU Make and the GNU Assembler for ARM.
 
 \subsubsection{Assembly and some Data}
-A program running on the Neki32 can load more data off the game card. The system-call \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k} is used to perform this operation.
+A program running on the Neki32 can load more data off the game card.
+The system-call \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k} is used to perform this operation.
 The previous example can be extended to load more data off the game card, after the boot program is already running.
 
 This approach can be used for games which swap out graphical assets in simple ways.
@@ -757,7 +758,7 @@ No overhead is spent accessing file metadata.
 Source code for this example is found in \PathName{examples/asmdata} in the SDK.
 It doesn't require anything but GNU Make and the GNU Assembler and linker for ARM.
 
-\subsubsection{Assembly in a Filesystem}
+\subsubsection{Assembly Accessing a Filesystem}
 
 For games with lots of data, it is helpful to keep the data in a filesystem.
 This aids in managing the data during development, and makes the environment more similar to a desktop workstation.
@@ -767,9 +768,10 @@ The assembly code can then access any number of different files included in the 
 
 In this case, the assembler is used to make an executable by itself (we call this format a ``no-nonsense executable'', or NNE).
 Then, mkisofs is used to put this executable in a bootable El Torito / ISO9660 image.
+Other files containing data are also placed in the image.
 Once running, the code can look through the ISO9660 filesystem to find its data files.
 
-Source code for this example is found in \PathName{examples/asmdata} in the SDK.
+Source code for this example is found in \PathName{examples/asmisofs} in the SDK.
 It requires GNU Make and the GNU Assembler and linker for ARM, as well as the mkisofs utility.
 
 \subsubsection{Adding some Freestanding C}

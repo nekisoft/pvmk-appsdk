@@ -11,7 +11,8 @@
 disk_start:
 	.ascii "NNEARM32" //Magic number
 	.long 0x1000     //Entry point
-	
+
+//Entry point
 .global _start
 .equ _start, 0x1000
 .org 0x1000
@@ -21,22 +22,18 @@ disk_start:
 	.ltorg
 
 handle_signal:
+	//Note that we do not unblock any signals, so this should not happen.
 	mov r2, r0    //Syscall parameter - signal causing termination
 	mov r1, #0xFF //Syscall parameter - exit code
 	mov r0, #0x07 //Syscall number - _sc_exit()
-	svc 0x92      //Run syscall
+	udf #0x92     //Run syscall
 	.ltorg
 	
 process_setup:
 	mov r0, #0x40                    //Syscall number - _sc_mem_sbrk()
 	.equ extra_memory, vars_end - load_end
 	ldr r1, =extra_memory            //Syscall parameter - memory to add
-	svc 0x92                         //Run syscall
-	
-	mov r0, #0x20 //Syscall number - _sc_sig_mask()
-	mov r1, #1    //Syscall parameter - how to modify mask: unblock
-	mov r2, #-1   //Syscall parameter - signals to modify
-	svc 0x92      //Run syscall
+	udf #0x92                        //Run syscall
 	
 	b main_example
 	.ltorg
@@ -55,7 +52,7 @@ main_example:
 		ldr r2, =framebuffer //Location to put result
 		add r2, r7 //Offset by number of bytes already read
 		
-		svc #0x92 //Trigger system call
+		udf #0x92 //Trigger system call
 		
 		cmp r0, #-11 //Check if we got an "EAGAIN" error
 		beq main_example_loadloop //Retry in that case
@@ -71,7 +68,7 @@ main_example:
 	mov r0, #0x30          //Syscall number - _sc_gfx_flip()
 	mov r1, #2             //Syscall parameter - graphics mode: 320x240 16bpp
 	ldr r2, =framebuffer   //Syscall parameter - framebuffer to display
-	svc 0x92               //Run syscall
+	udf #0x92              //Run syscall
 	
 	//Loop
 	b main_example
