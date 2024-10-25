@@ -7,6 +7,19 @@
 //Instead, the output of this assembly code is a No-Nonsense Executable (.nne) file.
 //Then, mkisofs puts the .nne file into an ISO9660 filesystem and an ElTorito record.
 
+//Macro for doing an unaligned load
+.macro ldr_misalign rdst raddr rtmp
+	mov \rdst, #0
+	ldrb \rtmp, [\raddr, #0]
+	orr \rdst, \rtmp, lsl #0
+	ldrb \rtmp, [\raddr, #1]
+	orr \rdst, \rtmp, lsl #8
+	ldrb \rtmp, [\raddr, #2]
+	orr \rdst, \rtmp, lsl #16
+	ldrb \rtmp, [\raddr, #3]
+	orr \rdst, \rtmp, lsl #24
+.endm
+
 //Code section at the beginning of the NNE file
 .org 0
 nne_start:
@@ -47,13 +60,15 @@ main_example:
 	
 	//Find the LBA and length of the root directory contents
 	ldr r5, =(dirent + 2) //Location of LBA field in root directory entry
-	ldr r5, [r5] //Load LBA
+	ldr_misalign r8, r5, r9 //Load LBA
+	mov r5, r8
 	mov r5, r5, lsl #11 //turn LBA into byte offset
 	
 	#error this explodes because of a misaligned access - fix the debugger stub to report it nicely!
 	
 	ldr r6, =(dirent + 10) //Location of length field in root directory entry
-	ldr r6, [r6] //Load length
+	ldr_misalign r8, r6, r9 //Load length
+	mov r6, r8 
 	
 	//r5 and r6 now contain the byte offset and length of the root directory
 	//Work through the root directory and look for the file we want
@@ -73,7 +88,7 @@ main_example:
 		//The directory entry, as loaded, will have its name at offset 33
 		//See if it matches the filename we wanted
 		ldr r7, =(dirent+33)  //Filename of what we see on disk
-		ldr r8, str_imagefile //Filename we are looking for
+		ldr r8, =str_imagefile //Filename we are looking for
 		search_loop_strcmp_loop:
 			ldrb r9,  [r7]
 			add r7, #1
@@ -88,13 +103,17 @@ main_example:
 				//Load its contents into our framebuffer
 				
 				ldr r0, =(dirent + 2) //Location of LBA field in directory entry
-				ldr r0, [r0] //Load LBA
+				ldr_misalign r10, r0, r11 //Load LBA
+				mov r0, r10
 				mov r0, r0, lsl #11 //turn LBA into byte offset
 				
 				ldr r2, =(dirent + 10) //Location of length field in directory entry
-				ldr r2, [r2] //Load length
+				ldr_misalign r10, r2, r11 //Load length
+				mov r2, r10
 				
 				ldr r1, =framebuffer
+				
+				bl load_bytes
 				
 				b main_example_loaddone
 			

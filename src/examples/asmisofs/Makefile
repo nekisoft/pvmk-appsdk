@@ -10,6 +10,9 @@ GCCOPTS += -Wl,--Ttext=0
 #Options passed to GCC - look for includes in our source folder
 GCCOPTS += -Isrc
 
+#Options passed to GCC - debug info
+GCCOPTS += -g
+
 #Make output ISO using mkisofs
 img/asmisofs.iso: bin/boot.nne isoroot/BOOT.NNE isoroot/IMAGE.BIN
 	mkdir -p $(@D)
