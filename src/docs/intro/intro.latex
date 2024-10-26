@@ -790,6 +790,9 @@ For convenience, a C SDK is provided which gets the basics of a C runtime enviro
 It includes a port of Picolibc with an ISO9660 implementation providing file access via \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k}.
 It also includes startup files necessary to call \VarName{main()} in a sane way.
 
+Source code for this example is found in \PathName{examples/sdkusage} in the SDK.
+It requires the SDK to be set up properly, including the GNU ARM toolchain and the C Runtime and C Standard Library for Neki32.
+
 \subsection{System call usage}
 
 \subsubsection{Double-buffered animation}
