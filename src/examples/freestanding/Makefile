@@ -14,7 +14,7 @@ GCCOPTS += -Isrc
 GCCOPTS += -g
 
 #Make output ISO using mkisofs
-img/asmisofs.iso: bin/boot.nne isoroot/BOOT.NNE
+img/freestanding.iso: bin/boot.nne isoroot/BOOT.NNE
 	mkdir -p $(@D)
 	mkisofs -posix-L -eltorito-platform 0x92 -no-emul-boot -eltorito-boot BOOT.NNE -o $@ isoroot
 	
