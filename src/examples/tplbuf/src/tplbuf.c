@@ -1,4 +1,4 @@
-//dblbuf.c
+//tplbuf.c
 //Triple-buffered animation example for Neki32
 //Bryan E. Topp <betopp@betopp.com> 2024
 
