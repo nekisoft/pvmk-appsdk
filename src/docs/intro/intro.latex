@@ -793,6 +793,8 @@ It also includes startup files necessary to call \VarName{main()} in a sane way.
 Source code for this example is found in \PathName{examples/sdkusage} in the SDK.
 It requires the SDK to be set up properly, including the GNU ARM toolchain and the C Runtime and C Standard Library for Neki32.
 
+\pagebreak
+
 \subsection{System call usage}
 
 \subsubsection{Double-buffered animation}
@@ -805,7 +807,12 @@ At any time, one is used by the CPU to draw the next frame, while the other is b
 The buffer that the CPU accesses is called the back buffer, and the buffer being sent to the TV is the front buffer.
 Note that it takes almost an entire frame of time, to send that one frame of data to the TV.
 
-When the TV is in vertical blanking, the buffers can be interchanged, called ``swapping'' or ``flipping'' the buffers.
+The TV is given some free time between bursts of video data, called ``blanking". When the TV is in blanking, no data is sent to it.
+At the end of each line in a frame, there is a ``horizontal blanking" time. Horizontal blanking is very short in duration.
+At the end of each frame, there is a ``vertical blanking" time.
+
+During vertical blanking, there is about 1ms when no data is sent. A complete frame has already been transmitted.
+At this time, the buffers can be interchanged, called ``swapping'' or ``flipping'' the buffers.
 Then the CPU can re-draw to the buffer which was previously displayed, as the next one is sent to the TV.
 In this way, a series of complete frames is sent to the TV.
 
@@ -842,7 +849,7 @@ An area of memory can be allocated in the game process, big enough to hold the s
 When the game starts, the system-call \VarName{{\Undie}sc{\Undie}nvm{\Undie}load} is used to populate the area with the saved data.
 Then, whenever appropriate, the system-call \VarName{{\Undie}sc{\Undie}nvm{\Undie}save} can be used to store it back to the console.
 
-It is only necessary to check, on start-up, that the region is not all \Const{0xFF}.
+It is only necessary to check, on start-up, that the region is not all \Const{0x00}.
 In this case, no data was previously saved, and the savegame region should be initialized in RAM before calling \VarName{{\Undie}sc{\Undie}nvm{\Undie}save}.
 
 It is not necessary to handle failures to save, or corruption from interrupted saves.
