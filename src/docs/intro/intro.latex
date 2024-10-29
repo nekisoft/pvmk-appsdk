@@ -797,6 +797,28 @@ It requires the SDK to be set up properly, including the GNU ARM toolchain and t
 
 \subsection{System call usage}
 
+\subsubsection{Reading inputs}
+
+It is straightforward to read user input on the Neki32.
+A single system-call is used to retrieve user input as a series of events.
+Each event starts with a byte identifying what type of event it is. Then, event data follows. 
+
+A single invocation of the system-call may return multiple events in an array.
+The caller specifies the size of each array element, and the overall size of the array.
+The game knows, of course, the largest event it will handle, and can size its array elements appropriately.
+Array entries are zero-filled if the event is smaller. Events are truncated if they do not fit.
+
+Right now all events are 4 bytes in length.
+A single character identifies which controller port is considered, ``A", ``B", ``C", or ``D" (ASCII codes 0x61, 0x62, 0x63, 0x64).
+Then, one dummy byte is usually zero.
+Then a 16-bit value identifies which buttons are pressed as a bit-map.
+
+The format of the input event and the button bitmasks are defined in \PathName{sc.h} in the C SDK.
+This example reads input from all 4 players and displays their control data on screen.
+
+Source code for this example is found in \PathName{examples/showinput} in the SDK.
+It requires the SDK to be set up properly, including the GNU ARM toolchain and the C Runtime and C Standard Library for Neki32.
+
 \subsubsection{Double-buffered animation}
 
 Double-buffering can be used to synchronize the game code and video output.
