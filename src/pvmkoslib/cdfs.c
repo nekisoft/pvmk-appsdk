@@ -81,29 +81,90 @@ typedef struct _cdfs_pvd_s
 static _cdfs_pvd_t _cdfs_pvd;
 static uint64_t _cdfs_pvd_byteoff; //Location of the PVD in the block device, in bytes
 
-//Reads block device
-static unsigned char _blk_buf[2048];
+//Block cache
+typedef struct _blk_cache_s
+{
+	int valid;
+	int sector;
+	int age;
+	uint32_t data[2048/sizeof(uint32_t)];
+} _blk_cache_t;
+#define BLK_CACHE_MAX 128
+static _blk_cache_t _blk_cache[BLK_CACHE_MAX];
+
+//Loads sector of data into block cache
+void *_blk_cache_fill(int sector)
+{
+	//Look for existing entries
+	for(int cc = 0; cc < BLK_CACHE_MAX; cc++)
+	{
+		if(_blk_cache[cc].valid == 0)
+			continue;
+		if(_blk_cache[cc].sector != sector)
+			continue;
+		
+		//Found existing entry
+		_blk_cache[cc].age /= 2;
+		return _blk_cache[cc].data;
+	}
+	
+	//No existing entry. Find which entry we'll evict.
+	int best = 0;
+	for(int cc = 0; cc < BLK_CACHE_MAX; cc++)
+	{
+		_blk_cache[cc].age++;
+		if(_blk_cache[cc].valid == 0)
+		{
+			//Invalid ones are always best to overwrite
+			best = cc;
+		}
+		else if(_blk_cache[best].valid && (_blk_cache[cc].age > _blk_cache[best].age))
+		{
+			//Otherwise, older ones are better
+			best = cc;
+		}
+	}
+			
+	_blk_cache[best].valid = 1;
+	_blk_cache[best].sector = sector;
+	_blk_cache[best].age = 0;
+	
+	while(1)
+	{
+		int read_result = _sc_disk_read2k(sector, _blk_cache[best].data, 1);
+		
+		if(read_result == -_SC_EAGAIN)
+		{
+			//In progress
+			_sc_pause();
+			continue;
+		}
+		
+		if(read_result < 0)
+		{
+			//Other errors, just retry
+			continue;
+		}
+		
+		//Success
+		return _blk_cache[best].data;
+	}
+}
+
+//Reads bytes from block device via sector-level cache
 int _blk_read(int byteoff, void *dstv, int len)
 {
 	unsigned char *dst = (unsigned char *)dstv;
 	int nread = 0;
 	while(len > 0)
 	{
-		int read_result = _sc_disk_read2k(byteoff / 2048, _blk_buf);
-		if(read_result < 0)
-		{
-			if(nread > 0)
-				return nread;
-			
-			return read_result;
-		}
-		
+		const char *blkbuf = _blk_cache_fill(byteoff / 2048);
 		int misalign = byteoff % 2048;
 		int to_copy = 2048 - misalign;
 		if(to_copy > len)
 			to_copy = len;
 		
-		memcpy(dst, _blk_buf + misalign, to_copy);
+		memcpy(dst, blkbuf + misalign, to_copy);
 		byteoff += to_copy;
 		dst += to_copy;
 		nread += to_copy;

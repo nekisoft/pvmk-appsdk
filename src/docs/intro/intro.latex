@@ -464,28 +464,30 @@ Each program starts with the audio-visual and input peripherals ready to use.
 
 \SysCall{disk{\Undie}read2k}{0x91}
 {
-	Reads a 2048-byte sector from the disk into the given buffer.
-	The sector number is given in units of 2KByte, i.e. not a byte-offset.
-	Returns the number of bytes read (2048) on success or a negative error number.
+	Reads 2048-byte sectors from the disk into the given buffer.
+	The sector number and count are given in units of 2KByte, i.e. not a byte-offset.
+	Returns 0 on success or a negative error number. Any partial completion is considered a failure.
 	May return \Const{-{\Undie}SC{\Undie}EAGAIN} if the operation has started and will finish later.
 }
 {
 	\SysParm{r1}{int}{sector{\Undie}num}{Which sector to load from the disk, in units of 2048 bytes.}
 	\SysParm{r2}{void *}{buf2k}{The location in memory to store the data being read.}
-	\SysRetn{int}{The number of bytes read, 2048, on success, or a negative error number.}
+	\SysParm{r3}{int}{nsectors}{The number of 2048-byte sectors to load.}
+	\SysRetn{int}{0 on success, or a negative error number.}
 }
 
 \SysCall{disk{\Undie}write2k}{0x92}
 {
-	Writes a 2048-byte sector to the disk from the given buffer.
-	The sector number is given in units of 2KByte, i.e. not a byte-offset.
-	Returns the number of bytes written (2048) on success or a negative error number.
+	Writes 2048-byte sectors to the disk from the given buffer.
+	The sector number and count are given in units of 2KByte, i.e. not a byte-offset.
+	Returns 0 on success or a negative error number. Any partial completion is considered a failure.
 	May return \Const{-{\Undie}SC{\Undie}EAGAIN} if the operation has started and will finish later.
 }
 {
 	\SysParm{r1}{int}{sector{\Undie}num}{Which sector to write on the disk, in units of 2048 bytes.}
 	\SysParm{r2}{const void *}{buf2k}{The data in memory to store onto the disk.}
-	\SysRetn{int}{The number of bytes written, 2048, on success, or a negative error number.}
+	\SysParm{r3}{int}{nsectors}{The number of 2048-byte sectors to store.}
+	\SysRetn{int}{0 on success, or a negative error number.}
 }
 
 \SysCall{nvm{\Undie}save}{0x81}

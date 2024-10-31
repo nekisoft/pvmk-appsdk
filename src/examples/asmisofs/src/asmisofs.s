@@ -159,6 +159,7 @@ load_sector:
 	stmfd sp!, {r0, r1}
 	
 	//Run system call
+	mov r3, #1 //Syscall parameter - number of sectors
 	mov r2, r1 //Syscall parameter - buffer location
 	mov r1, r0 //Syscall parameter - sector number
 	mov r0, #0x91 //Syscall number - _sc_disk_read2k()

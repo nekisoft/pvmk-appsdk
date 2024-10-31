@@ -41,28 +41,17 @@ process_setup:
 main_example:
 
 	//Load an image from the disc into the framebuffer
-	mov r7, #0 //Number of bytes we have already loaded
 	main_example_loadloop:
 	
 		mov r0, #0x91 //Syscall number - _sc_disk_read2k()
-		
 		ldr r1, =image_sector //Sector number of data to read
-		add r1, r7, asr #11 //Offset by number of 2048-byte sectors already read
-		
 		ldr r2, =framebuffer //Location to put result
-		add r2, r7 //Offset by number of bytes already read
+		mov r3, #((320*240*2)/2048) //Number of sectors to load
 		
 		udf #0x92 //Trigger system call
 		
-		cmp r0, #-11 //Check if we got an "EAGAIN" error
-		beq main_example_loadloop //Retry in that case
-		
 		cmp r0, #0 //Check if we got some other error
-		blo main_example_loadloop //Retry in that case
-		
-		add r7, #2048 //Advance to next sector on disc
-		cmp r7, #(320*240*2) //Number of bytes we need to load (note - exact multiple of 2048)
-		blo main_example_loadloop //Still have more to read
+		bne main_example_loadloop //Retry in that case
 	
 	//Show it
 	mov r0, #0x30          //Syscall number - _sc_gfx_flip()
