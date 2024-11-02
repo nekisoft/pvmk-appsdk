@@ -81,7 +81,11 @@ Games are distributed on read-only SD cards.
 There are four controller ports, compatible with Genesis and Mega-Drive controllers.
 There is 4MBytes of internal memory for savegames of 128KBytes per game.
 
-(Picture of the console goes here.)
+\begin{center}
+\includegraphics[width=13cm]{console.png}
+
+\begin{small}(A real, live Neki32)\end{small}
+\end{center}
 
 \pagebreak
 
@@ -883,6 +887,24 @@ Physical writes are ordered to ensure reliability.
 
 Source code for this example is found in \PathName{examples/nvmsave} in the SDK.
 
+\subsection{SDK features}
+
+The C SDK includes a mostly-complete C standard library that enables many POSIX-like operations.
+
+\subsubsection{Writing to files}
+
+Ordinarily, we recommend that a game card is permanently write-protected, to protect against damage.
+Savegames can be written to the Nonvolatile Memory in the console in this case, so no special SD card is needed.
+However, the system supports writing back to game cards if you want to.
+
+The SDK includes support for overwriting file contents on an ISO9660 filesystem.
+Files cannot be created or deleted, or their length changed.
+However their contents, at their existing location and length, can be modified.
+The actual writes are performed when the SDK calls \VarName{{\Undie}sc{\Undie}disk{\Undie}write2k}.
+
+The example in \PathName{examples/rwcard} uses this to save data which the user has modified.
+It contains an existing file in the ISO9660 image, called SAVE.BIN, whose contents are modified at runtime.
+
 \section{Common errors}
 This section contains examples of why a program may not work as expected. 
 \subsection{System call failures}
@@ -966,11 +988,14 @@ An enumeration of system-calls and potential failures follows.
 \subsubsection{\Const{0x91} \VarName{{\Undie}sc{\Undie}disk{\Undie}read2k}}
 \BL This call can fail if the sector number is invalid. 
 \BL This call can fail if the buffer is not in valid memory. 
+\BL This call can fail of the number-of-sectors parameter is less than 1 or greater than 12288.
 
 \subsubsection{\Const{0x92} \VarName{{\Undie}sc{\Undie}disk{\Undie}write2k}}
 \BL This call can fail if the sector number is invalid.
 \BL This call can fail if the buffer is not in valid memory.
 \BL This call can fail if the card is write-protected. 
+\BL This call can fail of the number-of-sectors parameter is less than 1 or greater than 12288.
+\BL It is not recommended to use this call unless the card can be partially write-protected.
 
 \subsubsection{\Const{0xA1} \VarName{{\Undie}sc{\Undie}mexec{\Undie}append}}
 \BL This call can fail if the pending memory image is already too large. 
