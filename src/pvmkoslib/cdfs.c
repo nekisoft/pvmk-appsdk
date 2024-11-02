@@ -173,6 +173,90 @@ int _blk_read(int byteoff, void *dstv, int len)
 	return nread;
 }
 
+//Writes bytes to block device, bypassing cache, invalidating cached entries
+int _blk_write(int byteoff, const void *srcv, int len)
+{
+	//Look for any block-cache entries that we touch. Invalidate them.
+	int firstblock = byteoff / 2048;
+	int lastblock = (byteoff + len - 1) / 2048;
+	for(int bb = 0; bb < BLK_CACHE_MAX; bb++)
+	{
+		if(_blk_cache[bb].sector >= firstblock && _blk_cache[bb].sector <= lastblock)
+			_blk_cache[bb].valid = 0;
+	}
+	
+	const unsigned char *src = (const unsigned char *)srcv;
+	int nwritten = 0;
+	while(len > 0)
+	{
+		//Compute location/size within the next block
+		int misalign = byteoff % 2048;
+		int to_copy = 2048 - misalign;
+		if(to_copy > len)
+			to_copy = len;
+		
+		//Fill the buffer with old data if necessary
+		static uint8_t blkbuf[2048];
+		if(misalign != 0 || to_copy != 2048)
+		{
+			//Need to read-modify-write
+			while(1)
+			{
+				int read_result = _sc_disk_read2k(byteoff/2048, blkbuf, 1);
+				
+				if(read_result == -_SC_EAGAIN)
+				{
+					//In progress
+					_sc_pause();
+					continue;
+				}
+				
+				if(read_result < 0)
+				{
+					//Other errors, just retry
+					continue;
+				}
+				
+				//Success
+				break;
+			}
+		}			
+		
+		//Copy the new data in the buffer
+		memcpy(blkbuf + misalign, src, to_copy);
+		
+		//Write back to disk
+		while(1)
+		{
+			int write_result = _sc_disk_write2k(byteoff/2048, blkbuf, 1);
+			
+			if(write_result == -_SC_EAGAIN)
+			{
+				//In progress
+				_sc_pause();
+				continue;
+			}
+			
+			if(write_result < 0)
+			{
+				//Other errors, just retry
+				continue;
+			}
+			
+			//Success
+			break;
+		}
+		
+		byteoff += to_copy;
+		src += to_copy;
+		nwritten += to_copy;
+		len -= to_copy;
+		
+		
+	}
+	return nwritten;
+}
+
 //Translates an ISO9660 directory entry to PVMK directory entry and file status.
 //This forms most of the "hard work" we do, as the ISO9660 directory entries are essentially their file structure.
 //We use the location of a file's directory-entry as its "inode number" for our identification.
@@ -704,6 +788,41 @@ int _cdfs_read(uint32_t ino, uint32_t off, void *buf, int len)
 	return len;
 	
 }
+
+int _cdfs_write(uint32_t ino, uint32_t off, const void *buf, int len)
+{
+	//Compute information about the file being read
+	struct stat st = {0};
+	uint64_t data_loc = 0;
+	uint64_t data_len = 0;
+	int translate_result = _cdfs_translate_dirent(ino, sizeof(_cdfs_dirent_t), NULL, &st, &data_loc, &data_len);
+	if(translate_result < 0)
+		return translate_result;
+	
+	if( (st.st_mode & S_IFMT) == S_IFDIR )
+	{
+		//File on the CD is a directory.
+		return -_SC_EISDIR;
+	}
+		
+	//Regular file on CD.
+	if(off >= data_len)
+	{
+		//Entirely off the end of the file
+		return -_SC_ENOSPC;
+	}
+	
+	if(off + len > data_len)
+	{
+		//Need to truncate so we don't run off the end
+		len = data_len - off;
+	}
+	
+	_blk_write(data_loc + off, buf, len);
+	return len;
+}
+
+
 
 int _cdfs_search(uint32_t ino, const char *filename)
 {

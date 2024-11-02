@@ -92,17 +92,7 @@ static int _pvmk_sysret_errno(int sysret)
 //Non-variadic version of openat.
 static int _openatm(int fd, const char *path, int flags, mode_t mode)
 {		
-	if( (flags & O_ACCMODE) == O_WRONLY)
-	{
-		errno = EROFS;
-		return -1;
-	}
-	
-	if( (flags & O_ACCMODE) == O_RDWR  )
-	{
-		errno = EROFS;
-		return -1;
-	}
+	(void)flags;
 	
 	//If they didn't specify a type of file, default to a "regular file" mode.
 	if((mode & S_IFMT) == 0)
@@ -445,8 +435,16 @@ ssize_t write(int fd, const void *buf, size_t nbyte)
 	}
 	else
 	{
-		errno = EROFS;
-		return -1;
+		//User-level file write
+		int nwritten = _cdfs_write(_user_file_table[fd].ino, _user_file_table[fd].pos, buf, nbyte);
+		if(nwritten < 0)
+		{
+			errno = _pvmk_sysret_errno(nwritten);
+			return -1;
+		}
+		
+		_user_file_table[fd].pos += nwritten;
+		return nwritten;
 	}
 }
 

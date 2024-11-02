@@ -27,6 +27,9 @@ int _cdfs_statvfs(struct statvfs *buf);
 //Reads from an inode
 int _cdfs_read(uint32_t ino, uint32_t off, void *buf, int len);
 
+//Writes to an inode (limited use cases, can't do anything but overwrite existing bytes)
+int _cdfs_write(uint32_t ino, uint32_t off, const void *buf, int len);
+
 //Searches a directory inode for a link with the given name, returning its referenced inode
 int _cdfs_search(uint32_t ino, const char *filename);
 
