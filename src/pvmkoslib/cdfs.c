@@ -82,30 +82,33 @@ static _cdfs_pvd_t _cdfs_pvd;
 static uint64_t _cdfs_pvd_byteoff; //Location of the PVD in the block device, in bytes
 
 //Block cache
+#define BLK_CACHE_LINE 8192
 typedef struct _blk_cache_s
 {
 	int valid;
 	int sector;
 	int age;
-	uint32_t data[2048/sizeof(uint32_t)];
+	uint32_t data[BLK_CACHE_LINE];
 } _blk_cache_t;
-#define BLK_CACHE_MAX 128
+#define BLK_CACHE_MAX 64
 static _blk_cache_t _blk_cache[BLK_CACHE_MAX];
 
 //Loads sector of data into block cache
 void *_blk_cache_fill(int sector)
 {
+	#define SECTOR_PER_LINE (BLK_CACHE_LINE/2048)
+	
 	//Look for existing entries
 	for(int cc = 0; cc < BLK_CACHE_MAX; cc++)
 	{
 		if(_blk_cache[cc].valid == 0)
 			continue;
-		if(_blk_cache[cc].sector != sector)
+		if((_blk_cache[cc].sector / SECTOR_PER_LINE) != (sector / SECTOR_PER_LINE))
 			continue;
 		
 		//Found existing entry
 		_blk_cache[cc].age /= 2;
-		return _blk_cache[cc].data;
+		return _blk_cache[cc].data + (((sector % SECTOR_PER_LINE) * 2048)/sizeof(uint32_t));
 	}
 	
 	//No existing entry. Find which entry we'll evict.
@@ -131,7 +134,7 @@ void *_blk_cache_fill(int sector)
 	
 	while(1)
 	{
-		int read_result = _sc_disk_read2k(sector, _blk_cache[best].data, 1);
+		int read_result = _sc_disk_read2k((sector / SECTOR_PER_LINE) * SECTOR_PER_LINE, _blk_cache[best].data, SECTOR_PER_LINE);
 		
 		if(read_result == -_SC_EAGAIN)
 		{
@@ -147,7 +150,7 @@ void *_blk_cache_fill(int sector)
 		}
 		
 		//Success
-		return _blk_cache[best].data;
+		return _blk_cache[best].data + (((sector % SECTOR_PER_LINE) * 2048)/sizeof(uint32_t));
 	}
 }
 
@@ -181,8 +184,13 @@ int _blk_write(int byteoff, const void *srcv, int len)
 	int lastblock = (byteoff + len - 1) / 2048;
 	for(int bb = 0; bb < BLK_CACHE_MAX; bb++)
 	{
-		if(_blk_cache[bb].sector >= firstblock && _blk_cache[bb].sector <= lastblock)
-			_blk_cache[bb].valid = 0;
+		if( (_blk_cache[bb].sector/SECTOR_PER_LINE) < (firstblock/SECTOR_PER_LINE) - 1)
+			continue;
+		
+		if( (_blk_cache[bb].sector/SECTOR_PER_LINE) > (lastblock/SECTOR_PER_LINE) + 1)
+			continue;
+		
+		_blk_cache[bb].valid = 0;
 	}
 	
 	const unsigned char *src = (const unsigned char *)srcv;
