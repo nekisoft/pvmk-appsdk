@@ -585,7 +585,7 @@ I_SubmitSound(void)
 if(!sound_to_submit)
 	return;
 
-if(_sc_snd_play(_SC_SND_MODE_48K_16B_2C, mixbuffer, SAMPLECOUNT*BUFMUL, 65536) == 0)
+if(_sc_snd_play(_SC_SND_MODE_48K_16B_2C, mixbuffer, SAMPLECOUNT*BUFMUL, 65536) >= 0)
 	sound_to_submit = 0;
 
 }

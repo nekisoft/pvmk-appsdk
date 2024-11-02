@@ -391,7 +391,7 @@ Each program starts with the audio-visual and input peripherals ready to use.
 	Either the whole buffer is consumed or none is.
 	The caller may specify the maximum amount of audio to buffer in the kernel.
 	This allows trading latency for stability.
-	Returns 0 on success, or a negative error number.
+	Returns the number of bytes the kernel has buffered on success, or a negative error number.
 	
 	The following mode values are allowed:\\
 	\begin{tabular}{l l l}
