@@ -1,7 +1,0 @@
-#info.txt
-NAME:cpptest
-VERS:0
-DESC:Tests C++ build tools
-DEVR:Bryan E. Topp
-PUBR:Nekisoft
-

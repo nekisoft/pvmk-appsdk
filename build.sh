@@ -13,9 +13,6 @@ mkdir obj
 ./src/libsc_build.sh
 ./src/pvmkoslib_build.sh
 ./src/pvmkpicocrt_build.sh
-./src/libunwind_build.sh
-./src/libcxx_build.sh
-./src/libcxxabi_build.sh
 ./src/zlib_build.sh
 ./src/sdlsc_build.sh
 ./src/updates_build.sh 
