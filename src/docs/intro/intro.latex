@@ -126,15 +126,19 @@ There is 4MBytes of internal memory for savegames of 128KBytes per game.
 
 A Neki32 game is quite simple. It is an SD card containing a program to run and possibly other data. Very little is necessary to get code running.
 
+\subsubsection{Game cards}
+
 The card is read-only and formatted much like an optical disc.
 It contains an El Torito boot record for platform \Const{0x92}.
 The El Torito boot record points at the executable file for the game.
+
+\subsubsection{Executable and environment}
 
 The game executable is a flat, 0-mapped binary image of the game's initial memory content.
 For example, if the game executable is 3MBytes in size, the system will load it into virtual memory addresses \MemAddr{0} to \MemAddr{3145727}.
 The game process is initially 24 megabytes in size, and the rest will be filled with \Const{0x00} bytes.
 The zero page, afterward, is inaccessible. An access of address \MemAddr{0} to \MemAddr{4095} always faults.
-A small magic number is placed here instead.
+On disk, a small magic number is placed at the start of the executable instead (the 8-byte string constant \Const{NNEARM32} and the 8-byte little-endian address \Const{0x1000}).
 
 The game starts execution at address \MemAddr{4096}, the first accessible address.
 All registers are zeroed on entry.
@@ -143,11 +147,42 @@ The process starts in ARM mode but may switch to Thumb mode at its choice.
 System-calls can be made using a \Instr{udf 0x92} instruction.
 The call number is placed in \Reg{r0}, while parameters are placed in \Reg{r1} through \Reg{r5}.
 Return values are left in \Reg{r0} after the call is performed.
+System-calls are nonblocking and can be retried until completion or interleaved with other operations.
 
 Exceptions are delivered to the game process as a signal.
 Signals are initially blocked. An exception causing a blocked signal will terminate the process.
 A signal can be unblocked and handled instead.
 In this case, it causes the process to restart to address \MemAddr{4096} with the signal number in \Reg{r0}. A system-call is used to return from the signal.
+
+\subsubsection{Hardware features}
+
+Games can make system-calls to access hardware features.
+
+Images can be displayed from a linear framebuffer, at least 4-byte-aligned, anywhere in the process address space.
+The front-buffer can be changed only at the start of vertical blanking.
+The kernel will set aside the last requested address and make the flip when vblank starts.
+The video scanout loads 16-bit RGB565 pixel data directly from process memory.
+Framebuffers should avoid crossing 1MByte address boundaries, for best performance.
+
+Sound can be played using PCM data, at least 4-byte-aligned, anywhere in the process address space.
+The kernel sets aside a copy of the data and plays it back using DMA. Only 16-bit 48KHz left-then-right stereo is supported.
+
+Input can be read using a system-call to a buffer, at least 4-byte-aligned, anywhere in the process address space.
+Input is retrieved from up to 4 Megadrive-compatible gamepads plugged into the system.
+The ports are labelled ``A", ``B", ``C", and ``D".
+Input is delivered as a stream of events tagged with these characters as the first byte.
+
+A feature like \VarName{exec()} is available for replacing the running program with another.
+The kernel keeps a separate address space ready for a process to load, and then move into place.
+Arguments and environment variables can be preserved in a kernel-side buffer during this process.
+
+Nonvolatile memory is available inside the console for savegames.
+4MBytes are dedicated to the NVM savegame system, split into records of 128KBytes.
+Games are allocated a NVM record, on boot, if their card has a valid Volume ID that doesn't start with \Const{'-'}.
+Saving and loading an NVM record are both atomic operations.
+The contents of the NVM record is replaced entirely on a successful save.
+Interrupted saves do not corrupt the existing record.
+
 
 \section{The boot process}
 The boot process treats the game card like an optical disc - it is read-only and organized in naturally-aligned 2048-byte sectors.
@@ -159,6 +194,9 @@ The system first reads sectors \Const{0x10} and \Const{0x11}.
 Sector \Const{0x10} always contains the ISO9660 Primary Volume Descriptor, describing the game media.
 The ISO9660 Primary Volume Descriptor gives the name of the media, in a \Const{32}-byte field at offset \Const{40}.
 If this is present, not entirely whitespace, and not \Const{CDROM} or \Const{cdrom}, it is taken to be the game's name.
+
+Savegame memory will be allocated and named automatically according to the name given in the Volume ID of the PVD.
+(If the name is not present, or starts with the character \Const{-} (\Const{0x2D}), no savegame memory will be allocated.)
 
 Sector \Const{0x11} always contains the El Torito Boot Volume Descriptor, describing the boot information.
 The El Torito Boot Volume Descriptor, from sector \Const{0x11}, is used to locate an El Torito Boot Catalog.
@@ -217,6 +255,9 @@ Once the game executable is loaded, the game process starts executing it from \M
 If any of these steps encounters a missing magic-number or a failure to read the game media, the booting process stops.
 Instead of launching the game, the console will drop to its system menu.
 The system menu allows users to see the data saved on their console or turn it off.
+
+If the game boots successfully, it should not exit. The user ends the game by turning the console off.
+If the game process terminates after being started, the system will try again to launch it, up to 3 times in total.
 
 \section{The instruction set}
 
@@ -279,7 +320,6 @@ The first time a game starts, before any data is saved, it is still valid to cal
 The savegame will have been created during the boot process.
 A newly allocated savegame will contain 0 bytes when read back.
 
-\pagebreak
 \section{System calls}
 
 System-calls are used to access hardware features in a backward- and forward-compatible way.
@@ -321,12 +361,13 @@ These system-calls relate to the general usage of the system-call interface.
 \SysCall{pause}{0x01}
 {
 	Waits until any event happens to the calling process, or has happened since this call was last made.
+	In this context, "any event" refers to the completion or failure of a prior system-call which returned \Const{-{\Undie}SC{\Undie}EAGAIN}.
 	
 	If an event has already occurred, the call returns immediately.
 	If no event has occurred, the calling process will not be scheduled again until it does.
 	This is the only way to actually block a process at the kernel level.
-	
-	In this context, "any event" refers to the completion or failure of a prior system-call which returned \Const{-{\Undie}SC{\Undie}EAGAIN}.
+	Note that it is likely this system-call returns spuriously.
+	It should be used in a loop if busy-waiting on completion of a system-call which is returning \Const{-{\Undie}SC{\Undie}EAGAIN}.
 }
 {
 	\SysParmNone
@@ -636,8 +677,6 @@ Each program starts with the audio-visual and input peripherals ready to use.
 	\SysRetnDead
 }
 
-\pagebreak
-
 \subsection{Error codes}
 The following error codes may be returned by the kernel.
 These values are defined as positive integers here.
@@ -798,8 +837,6 @@ It also includes startup files necessary to call \VarName{main()} in a sane way.
 
 Source code for this example is found in \PathName{examples/sdkusage} in the SDK.
 It requires the SDK to be set up properly, including the GNU ARM toolchain and the C Runtime and C Standard Library for Neki32.
-
-\pagebreak
 
 \subsection{System call usage}
 

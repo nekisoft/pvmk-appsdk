@@ -174,5 +174,5 @@ void tex_free(int tt)
 
 fbpx_t *tex_data(int tt)
 {
-	return &(textures_3[tt][0][0]);
+	return &(textures[tt][0][0]);
 }

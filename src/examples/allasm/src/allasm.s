@@ -120,7 +120,7 @@ boot_catalog:
 	.byte 0x01     //Version of PVD
 	.byte 0x00     //Unused
 	.ascii "NEKI32 BY NEKISOFT              " //System ID (32 bytes)
-	.ascii "All-assembly Neki32 Example     " //Volume ID (32 bytes)
+	.ascii "-All-assembly Neki32 Example    " //Volume ID (32 bytes), start with '-' so we do not get savegame space
 	
 	
 //El Torito Boot Volume Descriptor, at sector 17 (+34KBytes)

@@ -407,7 +407,7 @@ void span_finish(void)
 				uint16_t *pstart = &(fbline[sptr->x0[0]]);
 				for(int pp = 0; pp < px_n; pp++)
 				{
-					pstart[pp] = texdata[ ((ts >> 11) % 32) + (((tt >> 11)%32) << 5) ];
+					pstart[pp] = texdata[ ((ts >> 8) % 256) + (((tt >> 8)%256) << 8) ];
 					//if(pp == 0 || pp == px_n - 1)
 					//	pstart[pp] = 0xFFFF;
 					

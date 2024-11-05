@@ -81,9 +81,9 @@ main_example:
 		mov r2, #256    //Parameter - number of bytes to read
 		
 		//Call to load the bytes
-		stmfd sp!, {r5, r6, lr} //Preserve registers
+		stmfd sp!, {r2, r5, r6, lr} //Preserve registers
 		bl load_bytes
-		ldmfd sp!, {r5, r6, lr}
+		ldmfd sp!, {r2, r5, r6, lr}
 		
 		//The directory entry, as loaded, will have its name at offset 33
 		//See if it matches the filename we wanted
@@ -156,23 +156,23 @@ main_example:
 load_sector:
 
 	//Set aside parameters in case they get clobbered
-	stmfd sp!, {r0, r1}
+	stmfd sp!, {r0, r1, r2, r3}
 	
 	//Run system call
-	mov r3, #1 //Syscall parameter - number of sectors
+	mov r3, #1 //Syscall parameter - number of sectors to read
 	mov r2, r1 //Syscall parameter - buffer location
 	mov r1, r0 //Syscall parameter - sector number
 	mov r0, #0x91 //Syscall number - _sc_disk_read2k()
 	udf #0x92
 	
 	//Check return value, see if we read the sector
-	cmp r0, #2048
+	cmp r0, #0
 	
 	//Pop the parameters off the stack, whether we read it successfully or not
-	ldmfd sp!, {r0, r1}
+	ldmfd sp!, {r0, r1, r2, r3}
 	
 	//If we were successful, return
-	bxeq lr
+	bxge lr
 	
 	//Otherwise, retry
 	b load_sector
