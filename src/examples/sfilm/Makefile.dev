@@ -1,0 +1,89 @@
+#Makefile for card-based application - development version
+#Bryan E. Topp <betopp@betopp.com> 2024
+
+CC     = cc
+OBJCOPY= objcopy
+
+#Directories used locally
+SRCDIR=./src
+OBJDIR=./obj.dev
+BINDIR=./bin.dev
+IMGDIR=./img.dev
+CARDROOT=./cardroot
+
+#C source files and resulting objects
+CSRC:=$(shell find -L $(SRCDIR) -name "*.c")
+COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
+
+#For development build - phony system call library
+CSRC+= $(SRCDIR)/sdlsc.c.dev
+COBJ+= $(OBJDIR)/sdlsc.o
+
+#Flags to use when compiling
+CFLAGS += -std=c99 -pedantic
+CFLAGS += -Wall -Werror -Wextra
+CFLAGS += -O0 -g
+CFLAGS += -fstack-usage
+
+#Phony system call library
+CFLAGS += -I../../sdlsc/include
+CFLAGS += -DUSE_SDLSC=1
+CFLAGS += $(shell sdl2-config --cflags)
+
+#Flags to use when linking
+LINKFLAGS += 
+LIBS += -lm $(shell sdl2-config --libs)
+
+#Build information provided to compiler
+BUILDVERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+BUILDDATE := $(shell date -u +%FT%TZ)
+BUILDUSER := $(shell whoami)@$(shell hostname)
+UNIXTIME := $(shell date +%s)
+CFLAGS += -DBUILDVERSION=\"$(BUILDVERSION)\"
+CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
+CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
+CFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
+
+#Build directory with the game contents
+IMGFILES_SRC=$(shell find -H $(CARDROOT) -type f)
+IMGFILES_DST=$(patsubst $(CARDROOT)%, $(IMGDIR)%, $(IMGFILES_SRC))
+IMGFILES_DST+=$(IMGDIR)/boot.nne $(IMGDIR)/boot.elf
+
+$(IMGDIR) : $(IMGFILES_DST)
+	
+#Image comes from "bin.dev" for executables, cardroot otherwise
+$(IMGDIR)/%.elf : $(BINDIR)/%.elf
+	mkdir -p $(@D)
+	cp $^ $@
+
+$(IMGDIR)/%.nne : $(BINDIR)/%.nne
+	mkdir -p $(@D)
+	cp $^ $@
+
+$(IMGDIR)/% : $(CARDROOT)/%
+	mkdir -p $(@D)
+	cp $^ $@
+
+#Link post-process target - no-nonsense executable made by stripping the ELF
+$(BINDIR)/boot.nne : $(BINDIR)/boot.elf
+	mkdir -p $(@D)
+	$(OBJCOPY) -O binary $< $@
+
+#Link stage target - ELF made from linking all objects
+$(BINDIR)/boot.elf : $(COBJ)
+	mkdir -p $(@D)
+	$(CC) $(LINKFLAGS) $^ -o $@ $(LIBS)
+
+#Compile targets - object for each C file
+$(OBJDIR)/%.o : $(SRCDIR)/%.c
+	mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $< -o $@
+	
+#Dev-only targets - object for each C file
+$(OBJDIR)/%.o : $(SRCDIR)/%.c.dev
+	mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $< -o $@
+	
+#Cleanup target
+clean:
+	rm -rf $(BINDIR) $(OBJDIR) $(IMGDIR)
