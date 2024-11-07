@@ -19,19 +19,33 @@
 #include <string.h>
 #include <unistd.h>
 
-//How much data we've streamed
-int datapos = 0;
+//Lots of optimizations are possible if we know the width of a video line at compile-time
+#define SFILM_FORCE_VIDEO_MODE _SC_GFX_MODE_VGA_16BPP
 
 //Video mode we'll use for playing
-int video_mode = 0;
+#if SFILM_FORCE_VIDEO_MODE
+	#define video_mode SFILM_FORCE_VIDEO_MODE
+#else
+	static int video_mode = 0;
+#endif
 
 //Framebuffer space (might be 320x240 or 640x480, triple-buffer either way)
-uint16_t framebuffer_0[640*480] __attribute__((aligned(1048576)));
-uint16_t framebuffer_1[640*480] __attribute__((aligned(1048576)));
-uint16_t framebuffer_2[640*480] __attribute__((aligned(1048576)));
+//Accessed as uint64_t - 4 pixels at a time
+static uint64_t framebuffer_0[640*480/4] __attribute__((aligned(1048576)));
+//static uint64_t framebuffer_1[640*480/4] __attribute__((aligned(1048576)));
+//static uint64_t framebuffer_2[640*480/4] __attribute__((aligned(1048576)));
+
+//Number of 64-bit words in each video line
+#if SFILM_FORCE_VIDEO_MODE == _SC_GFX_MODE_VGA_16BPP
+	#define video_pitch 160
+#elif SFILM_FORCE_VIDEO_MODE == _SC_GFX_MODE_320X240_16BPP
+	#define video_pitch 80
+#else
+	static int video_pitch = 0;
+#endif
 
 //Which framebuffer we're decoding into
-uint16_t *framebuffer_next = framebuffer_0;
+static uint64_t *framebuffer_next = framebuffer_0;
 
 //Sample table from FILM header
 typedef struct stab_s
@@ -42,52 +56,52 @@ typedef struct stab_s
 	uint32_t info2;
 } stab_t;
 #define STAB_MAX 65536 //About 45 minutes at 24hz
-stab_t stab[STAB_MAX];
+static stab_t stab[STAB_MAX];
 
 //Number of entries in sample table, when we exhaust this we're done
-int stab_total;
+static int stab_total;
 
 //Next sample table entry to load
-int stab_next;
+static int stab_next;
 
 //Framerate base value for sample table entries
-int stab_timebase;
+static int stab_timebase;
 
 //Temporary buffer for audio data
 #define AUDIOBUFSZ 4096
-uint16_t audio_buffer[4096][2];
+static uint16_t audio_buffer[4096][2];
 
-//Cinepack V1 codebook - a one-byte V1 code unpacks into 4x4 pixels, each of these doubled in width+height
-uint16_t cvid_v1[256][4];
+//Cinepak V1 codebook with pixels already doubled
+static uint64_t cvid_v1[256][2];
 
 //Cinepack V4 codebook - each byte of a V4 code unpacks into 2x2 pixels, each of these used once
-uint16_t cvid_v4[256][4];
+static uint32_t cvid_v4[256][2];
 
 //Dimensions of Cinepak strip we're decoding
-uint16_t strip_x0;
-uint16_t strip_x1;
-uint16_t strip_y0;
-uint16_t strip_y1;
+static uint16_t strip_x0;
+static uint16_t strip_x1;
+static uint16_t strip_y0;
+static uint16_t strip_y1;
 
 //Strips apparently stack within a frame, even if they all have the same Y range
-uint16_t strip_y_done;
+static uint16_t strip_y_done;
 
 //Decodes a Cinepak y/u/v value into rgb565 that we use for our framebuffer
 static uint16_t decode_yuv(unsigned char y, signed char u, signed char v)
 {
-	int r = (int)y + (2*(int)v);
+	int r = (int)y + (v  << 1);
 	if(r < 0)
 		r = 0;
 	if(r > 255)
 		r = 255;
 	
-	int g = (int)y - ((int)u/2) - (int)v;
+	int g = (int)y - (u >> 1) - v;
 	if(g < 0)
 		g = 0;
 	if(g > 255)
 		g = 255;
 	
-	int b = (int)y + (2*(int)u);
+	int b = (int)y + (u << 1);
 	if(b < 0)
 		b = 0;
 	if(b > 255)
@@ -118,7 +132,7 @@ static void cpy4be(void *dst, void *src, int bytes)
 }
 
 //Copies and flips byte order of a series of 2-byte values
-void cpy2be(void *dst, void *src, int bytes)
+static void cpy2be(void *dst, void *src, int bytes)
 {
 	unsigned char *db = (unsigned char*)dst;
 	unsigned char *sb = (unsigned char*)src;
@@ -134,7 +148,7 @@ void cpy2be(void *dst, void *src, int bytes)
 }
 
 //Handles an audio chunk
-void sample_audio(const unsigned char *audio_chunk, int payload_len)
+static void sample_audio(const unsigned char *audio_chunk, int payload_len)
 {
 	//We'll synchronize to the audio playback.
 	//Feed the audio data into the kernel's buffer and wait if there's no room.
@@ -173,7 +187,11 @@ void sample_audio(const unsigned char *audio_chunk, int payload_len)
 	//Shove it at the kernel
 	while(1)
 	{
-		int enqueued = _sc_snd_play(1, audio_buffer, nsamples*8, (48000*4)/10);
+		int maxbuf = (48000*4)/10;
+		if(video_mode == _SC_GFX_MODE_VGA_16BPP)
+			maxbuf *= 4;
+		
+		int enqueued = _sc_snd_play(1, audio_buffer, nsamples*8, maxbuf);
 		if(enqueued < 0)
 		{
 			//No room for this audio yet, pump streaming and try again
@@ -187,8 +205,71 @@ void sample_audio(const unsigned char *audio_chunk, int payload_len)
 	}	
 }
 
+//Draws a quad of V4 codewords into the framebuffer from the codebook
+static void cvid_draw_v4(uint64_t *dest, unsigned char *v4)
+{	
+	dest[video_pitch*0] = cvid_v4[v4[0]][0] | ((uint64_t)cvid_v4[v4[1]][0] << 32);
+	dest[video_pitch*1] = cvid_v4[v4[0]][1] | ((uint64_t)cvid_v4[v4[1]][1] << 32);
+	dest[video_pitch*2] = cvid_v4[v4[2]][0] | ((uint64_t)cvid_v4[v4[3]][0] << 32);
+	dest[video_pitch*3] = cvid_v4[v4[2]][1] | ((uint64_t)cvid_v4[v4[3]][1] << 32);
+}
+
+//Draws a single (pixel-doubled) V1 codeword into the framebuffer from the codebook
+static void cvid_draw_v1(uint64_t *dest, unsigned char *v1)
+{	
+	dest[video_pitch*0] = cvid_v1[v1[0]][0];
+	dest[video_pitch*1] = cvid_v1[v1[0]][0];
+	dest[video_pitch*2] = cvid_v1[v1[0]][1];
+	dest[video_pitch*3] = cvid_v1[v1[0]][1];
+}
+
+//Writes a V4 word into the codebook from 6 bytes (Y0123/U/V)
+static void cvid_set_v4_color(int code, unsigned char *data)
+{
+	uint32_t a = decode_yuv(data[0],data[4],data[5]);
+	uint32_t b = decode_yuv(data[1],data[4],data[5]);
+	uint32_t c = decode_yuv(data[2],data[4],data[5]);
+	uint32_t d = decode_yuv(data[3],data[4],data[5]);	
+	cvid_v4[code][0] = (a << 0) | (b << 16);
+	cvid_v4[code][1] = (c << 0) | (d << 16);
+}
+
+//Writes a V1 word into the codebook from 6 bytes (Y0123/U/V)
+static void cvid_set_v1_color(int code, unsigned char *data)
+{
+	uint64_t a = decode_yuv(data[0],data[4],data[5]);
+	uint64_t b = decode_yuv(data[1],data[4],data[5]);
+	uint64_t c = decode_yuv(data[2],data[4],data[5]);
+	uint64_t d = decode_yuv(data[3],data[4],data[5]);
+	cvid_v1[code][0] = (a << 0) | (a << 16) | (b << 32) | (b << 48);
+	cvid_v1[code][1] = (c << 0) | (c << 16) | (d << 32) | (d << 48);
+}
+
+//Writes a V4 word into the codebook from 4 bytes (Y0123)
+static void cvid_set_v4_grey(int code, unsigned char *data)
+{
+	uint32_t a = decode_yuv(data[0],0,0);
+	uint32_t b = decode_yuv(data[1],0,0);
+	uint32_t c = decode_yuv(data[2],0,0);
+	uint32_t d = decode_yuv(data[3],0,0);
+	cvid_v4[code][0] = (a << 0) | (b << 16);
+	cvid_v4[code][1] = (c << 0) | (d << 16);
+}
+
+//Writes a V1 word into the codebook from 4 bytes (Y0123)
+static void cvid_set_v1_grey(int code, unsigned char *data)
+{
+	uint64_t a = decode_yuv(data[0],0,0);
+	uint64_t b = decode_yuv(data[1],0,0);
+	uint64_t c = decode_yuv(data[2],0,0);
+	uint64_t d = decode_yuv(data[3],0,0);
+	cvid_v1[code][0] = (a << 0) | (a << 16) | (b << 32) | (b << 48);
+	cvid_v1[code][1] = (c << 0) | (c << 16) | (d << 32) | (d << 48);	
+}
+
+
 //Handles a cvid data chunk
-void cvid_datum(unsigned char *data_ptr, int data_len)
+static void cvid_datum(unsigned char *data_ptr, int data_len)
 {
 	uint16_t data_id = 0;
 	data_id = (data_id << 8) | data_ptr[0];
@@ -206,10 +287,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 		int code = 0;
 		while(data_len > 5 && code < 256)
 		{	
-			cvid_v4[code][0] = decode_yuv(data_ptr[0],data_ptr[4],data_ptr[5]);
-			cvid_v4[code][1] = decode_yuv(data_ptr[1],data_ptr[4],data_ptr[5]);
-			cvid_v4[code][2] = decode_yuv(data_ptr[2],data_ptr[4],data_ptr[5]);
-			cvid_v4[code][3] = decode_yuv(data_ptr[3],data_ptr[4],data_ptr[5]);
+			cvid_set_v4_color(code, data_ptr);
 			code++;
 			data_ptr += 6;
 			data_len -= 6;
@@ -222,10 +300,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 		int code = 0;
 		while(data_len > 5 && code < 256)
 		{	
-			cvid_v1[code][0] = decode_yuv(data_ptr[0],data_ptr[4],data_ptr[5]);
-			cvid_v1[code][1] = decode_yuv(data_ptr[1],data_ptr[4],data_ptr[5]);
-			cvid_v1[code][2] = decode_yuv(data_ptr[2],data_ptr[4],data_ptr[5]);
-			cvid_v1[code][3] = decode_yuv(data_ptr[3],data_ptr[4],data_ptr[5]);
+			cvid_set_v1_color(code, data_ptr);
 			code++;
 			data_ptr += 6;
 			data_len -= 6;
@@ -238,10 +313,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 		int code = 0;
 		while(data_len > 3 && code < 256)
 		{	
-			cvid_v4[code][0] = decode_yuv(data_ptr[0],0,0);
-			cvid_v4[code][1] = decode_yuv(data_ptr[1],0,0);
-			cvid_v4[code][2] = decode_yuv(data_ptr[2],0,0);
-			cvid_v4[code][3] = decode_yuv(data_ptr[3],0,0);
+			cvid_set_v4_grey(code, data_ptr);
 			code++;
 			data_ptr += 4;
 			data_len -= 4;
@@ -254,10 +326,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 		int code = 0;
 		while(data_len > 3 && code < 256)
 		{	
-			cvid_v1[code][0] = decode_yuv(data_ptr[0],0,0);
-			cvid_v1[code][1] = decode_yuv(data_ptr[1],0,0);
-			cvid_v1[code][2] = decode_yuv(data_ptr[2],0,0);
-			cvid_v1[code][3] = decode_yuv(data_ptr[3],0,0);
+			cvid_set_v1_grey(code, data_ptr);
 			code++;
 			data_ptr += 4;
 			data_len -= 4;
@@ -269,7 +338,6 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 	{
 		int outx = strip_x0;
 		int outy = strip_y0 + strip_y_done;
-		int pitch = (video_mode == _SC_GFX_MODE_VGA_16BPP)?640:320;
 		while(data_len > 0)
 		{
 			//Read 32-bit vector telling us which blocks are V1, and which are V4
@@ -284,56 +352,18 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 			//Work through the 32 blocks then
 			for(int ff = 0; ff < 32; ff++)
 			{
-				uint16_t *dest = framebuffer_next + (outy * pitch) + (outx);
+				uint64_t *dest = framebuffer_next + (outy * video_pitch) + (outx/4);
 				if(flags & 0x80000000u)
 				{
 					//Block coded as V4
-					dest[(pitch*0)+0] = cvid_v4[data_ptr[0]][0];
-					dest[(pitch*0)+1] = cvid_v4[data_ptr[0]][1];
-					dest[(pitch*0)+2] = cvid_v4[data_ptr[1]][0];
-					dest[(pitch*0)+3] = cvid_v4[data_ptr[1]][1];
-					
-					dest[(pitch*1)+0] = cvid_v4[data_ptr[0]][2];
-					dest[(pitch*1)+1] = cvid_v4[data_ptr[0]][3];
-					dest[(pitch*1)+2] = cvid_v4[data_ptr[1]][2];
-					dest[(pitch*1)+3] = cvid_v4[data_ptr[1]][3];
-					
-					dest[(pitch*2)+0] = cvid_v4[data_ptr[2]][0];
-					dest[(pitch*2)+1] = cvid_v4[data_ptr[2]][1];
-					dest[(pitch*2)+2] = cvid_v4[data_ptr[3]][0];
-					dest[(pitch*2)+3] = cvid_v4[data_ptr[3]][1];
-					
-					dest[(pitch*3)+0] = cvid_v4[data_ptr[2]][2];
-					dest[(pitch*3)+1] = cvid_v4[data_ptr[2]][3];
-					dest[(pitch*3)+2] = cvid_v4[data_ptr[3]][2];
-					dest[(pitch*3)+3] = cvid_v4[data_ptr[3]][3];
-					
+					cvid_draw_v4(dest, data_ptr);
 					data_ptr += 4;
 					data_len -= 4;
 				}
 				else
 				{
 					//Block coded as V1
-					dest[(pitch*0)+0] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*0)+1] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*0)+2] = cvid_v1[data_ptr[0]][1];
-					dest[(pitch*0)+3] = cvid_v1[data_ptr[0]][1];
-					
-					dest[(pitch*1)+0] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*1)+1] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*1)+2] = cvid_v1[data_ptr[0]][1];
-					dest[(pitch*1)+3] = cvid_v1[data_ptr[0]][1];
-					
-					dest[(pitch*2)+0] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*2)+1] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*2)+2] = cvid_v1[data_ptr[0]][3];
-					dest[(pitch*2)+3] = cvid_v1[data_ptr[0]][3];
-					
-					dest[(pitch*3)+0] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*3)+1] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*3)+2] = cvid_v1[data_ptr[0]][3];
-					dest[(pitch*3)+3] = cvid_v1[data_ptr[0]][3];
-					
+					cvid_draw_v1(dest, data_ptr);
 					data_ptr += 1;
 					data_len -= 1;
 				}
@@ -358,32 +388,12 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 	{
 		int outx = strip_x0;
 		int outy = strip_y0 + strip_y_done;
-		int pitch = (video_mode == _SC_GFX_MODE_VGA_16BPP)?640:320;
 		while(data_len > 0)
 		{
-			uint16_t *dest = framebuffer_next + (outy * pitch) + (outx);
+			uint64_t *dest = framebuffer_next + (outy * video_pitch) + (outx/4);
 	
 			//Block coded as V1
-			dest[(pitch*0)+0] = cvid_v1[data_ptr[0]][0];
-			dest[(pitch*0)+1] = cvid_v1[data_ptr[0]][0];
-			dest[(pitch*0)+2] = cvid_v1[data_ptr[0]][1];
-			dest[(pitch*0)+3] = cvid_v1[data_ptr[0]][1];
-			
-			dest[(pitch*1)+0] = cvid_v1[data_ptr[0]][0];
-			dest[(pitch*1)+1] = cvid_v1[data_ptr[0]][0];
-			dest[(pitch*1)+2] = cvid_v1[data_ptr[0]][1];
-			dest[(pitch*1)+3] = cvid_v1[data_ptr[0]][1];
-			
-			dest[(pitch*2)+0] = cvid_v1[data_ptr[0]][2];
-			dest[(pitch*2)+1] = cvid_v1[data_ptr[0]][2];
-			dest[(pitch*2)+2] = cvid_v1[data_ptr[0]][3];
-			dest[(pitch*2)+3] = cvid_v1[data_ptr[0]][3];
-			
-			dest[(pitch*3)+0] = cvid_v1[data_ptr[0]][2];
-			dest[(pitch*3)+1] = cvid_v1[data_ptr[0]][2];
-			dest[(pitch*3)+2] = cvid_v1[data_ptr[0]][3];
-			dest[(pitch*3)+3] = cvid_v1[data_ptr[0]][3];
-			
+			cvid_draw_v1(dest, data_ptr);
 			data_ptr += 1;
 			data_len -= 1;
 	
@@ -418,10 +428,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 				if(flags & 0x80000000u)
 				{
 					//This code is updated
-					cvid_v1[code][0] = decode_yuv(data_ptr[0],data_ptr[4],data_ptr[5]);
-					cvid_v1[code][1] = decode_yuv(data_ptr[1],data_ptr[4],data_ptr[5]);
-					cvid_v1[code][2] = decode_yuv(data_ptr[2],data_ptr[4],data_ptr[5]);
-					cvid_v1[code][3] = decode_yuv(data_ptr[3],data_ptr[4],data_ptr[5]);
+					cvid_set_v4_color(code, data_ptr);
 					data_ptr += 6;
 					data_len -= 6;
 				}
@@ -453,10 +460,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 				if(flags & 0x80000000u)
 				{
 					//This code is updated
-					cvid_v1[code][0] = decode_yuv(data_ptr[0],data_ptr[4],data_ptr[5]);
-					cvid_v1[code][1] = decode_yuv(data_ptr[1],data_ptr[4],data_ptr[5]);
-					cvid_v1[code][2] = decode_yuv(data_ptr[2],data_ptr[4],data_ptr[5]);
-					cvid_v1[code][3] = decode_yuv(data_ptr[3],data_ptr[4],data_ptr[5]);
+					cvid_set_v1_color(code, data_ptr);
 					data_ptr += 6;
 					data_len -= 6;
 				}
@@ -488,10 +492,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 				if(flags & 0x80000000u)
 				{
 					//This code is updated
-					cvid_v4[code][0] = decode_yuv(data_ptr[0],0,0);
-					cvid_v4[code][1] = decode_yuv(data_ptr[1],0,0);
-					cvid_v4[code][2] = decode_yuv(data_ptr[2],0,0);
-					cvid_v4[code][3] = decode_yuv(data_ptr[3],0,0);
+					cvid_set_v4_grey(code, data_ptr);
 					data_ptr += 4;
 					data_len -= 4;
 				}
@@ -523,10 +524,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 				if(flags & 0x80000000u)
 				{
 					//This code is updated
-					cvid_v1[code][0] = decode_yuv(data_ptr[0],0,0);
-					cvid_v1[code][1] = decode_yuv(data_ptr[1],0,0);
-					cvid_v1[code][2] = decode_yuv(data_ptr[2],0,0);
-					cvid_v1[code][3] = decode_yuv(data_ptr[3],0,0);
+					cvid_set_v1_grey(code, data_ptr);
 					data_ptr += 4;
 					data_len -= 4;
 				}
@@ -542,7 +540,6 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 	{
 		int outx = strip_x0;
 		int outy = strip_y0 + strip_y_done;
-		int pitch = (video_mode == _SC_GFX_MODE_VGA_16BPP)?640:320;
 		uint32_t flags_values = 0;
 		int flags_remain = 0;
 		while(data_len > 0)
@@ -565,8 +562,8 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 			
 			if(is_coded)
 			{
-				uint16_t *dest = framebuffer_next + (outy * pitch) + (outx);
-				
+				uint64_t *dest = framebuffer_next + (outy * video_pitch) + (outx/4);
+		
 				if(flags_remain <= 0)
 				{
 					//Need more flags
@@ -585,52 +582,14 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 				if(v4_coded)
 				{
 					//Block coded as V4
-					dest[(pitch*0)+0] = cvid_v4[data_ptr[0]][0];
-					dest[(pitch*0)+1] = cvid_v4[data_ptr[0]][1];
-					dest[(pitch*0)+2] = cvid_v4[data_ptr[1]][0];
-					dest[(pitch*0)+3] = cvid_v4[data_ptr[1]][1];
-					
-					dest[(pitch*1)+0] = cvid_v4[data_ptr[0]][2];
-					dest[(pitch*1)+1] = cvid_v4[data_ptr[0]][3];
-					dest[(pitch*1)+2] = cvid_v4[data_ptr[1]][2];
-					dest[(pitch*1)+3] = cvid_v4[data_ptr[1]][3];
-					
-					dest[(pitch*2)+0] = cvid_v4[data_ptr[2]][0];
-					dest[(pitch*2)+1] = cvid_v4[data_ptr[2]][1];
-					dest[(pitch*2)+2] = cvid_v4[data_ptr[3]][0];
-					dest[(pitch*2)+3] = cvid_v4[data_ptr[3]][1];
-					
-					dest[(pitch*3)+0] = cvid_v4[data_ptr[2]][2];
-					dest[(pitch*3)+1] = cvid_v4[data_ptr[2]][3];
-					dest[(pitch*3)+2] = cvid_v4[data_ptr[3]][2];
-					dest[(pitch*3)+3] = cvid_v4[data_ptr[3]][3];
-					
+					cvid_draw_v4(dest, data_ptr);
 					data_ptr += 4;
 					data_len -= 4;
 				}
 				else
 				{
 					//Block coded as V1
-					dest[(pitch*0)+0] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*0)+1] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*0)+2] = cvid_v1[data_ptr[0]][1];
-					dest[(pitch*0)+3] = cvid_v1[data_ptr[0]][1];
-					
-					dest[(pitch*1)+0] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*1)+1] = cvid_v1[data_ptr[0]][0];
-					dest[(pitch*1)+2] = cvid_v1[data_ptr[0]][1];
-					dest[(pitch*1)+3] = cvid_v1[data_ptr[0]][1];
-					
-					dest[(pitch*2)+0] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*2)+1] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*2)+2] = cvid_v1[data_ptr[0]][3];
-					dest[(pitch*2)+3] = cvid_v1[data_ptr[0]][3];
-					
-					dest[(pitch*3)+0] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*3)+1] = cvid_v1[data_ptr[0]][2];
-					dest[(pitch*3)+2] = cvid_v1[data_ptr[0]][3];
-					dest[(pitch*3)+3] = cvid_v1[data_ptr[0]][3];
-					
+					cvid_draw_v1(dest, data_ptr);
 					data_ptr += 1;
 					data_len -= 1;
 				}
@@ -652,7 +611,7 @@ void cvid_datum(unsigned char *data_ptr, int data_len)
 }
 
 //Handles a cvid strip
-void cvid_strip(unsigned char *strip_ptr, int strip_len)
+static void cvid_strip(unsigned char *strip_ptr, int strip_len)
 {
 	//Read strip header	
 	uint16_t strip_type = 0;
@@ -722,7 +681,7 @@ void cvid_strip(unsigned char *strip_ptr, int strip_len)
 }
 
 //Handles a video chunk
-void sample_video(unsigned char *frame_ptr, int frame_len)
+static void sample_video(unsigned char *frame_ptr, int frame_len)
 {
 	//Video sample
 	//Spew these out as quickly as we can, because they happen occasionally between audio samples.
@@ -788,11 +747,12 @@ void sample_video(unsigned char *frame_ptr, int frame_len)
 	//Time to display
 
 	//Triple-buffer so we don't wait on any video stuff
+	//Screw it, single-buffer, who cares
 	_sc_gfx_flip(video_mode, framebuffer_0);	
 }
 
 //Plays the FMV and then returns
-void dofmv(const char *filename)
+static void dofmv(const char *filename)
 {
 	//Set up data streaming
 	int init_result = streamer_init(filename);
@@ -884,19 +844,37 @@ void dofmv(const char *filename)
 				return;
 			}
 			
-			if(framewidth == 320 && frameheight == 240)
-			{
-				video_mode = _SC_GFX_MODE_320X240_16BPP;
-			}
-			else if(framewidth == 640 && frameheight == 480)
-			{
-				video_mode = _SC_GFX_MODE_VGA_16BPP;
-			}
-			else
-			{
-				fprintf(stderr, "sfilm: Video size not 320x240 or 640x480, unsupported.\n");
-				return;
-			}
+			#if SFILM_FORCE_VIDEO_MODE == _SC_GFX_MODE_VGA_16BPP
+				if(framewidth != 640 || frameheight != 480)
+				{
+					fprintf(stderr, "sfilm: Built for only 640x480 video. Cannot play.\n");
+					return;
+				}
+			#elif SFILM_FORCE_VIDEO_MODE == _SC_GFX_MODE_320X240_16BPP
+				if(framewidth != 320 || frameheight != 240)
+				{
+					fprintf(stderr, "sfilm: Built for only 320x240 video. Cannot play.\n");
+					return;
+				}
+			#else
+				if(framewidth == 320 && frameheight == 240)
+				{
+					video_mode = _SC_GFX_MODE_320X240_16BPP;
+				}
+				else if(framewidth == 640 && frameheight == 480)
+				{
+					video_mode = _SC_GFX_MODE_VGA_16BPP;
+				}
+				else
+				{
+					fprintf(stderr, "sfilm: Video size not 320x240 or 640x480, unsupported.\n");
+					return;
+				}
+				
+				video_pitch = ((video_mode == _SC_GFX_MODE_VGA_16BPP)?640:320)/4;
+			#endif
+			
+			
 			
 			if(audio_channel != 1)
 			{
@@ -1019,7 +997,7 @@ void dofmv(const char *filename)
 }
 
 //Launches the given executable when we're done with the movie
-void doexec(const char *filename)
+static void doexec(const char *filename)
 {
 	//Standard library handles this, including preserving environment across exec
 	#if USE_SDLSC
@@ -1046,6 +1024,7 @@ int main(int argc, const char **argv)
 	}
 
 	dofmv(streamfile);
+	fprintf(stderr, "sfilm: FMV done\n");
 	doexec(execfile);
 	return 0;
 }
