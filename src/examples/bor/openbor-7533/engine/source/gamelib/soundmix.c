@@ -1490,7 +1490,7 @@ void sound_close_music()
     case 0:
         sound_close_adpcm();
         break;
-    case 1:
+    case 1: { }
       //  sound_close_ogg();
     }
     music_type = -1;
@@ -1503,7 +1503,7 @@ void sound_update_music()
     case 0:
         sound_update_adpcm();
         break;
-    case 1:
+    case 1: { }
        // sound_update_ogg();
     }
 }
@@ -1514,7 +1514,7 @@ int sound_query_music(char *artist, char *title)
     {
     case 0:
         return sound_query_adpcm(artist, title);
-    case 1:
+    case 1: { }
       //  return sound_query_ogg(artist, title);
     default:
         return 0;
@@ -1529,7 +1529,7 @@ void sound_music_tempo(int music_tempo)
     case 0:
         sound_adpcm_tempo(music_tempo);
         break;
-    case 1:
+    case 1: { }
     //    sound_ogg_tempo(music_tempo);
     }
 }
