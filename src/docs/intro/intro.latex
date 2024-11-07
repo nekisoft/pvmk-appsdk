@@ -381,6 +381,9 @@ These system-calls relate to the general usage of the system-call interface.
 	Currently supports very few control sequences.
 	Basically only used for debugging.
 	Returns the number of bytes printed.
+	
+	Note that this does not cause the text-mode screen to be displayed.
+	Call \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} with parameters of 0 to display the text-mode screen.
 }
 {
 	\SysParm{r1}{const char*}{buf{\Undie}ptr}{Location of data to print.}
@@ -436,7 +439,7 @@ Each program starts with the audio-visual and input peripherals ready to use.
 	Either the whole buffer is consumed or none is.
 	The caller may specify the maximum amount of audio to buffer in the kernel.
 	This allows trading latency for stability.
-	Returns the number of bytes the kernel has buffered on success, or a negative error number.
+	Returns the number of bytes the kernel has still buffered on success, or a negative error number.
 	
 	The following mode values are allowed:\\
 	\begin{tabular}{l l l}
@@ -450,7 +453,7 @@ Each program starts with the audio-visual and input peripherals ready to use.
 	\SysParm{r2}{const void *}{chunk}{The location of the buffer in memory to enqueue.}
 	\SysParm{r3}{int}{chunkbytes}{The number of bytes in the buffer to enqueue.}
 	\SysParm{r4}{int}{maxbuf}{The maximum number of bytes to enqueue in the kernel.}
-	\SysRetn{int}{0 on success, or a negative error number.}
+	\SysRetn{int}{Current buffer usage (bytes) on success, or a negative error number.}
 }
 
 \SysCall{input}{0x50}
