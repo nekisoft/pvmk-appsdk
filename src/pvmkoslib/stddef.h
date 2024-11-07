@@ -13,9 +13,9 @@
 	#define offsetof(type, memberdesignator) ((size_t)(&(((type*)0)->memberdesignator)))
 #endif
 
-
-
+#define _SIZE_T_DECLARED
 typedef __SIZE_TYPE__ size_t;
+
 typedef __PTRDIFF_TYPE__ ptrdiff_t;
 typedef __WINT_TYPE__ wint_t;
 

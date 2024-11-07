@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <strings.h>
 
 #include <sys/stat.h>
 #include <sys/dirent.h>
@@ -392,7 +393,7 @@ static int _cdfs_translate_dirent_uncached(uint64_t byteoff, uint64_t maxlen, st
 		st_out->st_nlink = 1;
 		st_out->st_rdev = 0;
 		
-		if(susp_loc[SUSP_RR] != NULL && susp_loc[SUSP_PX] != NULL)
+		if( /*susp_loc[SUSP_RR] != NULL &&*/ susp_loc[SUSP_PX] != NULL) //Why doesn't xorriso output a RR record?
 		{
 			//Has Rock Ridge mode info
 			uint32_t rr_mode = 0;
@@ -460,7 +461,7 @@ static int _cdfs_translate_dirent_uncached(uint64_t byteoff, uint64_t maxlen, st
 			de_out->d_name[1] = '.';
 			de_out->d_name[2] = '\0';
 		}
-		else if(susp_loc[SUSP_RR] != NULL && susp_loc[SUSP_NM] != NULL)
+		else if(/*susp_loc[SUSP_RR] != NULL &&*/ susp_loc[SUSP_NM] != NULL) //Why doesn't xorriso output a RR record?
 		{
 			//Found a Rock Ridge filename
 			int to_copy = susp_len[SUSP_NM] - 5;
@@ -862,7 +863,9 @@ int _cdfs_search(uint32_t ino, const char *filename)
 		data_len -= translate_result;	
 		
 		//See if it's what we're looking for
-		if(!strcmp(filename, search_de.d_name))
+		//if(!strcmp(filename, search_de.d_name))
+		//	return search_de.d_ino;
+		if(!strcasecmp(filename, search_de.d_name)) //Case-insensitive because ISO9660 utilities mangle case sometimes
 			return search_de.d_ino;
 	}
 	
