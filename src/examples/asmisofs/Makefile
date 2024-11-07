@@ -13,10 +13,13 @@ GCCOPTS += -Isrc
 #Options passed to GCC - debug info
 GCCOPTS += -g
 
+#Program for making ISO images - use xorriso if available
+MKISOFS:=$(if $(shell which xorriso),xorriso -as mkisofs,mkisofs)
+
 #Make output ISO using mkisofs
-img/asmisofs.iso: bin/boot.nne isoroot/BOOT.NNE isoroot/IMAGE.BIN
+img/game.iso: bin/boot.nne isoroot/BOOT.NNE isoroot/IMAGE.BIN
 	mkdir -p $(@D)
-	mkisofs -volid "-Assembly and ISO9660 Example" -posix-L -eltorito-platform 0x92 -no-emul-boot -eltorito-boot BOOT.NNE -o $@ isoroot
+	$(MKISOFS) -volid "-Assembly and ISO9660 Example" -follow-links -eltorito-platform 0x92 -no-emul-boot -eltorito-boot BOOT.NNE -o $@ isoroot
 	
 #Including binary as built into the ISO, as a symlink
 isoroot/BOOT.NNE : bin/boot.nne
