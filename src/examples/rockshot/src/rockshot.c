@@ -6,7 +6,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <math.h>
+
+//Font for the top status line
+#include "font.xbm"
 
 //Size of the screen
 #define HIRES 1
@@ -92,11 +96,38 @@ typedef struct debris_s
 } debris_t;
 debris_t debris[DEBRIS_MAX];
 
+//Size of playfield
+#define FIELD_RADIUS (600)
+#define FIELD_RADIUS_16F16 (FIELD_RADIUS<<16)
+
+//Given a position and velocity, bounces it against the sides of the playfield
+void field_clip(int *pos2_16f16, int *vel2_16f16, int objradius_16f16)
+{
+	for(int dim = 0; dim < 2; dim++)
+	{		
+		if(pos2_16f16[dim] - objradius_16f16 < -FIELD_RADIUS_16F16)
+		{
+			pos2_16f16[dim] = objradius_16f16 - FIELD_RADIUS_16F16;
+			if(vel2_16f16[dim] < 0)
+				vel2_16f16[dim] *= -1;
+		}
+		else if(pos2_16f16[dim] + objradius_16f16 > FIELD_RADIUS_16F16)
+		{
+			pos2_16f16[dim] = FIELD_RADIUS_16F16 - objradius_16f16;
+			if(vel2_16f16[dim] > 0)
+				vel2_16f16[dim] *= -1;
+		}
+	}	
+}
+
 //How many lives the player has left
 //int lives;
 
 //If the player is waiting to respawn, and for how long
 int spawntimer;
+
+//Status line at the top of the screen
+char statusline[80];
 
 //Draws a line into the current backbuffer. Bresenham spans algorithm.
 void drawline(int x0, int y0, int x1, int y1, uint16_t color)
@@ -264,6 +295,20 @@ void drawline(int x0, int y0, int x1, int y1, uint16_t color)
 	}
 }
 
+//Draws font character
+void drawchr(int x, int y, char ch)
+{
+	for(int rr = 0; rr < 16; rr++)
+	{
+		uint8_t inpx = font_bits[ch + (rr * 128)];
+		for(int cc = 0; cc < 8; cc++)
+		{
+			fbs[fbnext][y + rr][x + cc] = (inpx & (1u << cc))?0:-1;
+		}	
+	}
+}
+
+
 //Draws all enqueued lines into the current backbuffer. Enqueues a flip of the buffers. Clears a new backbuffer.
 void refresh(void)
 {
@@ -272,6 +317,12 @@ void refresh(void)
 	{
 		const line_t *lptr = &(lines[fbnext][ll]);
 		drawline(lptr->x0, lptr->y0, lptr->x1, lptr->y1, 0xFFFF);
+	}
+	
+	//Paint status line at the top
+	for(int ch = 0; ch < (int)sizeof(statusline); ch++)
+	{
+		drawchr(ch * 8, 0, statusline[ch] ? statusline[ch] : ' ');
 	}
 	
 	//Enqueue flip to that next framebuffer
@@ -310,8 +361,8 @@ void refresh(void)
 		if(inp.format != 'A')
 			continue;
 		
-		if(inp.buttons & _SC_BTNBIT_START)
-			exit(0);
+		//if(inp.buttons & _SC_BTNBIT_START)
+		//	exit(0);
 		
 		buttons = inp.buttons;
 	}
@@ -349,13 +400,13 @@ void qline(int x0, int y0, int x1, int y1)
 		{
 			//Point 0 off the right side of the screen
 			y0 -= (x0 - SCRX) * (y1 - y0) / (x1 - x0) ;
-			x0 = SCRX;
+			x0 = SCRX-1;
 		}
 		else if(x1 >= SCRX)
 		{
 			//Point 1 off the right side of the screen
 			y1 -= (x1 - SCRX) * (y1 - y0) / (x1 - x0) ;
-			x1 = SCRX;
+			x1 = SCRX-1;
 		}
 		else if(y0 < 0)
 		{
@@ -373,13 +424,13 @@ void qline(int x0, int y0, int x1, int y1)
 		{
 			//Point 0 off the bottom of the screen
 			x0 -= (y0 - SCRY) * (x1 - x0) / (y1 - y0) ;
-			y0 = SCRY;
+			y0 = SCRY-1;
 		}
 		else if(y1 >= SCRY)
 		{
 			//Point 1 off the bottom of the screen
 			x1 -= (y1 - SCRY) * (x1 - x0) / (y1 - y0) ;
-			y1 = SCRY;
+			y1 = SCRY-1;
 		}
 		else
 		{
@@ -421,6 +472,23 @@ int cos16(int ang16)
 int sin16(int ang16)
 {
 	return cos16(ang16 + 16384);
+}
+
+//Updates status-line counter of rocks remaining
+int rockcount(void)
+{
+	int rcc = 0;
+	for(int rr = 0; rr < ROCK_MAX; rr++)
+	{
+		if(rocks[rr].health > 0)
+		{
+			rcc++;
+		}
+	}
+
+	snprintf(statusline + 70, sizeof(statusline) - 70, "Rocks: %2d", (rcc>99)?99:rcc);
+	
+	return rcc;
 }
 
 //Generates two rocks
@@ -509,6 +577,23 @@ void qmodel(const int verts[][2], int nverts, const int pos[2], int ang)
 	}	
 }
 
+//Enqueues a list of lines for drawing at the given worldspace position with rotation
+void qlinelist(const int lines[][4], int nlines, const int pos[2], int ang)
+{
+	for(int ll = 0; ll < nlines; ll++)
+	{
+		int verts_xf[2][2];
+		
+		verts_xf[0][0] = pos[0] + (cos16(ang) * lines[ll][0]) + (sin16(ang) * lines[ll][1]);
+		verts_xf[0][1] = pos[1] + (sin16(ang) * lines[ll][0]) - (cos16(ang) * lines[ll][1]);				
+		
+		verts_xf[1][0] = pos[0] + (cos16(ang) * lines[ll][2]) + (sin16(ang) * lines[ll][3]);
+		verts_xf[1][1] = pos[1] + (sin16(ang) * lines[ll][2]) - (cos16(ang) * lines[ll][3]);	
+		
+		qwsline(verts_xf[0][0], verts_xf[0][1], verts_xf[1][0], verts_xf[1][1]);
+	}		
+}
+
 void gamedraw(void)
 {
 	
@@ -553,6 +638,11 @@ void gamedraw(void)
 	//Background flurry
 	for(int yy = 0; yy < 8; yy++)
 	{
+		//Hack - stuff the background flurry into another parallax layer
+		int fgcam[2] = {campos[0], campos[1]};
+		campos[0] /= 2;
+		campos[1] /= 2;
+		
 		for(int xx = 0; xx < 8; xx++)
 		{
 			static const int fverts[][2] = 
@@ -562,6 +652,8 @@ void gamedraw(void)
 			};
 			qmodel(fverts, sizeof(fverts)/sizeof(fverts[0]), bgflurry[yy][xx], bgflurry[yy][xx][2]);		
 		}
+		campos[0] = fgcam[0];
+		campos[1] = fgcam[1];
 	}
 	
 	//Debris
@@ -577,6 +669,16 @@ void gamedraw(void)
 		};
 		qmodel(fverts, sizeof(fverts)/sizeof(fverts[0]), debris[dd].pos, debris[dd].ang);	
 	}
+	
+	//Playfield boundaries
+	static const int bverts[][2] = 
+	{
+		{ -FIELD_RADIUS, -FIELD_RADIUS },
+		{ -FIELD_RADIUS,  FIELD_RADIUS },
+		{  FIELD_RADIUS,  FIELD_RADIUS },
+		{  FIELD_RADIUS, -FIELD_RADIUS },
+	};
+	qmodel(bverts, sizeof(bverts)/sizeof(bverts[0]), (int[]){0,0}, 0);
 	
 	refresh();
 }
@@ -750,7 +852,6 @@ void gametick(void)
 		if(refire > 0)
 			refire--;
 		
-		
 		//Cap and accumulate player momentum
 		#define MAXVEL 256 * 65536
 		for(int dd = 0; dd < 2; dd++)
@@ -776,6 +877,9 @@ void gametick(void)
 		player_avel = (player_avel * 31) / 32;
 		player_vel[0] = (player_vel[0] * 255) / 256;
 		player_vel[1] = (player_vel[1] * 255) / 256;
+		
+		//Cap to sides of playfield
+		field_clip(player_pos, player_vel, 2<<16);
 	}
 		
 	//Move bullets
@@ -795,6 +899,9 @@ void gametick(void)
 		{
 			bullets[bb].timeleft = 0;
 		}
+		
+		//Cap to sides of playfield
+		field_clip(bullets[bb].pos, bullets[bb].vel, 1<<16);
 	}
 	
 	//Move rocks
@@ -807,6 +914,9 @@ void gametick(void)
 		rocks[rr].pos[1] += rocks[rr].vel[1];
 		rocks[rr].ang += rocks[rr].avel;
 		rocks[rr].ang %= 65536;
+		
+		//Cap to sides of playfield
+		field_clip(rocks[rr].pos, rocks[rr].vel, rocks[rr].radius << 16);
 	}
 	
 	//Move debris
@@ -954,6 +1064,9 @@ int dolevel(int levelnum)
 		rockspawn();
 	}
 	
+	//Status line
+	snprintf(statusline, sizeof(statusline), "Rock Shot! Level %d", levelnum+1);
+	
 	int simulated = _sc_getticks();
 	while(1)
 	{
@@ -961,6 +1074,10 @@ int dolevel(int levelnum)
 		int timenow = _sc_getticks();
 		if(timenow > simulated + 1000)
 			simulated = timenow - 1000;
+		
+		//Update status time
+		snprintf(statusline + 20, sizeof(statusline) - 20, "Time: %d.%2.2d", timenow/1000, (timenow % 1000)/10);
+		rockcount();
 		
 		while(simulated < timenow)
 		{
@@ -974,6 +1091,8 @@ int dolevel(int levelnum)
 			}*/
 		}
 		
+		
+		
 		//Render
 		gamedraw();
 	}
@@ -985,7 +1104,99 @@ int dolevel(int levelnum)
 
 void mainmenu(void)
 {
-
+	static const int logo[][4] = 
+	{
+		{   262,   -100,    300,     48}, {   300,     48,    262,   -100},
+		{   262,   -100,    300,     48}, {   300,     48,    291,     63},
+		{   291,     63,    268,    -28}, {   268,    -28,    246,    -26},
+		{   209,    -41,    206,    -92}, {   206,    -92,    262,   -100},
+		{   254,    -81,    263,    -38}, {   263,    -38,    245,    -38},
+		{   245,    -38,    220,    -53}, {   220,    -53,    218,    -78},
+		{   218,    -78,    254,    -81}, {   246,    -26,    235,     61},
+		{   235,     61,    225,     53}, {   225,     53,    234,    -27},
+		{   234,    -27,    209,    -41}, {   191,    -91,    194,    -39},
+		{   194,    -39,    179,     -8}, {   179,     -8,    147,     -8},
+		{   147,     -8,    132,    -35}, {   132,    -35,    132,    -88},
+		{   132,    -88,    191,    -91}, {   180,    -80,    181,    -40},
+		{   181,    -40,    174,    -21}, {   174,    -21,    154,    -22},
+		{   154,    -22,    145,    -38}, {   145,    -38,    145,    -78},
+		{   145,    -78,    180,    -80}, {    73,    -87,    120,    -87},
+		{   120,    -87,    122,    -34}, {   122,    -34,     91,      0},
+		{    91,      0,     71,      0}, {    71,      0,     72,    -15},
+		{    72,    -15,     87,    -17}, {    87,    -17,    108,    -36},
+		{   108,    -36,    109,    -76}, {   109,    -76,     77,    -77},
+		{    77,    -77,     73,    -87}, {    62,    -87,     61,     -1},
+		{    61,     -1,     48,     -2}, {    48,     -2,     51,    -35},
+		{    51,    -35,     25,     -3}, {    25,     -3,     16,    -14},
+		{    16,    -14,     45,    -45}, {    45,    -45,     12,    -85},
+		{    12,    -85,     28,    -85}, {    28,    -85,     50,    -56},
+		{    50,    -56,     51,    -88}, {    51,    -88,     62,    -87},
+		{   -44,    -84,     -4,    -84}, {    -4,    -84,      6,     -6},
+		{     6,     -6,    -39,     -5}, {   -39,     -5,    -31,     45},
+		{   -31,     45,     14,     46}, {    14,     46,     15,     61},
+		{    15,     61,    -43,     59}, {   -43,     59,    -55,    -20},
+		{   -55,    -20,     -7,    -21}, {    -7,    -21,    -14,    -74},
+		{   -14,    -74,    -51,    -73}, {   -51,    -73,    -44,    -84},
+		{   -64,     -4,    -76,     -2}, {  -110,     -1,   -126,     -3},
+		{  -118,    -85,   -105,    -84}, {   -66,    -85,    -57,    -85},
+		{  -142,    -84,   -126,    -50}, {  -126,    -50,   -139,     -3},
+		{  -139,     -3,   -178,     -2}, {  -178,     -2,   -192,    -49},
+		{  -192,    -49,   -182,    -84}, {  -182,    -84,   -142,    -84},
+		{  -147,    -72,   -138,    -49}, {  -138,    -49,   -143,    -12},
+		{  -143,    -12,   -172,    -11}, {  -172,    -11,   -181,    -49},
+		{  -181,    -49,   -173,    -72}, {  -173,    -72,   -147,    -72},
+		{  -193,    -84,   -263,    -84}, {  -263,    -84,   -266,    -73},
+		{  -266,    -73,   -234,    -72}, {  -234,    -72,   -231,     64},
+		{  -231,     64,   -218,     62}, {  -218,     62,   -219,    -70},
+		{  -219,    -70,   -197,    -72}, {  -197,    -72,   -193,    -84},
+		{   201,     14,    -32,     15}, {   -32,     15,    -29,     27},
+		{   -29,     27,    201,     27}, {   201,     27,    201,     14},
+		{   -56,     14,    -53,     27}, {   -53,     27,   -212,     27},
+		{  -212,     27,   -213,     14}, {  -213,     14,    -56,     14},
+		{   -57,    -85,    -65,    -49}, {   -65,    -49,    -64,     -4},
+		{   -76,     -2,    -75,    -42}, {   -73,    -53,    -66,    -85},
+		{  -126,     -3,   -117,    -52}, {  -117,    -52,   -118,    -85},
+		{  -105,    -84,   -105,    -54}, {  -105,    -54,    -73,    -53},
+		{   -75,    -42,   -107,    -44}, {  -107,    -44,   -110,     -1},
+	};
+	
+	int tickoffs = _sc_getticks();
+	while(1)
+	{
+		//Queue up main-menu graphics
+		
+		campos[0] = 0;
+		campos[1] = 0;
+		#if HIRES
+			camscale = 1;
+		#else
+			camscale = 2;
+		#endif
+		camrecip = 65536 / camscale;
+		
+		int rot = sin16((_sc_getticks()-tickoffs) * 32) / 32;
+		qlinelist(logo, sizeof(logo)/sizeof(logo[0]), (int[]){0,0}, rot - 16384);
+		
+		//Status line
+		snprintf(statusline +  0, sizeof(statusline) - 0, "Rock Shot!");
+		if(_sc_getticks() & 0x100)
+			snprintf(statusline + 35, sizeof(statusline) - 35, "PRESS START");
+		else
+			snprintf(statusline + 35, sizeof(statusline) - 35, "           ");
+			
+		
+		
+		//Draw them and get input
+		refresh();
+		
+		//Check inputs
+		if(buttons & _SC_BTNBIT_START)
+		{
+			//Player hit start, we're done
+			memset(statusline, 0, sizeof(statusline));
+			return;
+		}
+	}	
 }
 
 void gameover(void)
