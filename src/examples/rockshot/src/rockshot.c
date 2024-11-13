@@ -547,8 +547,8 @@ void rockspawn(void)
 	if(rnum == -1)
 		return;
 	
-	int offsx = (rand() % 512) - 256;
-	int offsy = (rand() % 512) - 256;
+	int offsx = (rand() % 2048) - 1024;
+	int offsy = (rand() % 2048) - 1024;
 	
 	int pos[2] = { player_pos[0] + (offsx * 65536) , player_pos[1] + (offsy * 65536) };
 	rocksplit(pos, 25);
@@ -1024,8 +1024,161 @@ void gametick(void)
 	}
 }
 
+void prelevel(void)
+{
+	//shoot the rocks
+	static const int logo[][4] = 
+	{
+		{-44, 0, -6, 44}, 
+		{-6, 44, -43, 56}, 
+		{-43, 56, -2, 108}, 
+		{-65, 3, -56, 111}, 
+		{-61, 57, -89, 58}, 
+		{-93, 3, -85, 113}, 
+		{-123, 8, -102, 56}, 
+		{-102, 56, -117, 109}, 
+		{-117, 109, -138, 55}, 
+		{-138, 55, -123, 8}, 
+		{-160, 10, -147, 62}, 
+		{-147, 62, -158, 114}, 
+		{-158, 114, -179, 58}, 
+		{-179, 58, -160, 10}, 
+		{-195, 13, -194, 120}, 
+		{-179, 13, -234, 14}, 
+		{-60, 143, -57, 178}, 
+		{-47, 144, -77, 142}, 
+		{-86, 139, -86, 176}, 
+		{-100, 142, -102, 176}, 
+		{-86, 157, -100, 157}, 
+		{-111, 145, -113, 176}, 
+		{-113, 176, -133, 176}, 
+		{-112, 161, -129, 160}, 
+		{-111, 145, -126, 142}, 
+		{0, 195, -2, 283}, 
+		{0, 195, -34, 199}, 
+		{-34, 199, 0, 236}, 
+		{0, 236, -48, 272}, 
+		{-67, 198, -46, 227}, 
+		{-46, 227, -67, 277}, 
+		{-67, 277, -82, 227}, 
+		{-82, 227, -67, 198}, 
+		{-110, 197, -82, 245}, 
+		{-82, 245, -117, 274}, 
+		{-129, 197, -130, 281}, 
+		{-130, 236, -158, 197}, 
+		{-130, 236, -161, 270}, 
+		{-190, 194, -161, 227}, 
+		{-161, 227, -188, 240}, 
+		{-188, 240, -171, 278}, 
+		{-216, 186, -205, 260}, 
+		{-203, 270, -202, 275}, 
+		{-234, 186, -221, 258}, 
+		{-218, 267, -218, 275}, 
+	};
+	
+	int tickoffs = _sc_getticks();
+	while(1)
+	{
+		//Queue up welcome display
+		
+		campos[0] = 0;
+		campos[1] = 0;
+		#if HIRES
+			camscale = 1;
+		#else
+			camscale = 2;
+		#endif
+		camscale /= 2;
+		camrecip = 65536 / camscale;
+		
+		int reltime = _sc_getticks() - tickoffs;
+		
+		if(reltime % 256 < 192)
+			qlinelist(logo, sizeof(logo)/sizeof(logo[0]), (int[]){-(104<<16),-(160<<16)}, -16384);
+		
+		//Draw them and get input
+		refresh();
+		
+		//Done if we've spent enough time
+		if(reltime >= 1280)
+			return;
+	}	
+}
+
+void postlevel(void)
+{
+	//great job
+	static const int logo[][4] = 
+	{
+		{-22, 1, -0, 50}, 
+		{-0, 50, -38, 37}, 
+		{-38, 37, -20, 31}, 
+		{-47, 0, -48, 49}, 
+		{-47, 0, -72, 3}, 
+		{-72, 3, -47, 23}, 
+		{-47, 23, -69, 42}, 
+		{-79, 3, -77, 49}, 
+		{-77, 49, -97, 43}, 
+		{-78, 26, -93, 24}, 
+		{-79, 3, -94, 1}, 
+		{-110, 1, -105, 46}, 
+		{-110, 1, -126, 44}, 
+		{-107, 24, -118, 24}, 
+		{-135, 1, -136, 42}, 
+		{-121, 1, -152, 0}, 
+		{-46, 62, -43, 110}, 
+		{-43, 110, -25, 91}, 
+		{-67, 64, -52, 85}, 
+		{-52, 85, -66, 109}, 
+		{-66, 109, -73, 84}, 
+		{-73, 84, -67, 64}, 
+		{-83, 64, -81, 111}, 
+		{-81, 111, -105, 109}, 
+		{-105, 109, -83, 86}, 
+		{-83, 86, -106, 79}, 
+		{-106, 79, -83, 64}, 
+		{-8, 117, -138, 119}, 
+		{-0, 55, -150, 53},
+	};
+	
+	int tickoffs = _sc_getticks();
+	while(1)
+	{
+		//Queue up welcome display
+		
+		campos[0] = 0;
+		campos[1] = 0;
+		#if HIRES
+			camscale = 1;
+		#else
+			camscale = 2;
+		#endif
+		camscale /= 4;
+		camrecip = 65536 / camscale;
+		
+		int reltime = _sc_getticks() - tickoffs;
+		
+		if(reltime % 256 < 192)
+			qlinelist(logo, sizeof(logo)/sizeof(logo[0]), (int[]){-(64<<16),-(64<<16)}, -16384);
+		
+		//Draw them and get input
+		refresh();
+		
+		//Done if we've spent enough time
+		if(reltime >= 1280)
+			return;
+	}			
+}
+
+
 int dolevel(int levelnum)
 {
+	//Status line
+	snprintf(statusline, sizeof(statusline), "Rock Shot! Level %d", levelnum+1);
+	
+	//Show intro 
+	prelevel();
+	
 	//Reset player position and momentum
 	player_pos[0] = 0;
 	player_pos[1] = 0;
@@ -1059,15 +1212,14 @@ int dolevel(int levelnum)
 	
 	//Reset rocks
 	memset(rocks, 0, sizeof(rocks));
-	for(int ll = 0; ll < (levelnum + 1) * 4; ll++)
+	for(int ll = 0; ll < (levelnum + 1); ll++)
 	{
 		rockspawn();
 	}
 	
-	//Status line
-	snprintf(statusline, sizeof(statusline), "Rock Shot! Level %d", levelnum+1);
 	
 	int simulated = _sc_getticks();
+	int donetime = 0;
 	while(1)
 	{
 		//Run ticks
@@ -1077,30 +1229,34 @@ int dolevel(int levelnum)
 		
 		//Update status time
 		snprintf(statusline + 20, sizeof(statusline) - 20, "Time: %d.%2.2d", timenow/1000, (timenow % 1000)/10);
-		rockcount();
+		
+		//Trip "done timer" if we run out of rocks
+		if(rockcount() <= 0)
+		{
+			if(donetime == 0)
+				donetime = _sc_getticks() + 1000;
+		}
 		
 		while(simulated < timenow)
 		{
 			gametick();
 			simulated += 10;
-			
-			/*if(lives <= 0)
-			{
-				//Ran out of lives
-				return 0;
-			}*/
 		}
-		
-		
 		
 		//Render
 		gamedraw();
+		
+		//See if we're done
+		if(donetime != 0 && donetime < timenow)
+			break;
 	}
+	
+	//Show post-level screen
+	postlevel();
 	
 	//Success
 	return 1;
 }
-
 
 void mainmenu(void)
 {
