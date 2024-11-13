@@ -294,12 +294,16 @@ int _sc_nvm_save(const void *buf, int len)
 	int fd = open(".nvm.bin", O_WRONLY | O_CREAT, 0666);
 	if(fd > 0)
 	{
-		write(fd, buf, len);
+		int writeval = write(fd, buf, len);
+		if(writeval <= 0)
+			fprintf(stderr, "sdlsc: failed to write NVM\n");
+
 		close(fd);
 		return 0;
 	}
 	else
 	{
+		fprintf(stderr, "sdlsc: failed to open NVM\n");
 		return -_SC_ENOENT;
 	}
 }
@@ -309,12 +313,16 @@ int _sc_nvm_load(void *buf, int len)
 	int fd = open(".nvm.bin", O_RDONLY);
 	if(fd > 0)
 	{
-		read(fd, buf, len);
+		int readval = read(fd, buf, len);
+		if(readval <= 0)
+			fprintf(stderr, "sdlsc: failed to read NVM\n");
+
 		close(fd);
 		return 0;
 	}
 	else
 	{
+		fprintf(stderr, "sdlsc: failed to open NVM\n");
 		return -_SC_ENOENT;
 	}
 }
