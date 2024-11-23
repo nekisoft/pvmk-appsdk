@@ -1004,8 +1004,8 @@ static void doexec(const char *filename)
 		(void)filename;
 		exit(0);
 	#else
-		while(1) { _sc_gfx_flip(0, NULL); _sc_pause(); } //For debugging, we can hold here at text-mode
-		execlp(filename, filename, NULL);
+		//while(1) { _sc_gfx_flip(0, NULL); _sc_pause(); } //For debugging, we can hold here at text-mode
+		execl(filename, filename, NULL);
 	#endif
 }
 

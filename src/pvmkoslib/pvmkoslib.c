@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "cdfs.h"
 
@@ -887,4 +888,92 @@ int unlinkat(int dfd, const char *path, int flag)
 int unlink(const char *path)
 {
 	return unlinkat(AT_FDCWD, path, 0);
+}
+
+int execl(const char *path, const char *arg, ...)
+{
+	char *ptrs[32] = {0};
+	
+	ptrs[0] = (char*)arg;
+	
+	va_list ap;
+	va_start(ap, arg);
+	for(int aa = 1; aa < 32; aa++)
+	{
+		char * const argptr = va_arg(ap, char *);
+		if(argptr == NULL)
+			break;
+		ptrs[aa] = argptr;
+	}
+	va_end(ap);
+	
+	return execv(path, ptrs);
+}
+
+int execv(const char *path, char *const argv[])
+{
+	//Reset arg/env buffer
+	_sc_env_save(NULL, 0);
+	
+	//Reset pending process image
+	_sc_mexec_append(NULL, 0);
+	
+	//Try to open the file
+	int fd = open(path, O_RDONLY);
+	if(fd < 0)
+	{
+		//Failed to open the file - open sets errno
+		return -1;
+	}
+	
+	//Save arguments
+	for(int aa = 0; argv[aa] != NULL; aa++)
+	{
+		_sc_env_save(argv[aa], strlen(argv[aa])+1);
+	}
+	_sc_env_save("", 1);
+	
+	//Save environment
+	for(int ee = 0; environ[ee] != NULL; ee++)
+	{
+		_sc_env_save(environ[ee], strlen(environ[ee])+1);
+	}
+	_sc_env_save("", 1);
+	
+	//Execute the file
+	int nloaded = 0;
+	uint8_t buf[256];
+	while(1)
+	{
+		int nread = read(fd, buf, sizeof(buf));
+		if(nread <= 0)
+		{
+			//Done loading
+			break;
+		}
+		
+		//Loaded more
+		int appended = _sc_mexec_append(buf, nread);
+		if(appended > 0)
+		{
+			nloaded += appended;
+		}
+	}
+	
+	const int total = 24*1024*1024;
+	while(nloaded < total)
+	{		
+		int to_append = total - nloaded;
+		if(to_append > 16384)
+			to_append = 16384;
+		
+		int appended = _sc_mexec_append(NULL, 16384); //append zeroes
+		if(appended > 0)
+			to_append += appended;
+		else
+			break;
+	}
+	
+	_sc_mexec_apply();
+	return 0;
 }
