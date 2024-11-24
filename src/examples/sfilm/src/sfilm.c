@@ -20,7 +20,7 @@
 #include <unistd.h>
 
 //Lots of optimizations are possible if we know the width of a video line at compile-time
-#define SFILM_FORCE_VIDEO_MODE _SC_GFX_MODE_VGA_16BPP
+#define SFILM_FORCE_VIDEO_MODE _SC_GFX_MODE_320X240_16BPP
 
 //Video mode we'll use for playing
 #if SFILM_FORCE_VIDEO_MODE

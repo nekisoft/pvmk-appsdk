@@ -5,6 +5,13 @@
 //System calls
 #include <sc.h>
 
+//Hackhack - we set up NVM ourselves unlike a typical game
+//This shouldn't be used normally.
+//(Requires the ISO9660 volume ID to start with two '-' characters.)
+SYSCALL_DECL int _sc_nvm_ident(const char *name)
+	#define _SC_NVM_IDENT_N 0x80
+	{ return _SC(_SC_NVM_IDENT_N, name, 0, 0, 0, 0); }
+
 //Standard library functions
 #include <unistd.h>
 #include <stdlib.h>
@@ -19,17 +26,13 @@ uint16_t bg[480][640]; //Background
 uint16_t ar[480][640]; //Arrow
 uint16_t fb[480][640]; //Framebuffer
 
-
-int main(int argc, const char **argv)
+//Decompresses an image
+void imgload(uint16_t dst[480][640], const char *filename, int *x_out, int *y_out)
 {
-	(void)argc;
-	(void)argv;
-	
-	//Load images
 	int bg_x = 0;
 	int bg_y = 0;
 	int bg_n = 0;
-	uint8_t *bgimage_loaded = stbi_load("demobg.png", &bg_x, &bg_y, &bg_n, 4);
+	uint8_t *bgimage_loaded = stbi_load(filename, &bg_x, &bg_y, &bg_n, 4);
 	if(bgimage_loaded != NULL)
 	{
 		const uint8_t *bgptr = bgimage_loaded;
@@ -43,44 +46,67 @@ int main(int argc, const char **argv)
 				//uint8_t a = bgptr[3];
 				bgptr += 4;
 				
-				bg[yy][xx] = 0;
-				bg[yy][xx] |= ((b >> 3) & 0x1F) <<  0;
-				bg[yy][xx] |= ((g >> 2) & 0x3F) <<  5;
-				bg[yy][xx] |= ((r >> 3) & 0x1F) << 11;
+				dst[yy][xx] = 0;
+				dst[yy][xx] |= ((b >> 3) & 0x1F) <<  0;
+				dst[yy][xx] |= ((g >> 2) & 0x3F) <<  5;
+				dst[yy][xx] |= ((r >> 3) & 0x1F) << 11;
 			}
 		}
 		stbi_image_free(bgimage_loaded);
 	}
-		
-	int ar_x = 0;
-	int ar_y = 0;
-	int ar_n = 0;
-	uint8_t *arimage_loaded = stbi_load("demoar.png", &ar_x, &ar_y, &ar_n, 4);
-	if(arimage_loaded != NULL)
+	
+	if(x_out != NULL)
+		*x_out = bg_x;
+	if(y_out != NULL)
+		*y_out = bg_y;
+}
+
+void prepnvm(const char *nvmname)
+{
+	int result = _sc_nvm_ident(nvmname);
+	if(result >= 0)
 	{
-		const uint8_t *arptr = arimage_loaded;
-		for(int yy = 0; yy < ar_y; yy++)
+		//All good
+		return;
+	}
+	else
+	{
+		//Failed to set up NVM... warn about it
+		//Show warning and wait for them to press start
+		imgload(bg, "nvmfail.png", NULL, NULL);
+		int lastbuttons = ~0u;
+		while(1)
 		{
-			for(int xx = 0; xx < ar_x; xx++)
+			memcpy(fb, bg, sizeof(fb));
+			_sc_gfx_flip(_SC_GFX_MODE_VGA_16BPP, fb);
+			
+			_sc_input_t input = {0};
+			while(_sc_input(&input, sizeof(input), sizeof(input)) > 0)
 			{
-				uint8_t r = arptr[0];
-				uint8_t g = arptr[1];
-				uint8_t b = arptr[2];
-				uint8_t a = arptr[3];
-				arptr += 4;
+				if(input.format != 'A')
+					continue;
 				
-				if(a > 10)
-				{
-					ar[yy][xx] = 0;
-					ar[yy][xx] |= ((b >> 3) & 0x1F) <<  0;
-					ar[yy][xx] |= ((g >> 2) & 0x3F) <<  5;
-					ar[yy][xx] |= ((r >> 3) & 0x1F) << 11;
-				}
+				if(input.buttons & _SC_BTNBIT_START & ~lastbuttons)
+					return;
+				
+				lastbuttons = input.buttons;
 			}
 		}
-		stbi_image_free(arimage_loaded);
 	}
+}
+
+int main(int argc, const char **argv)
+{
+	(void)argc;
+	(void)argv;
 	
+	//Load images
+	imgload(bg, "demobg.png", NULL, NULL);
+	
+	int ar_x = 0;
+	int ar_y = 0;
+	imgload(ar, "demoar.png", &ar_x, &ar_y);
+
 	//Show menu until the user makes a choice
 	int lastbuttons = ~0u;
 	int selection = 0;
@@ -141,10 +167,12 @@ int main(int argc, const char **argv)
 							switch(selection)
 							{
 								case 0:
+									prepnvm("Freedoom: Phase 1");
 									setenv("DOOMWADDIR", "/phase1", 1);
 									execl("doom.nne", "doom", NULL);
 									break;
 								case 1:
+									prepnvm("Freedoom: Phase 2");
 									setenv("DOOMWADDIR", "/phase2", 1);
 									execl("doom.nne", "doom", NULL);
 									break;
