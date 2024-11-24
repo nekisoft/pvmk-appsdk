@@ -45,7 +45,7 @@ GAMEIMG=$(IMGDIR)/game.iso
 #Build filesystem with the game contents
 $(GAMEIMG) : $(BINDIR)/boot.nne $(CARDROOT)/name.txt $(shell find -H $(CARDROOT))
 	mkdir -p $(@D)
-	$(MKISOFS) -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -R -follow-links -o $@ $(CARDROOT)
+	$(MKISOFS) -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -eltorito-platform 0x22 -no-emul-boot -eltorito-boot neki_upd.tar -R -follow-links -o $@ $(CARDROOT)
 	
 #This symlink already exists but Make gets confused. We're building bin/boot.nne and using it as cardroot/boot.nne.
 $(CARDROOT)/boot.nne : $(BINDIR)/boot.nne

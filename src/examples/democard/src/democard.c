@@ -6,8 +6,7 @@
 #include <sc.h>
 
 //Hackhack - we set up NVM ourselves unlike a typical game
-//This shouldn't be used normally.
-//(Requires the ISO9660 volume ID to start with two '-' characters.)
+//This shouldn't be used normally
 SYSCALL_DECL int _sc_nvm_ident(const char *name)
 	#define _SC_NVM_IDENT_N 0x80
 	{ return _SC(_SC_NVM_IDENT_N, name, 0, 0, 0, 0); }
