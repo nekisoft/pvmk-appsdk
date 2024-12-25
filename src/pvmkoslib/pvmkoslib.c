@@ -977,3 +977,27 @@ int execv(const char *path, char *const argv[])
 	_sc_mexec_apply();
 	return 0;
 }
+
+int isatty(int fd)
+{
+	//Just say that stdin/stdout/stderr are ttys and nothing else is
+	if(fd == 0 || fd == 1 || fd == 2)
+	{
+		return 1;
+	}
+	
+	if(fd < 0 || fd >= USER_FILE_MAX)
+		errno = EBADF;
+
+	return 0;
+}
+
+int fcntl(int fd, int cmd, ...)
+{
+	//Nope
+	(void)fd;
+	(void)cmd;
+	
+	errno = ENOSYS;
+	return -1;
+}

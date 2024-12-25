@@ -154,6 +154,15 @@ __sync_val_compare_and_swap_1:
 	mov r0, r3 //Return old contents
 	bx lr
 
+//We don't support multithreading but python3 needs this
+//TLS access will just refer to where the .tdata and .tbss thread-local sections are linked in the .nne file
+.global __aeabi_read_tp
+__aeabi_read_tp:
+	.extern _PVMK_LINKED_TP
+	ldr r0, =_PVMK_LINKED_TP //Defined in linker script
+	bx lr
+
+
 .ltorg
 
 .section .bss

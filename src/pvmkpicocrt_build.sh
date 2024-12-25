@@ -12,6 +12,6 @@ do
 done
 cp src/pvmkpicocrt/pvmk.ld out/picolibc/arm-none-eabi/lib/
 cp src/pvmkpicocrt/pvmk.specs out/picolibc/arm-none-eabi/lib/
-cp src/pvmkpicocrt/pvmkpp.specs out/picolibc/arm-none-eabi/lib/
+#cp src/pvmkpicocrt/pvmkpp.specs out/picolibc/arm-none-eabi/lib/
 cp $(arm-none-eabi-gcc -march=armv5t -print-libgcc-file-name) out/picolibc/arm-none-eabi/lib/
 

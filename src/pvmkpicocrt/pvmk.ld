@@ -11,10 +11,13 @@ SECTIONS {
 	_LINK_START = .;
 	.flat :
 	{
+		/* NNE file header at the beginning */
+		
 		*(.header)
 		KEEP(*(.header))
 		KEEP(*(_header))
 		
+		/* Code sections */
 		_TEXT_START = .;
 		*(.text.first)
 		*(.text*)
@@ -37,6 +40,7 @@ SECTIONS {
 		
 		_TEXT_END = .;
 
+		/* Read-only data including C++ exception nonsense */
 		_RODATA_START = .;
 		
 		*(.note*)
@@ -63,9 +67,19 @@ SECTIONS {
 		
 		_RODATA_END = .;
 		
+		/* Mutable data */
+		
 		_DATA_START = .;
 		*(.data*)
 		_DATA_END = .;
+		
+		/* Thread-locals (just once as we are not multithreaded */
+		_TLS_START = .;
+		*(.tdata*)
+		*(.tbss*)
+		_TLS_END = .;
+		_PVMK_LINKED_TP = .;
+		
 	}
 	
 	.bss : 

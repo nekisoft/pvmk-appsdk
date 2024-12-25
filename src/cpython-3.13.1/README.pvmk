@@ -1,0 +1,5 @@
+README.pvmk for python3
+Bryan E. Topp <betopp@betopp.com> 2024
+
+This is a port of Python 3 to PVMK. It excludes things that are unlikely to be useful in making video games. It is mainly intended for running PyGame (i.e. accessing SDL from Python).
+

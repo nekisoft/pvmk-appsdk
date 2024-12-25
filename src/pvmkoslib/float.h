@@ -9,6 +9,7 @@
 #define FLT_RADIX 2 
 
 #define DECIMAL_DIG 10
+#define DBL_DIG 20
 
 #define FLT_MIN_10_EXP -37
 #define DBL_MIN_10_EXP -37
@@ -43,6 +44,8 @@
 
 //#define LDBL_MANT_DIG 64
 //#define LDBL_MIN_EXP -16381
+
+#define FLT_ROUNDS (-1)
 
 
 #endif //_FLOAT_H
