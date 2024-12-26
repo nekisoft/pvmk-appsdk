@@ -18,12 +18,18 @@ cp src/pvmkoslib/sys/*.h ${OUTDIR}/include/sys/
 
 #Compile library objects
 mkdir -p obj/pvmkoslib
-${CC} ${CFLAGS} -c src/pvmkoslib/pvmkoslib.c -o obj/pvmkoslib/pvmkoslib.o
-${CC} ${CFLAGS} -c src/pvmkoslib/cdfs.c -o obj/pvmkoslib/cdfs.o
+for CFILE in cdfs pvmkoslib atomics
+do
+	echo $CFILE
+	${CC} ${CFLAGS} -c src/pvmkoslib/${CFILE}.c -o obj/pvmkoslib/${CFILE}.o
+	LINKOBJ+=" "
+	LINKOBJ+=obj/pvmkoslib/${CFILE}.o
+done
 
 #Make library archive in target
 mkdir -p ${OUTDIR}/lib/
-${AR} -r ${OUTDIR}/lib/libpvmkoslib.a obj/pvmkoslib/pvmkoslib.o obj/pvmkoslib/cdfs.o
+echo libpvmkoslib.a
+${AR} -r ${OUTDIR}/lib/libpvmkoslib.a ${LINKOBJ}
 
 
 

@@ -10,6 +10,7 @@ do
 	echo ${CRTFILE}
 	arm-none-eabi-as src/pvmkpicocrt/${CRTFILE}.s -o out/picolibc/arm-none-eabi/lib/${CRTFILE}.o
 done
+
 cp src/pvmkpicocrt/pvmk.ld out/picolibc/arm-none-eabi/lib/
 cp src/pvmkpicocrt/pvmk.specs out/picolibc/arm-none-eabi/lib/
 #cp src/pvmkpicocrt/pvmkpp.specs out/picolibc/arm-none-eabi/lib/

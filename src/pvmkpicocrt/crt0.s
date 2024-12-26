@@ -142,18 +142,6 @@ __cxa_get_globals_fast:
 	ldr r0, =__cxa_globals_storage
 	bx lr
 
-//I guess these don't exist in libgcc? clang seems to emit them while compiling libcxx.
-//type __sync_val_compare_and_swap (type *ptr, type oldval, type newval, ...)
-.global __sync_val_compare_and_swap_1
-__sync_val_compare_and_swap_1:
-	ldrb r3, [r0] //Load current value from pointer
-	cmp r3, r1 //Compare with expected old value
-	bne __sync_val_compare_and_swap_1.done //If they're not equal, do nothing
-	strb r2, [r0] //Store new value to pointer
-	__sync_val_compare_and_swap_1.done:
-	mov r0, r3 //Return old contents
-	bx lr
-
 //We don't support multithreading but python3 needs this
 //TLS access will just refer to where the .tdata and .tbss thread-local sections are linked in the .nne file
 .global __aeabi_read_tp
@@ -161,7 +149,6 @@ __aeabi_read_tp:
 	.extern _PVMK_LINKED_TP
 	ldr r0, =_PVMK_LINKED_TP //Defined in linker script
 	bx lr
-
 
 .ltorg
 
