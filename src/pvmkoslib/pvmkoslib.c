@@ -18,6 +18,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <utime.h>
+#include <sys/times.h>
 
 #include "cdfs.h"
 
@@ -714,8 +716,11 @@ int gettimeofday(struct timeval *tp, void *tzp_void)
 	
 	tp->tv_sec += _timeofday_setting;
 	
-	tzp->tz_minuteswest = 0;
-	tzp->tz_dsttime = 0;
+	if(tzp != NULL)
+	{
+		tzp->tz_minuteswest = 0;
+		tzp->tz_dsttime = 0;
+	}
 	
 	return 0;
 }
@@ -724,6 +729,25 @@ int settimeofday(const struct timeval *tp, const struct timezone *tzp)
 {
 	_timeofday_setting = tp->tv_sec - (_sc_getticks() / 1000);
 	_timeofday_setting += tzp->tz_minuteswest * 60;
+	return 0;
+}
+
+int clock_gettime(clockid_t clock_id, struct timespec *tp)
+{
+	//Don't care about the domain because we only support one clock source anyway
+	(void)clock_id;
+	int ticks = _sc_getticks();
+	tp->tv_sec = ticks / 1000;
+	tp->tv_nsec = (ticks % 1000) * 1000l * 1000l;
+	return 0;
+}
+
+int clock_getres(clockid_t clock_id, struct timespec *tp)
+{
+	//Always 1ms ticks
+	(void)clock_id;
+	tp->tv_sec = 0;
+	tp->tv_nsec = 1000l * 1000l;
 	return 0;
 }
 
@@ -998,6 +1022,81 @@ int fcntl(int fd, int cmd, ...)
 	(void)fd;
 	(void)cmd;
 	
+	errno = ENOSYS;
+	return -1;
+}
+
+char *getcwd(char *buf, size_t size)
+{
+	//My general plan here is to pass the pwd through an environment variable
+	//I haven't exactly implemented it yet
+	
+	if(size <= 0)
+	{
+		errno = EINVAL;
+		return NULL;
+	}
+	
+	const char *envpath = getenv("PWD");
+	if(envpath == NULL)
+		envpath = "/";
+	
+	if(strlen(envpath) >= size)
+	{
+		errno = ERANGE;
+		return NULL;
+	}
+	
+	strcpy(buf, envpath);	
+	return buf;
+}
+
+int rename(const char *from, const char *to)
+{
+	//We only support ISO9660 filesystems and don't support modifying directories
+	(void)from;
+	(void)to;
+	errno = ENOSYS;
+	return -1;
+}
+
+int rmdir(const char *path)
+{
+	//We only support ISO9660 filesystems and don't support modifying directories
+	(void)path;
+	errno = ENOSYS;
+	return -1;	
+}
+
+int utime(const char *file, const struct utimbuf *timep)
+{
+	//In theory we could modify a RockRidge structure in-place to change file times.
+	//We don't support this at the moment.
+	(void)file;
+	(void)timep;
+	errno = ENOSYS;
+	return -1;
+}
+
+clock_t times(struct tms *tp)
+{
+	//The system doesn't expose this to userland
+	if(tp != NULL)
+	{
+		tp->tms_utime = 0;
+		tp->tms_stime = 0;
+		tp->tms_cutime = 0;
+		tp->tms_cstime = 0;
+	}
+	errno = ENOSYS;
+	return (clock_t)(-1);
+}
+
+int chdir(const char *path)
+{
+	//Not implemented yet...
+	//We could keep our own pwd file descriptor and reflect it in the environment as well, to preserve it
+	(void)path;
 	errno = ENOSYS;
 	return -1;
 }

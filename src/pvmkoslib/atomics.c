@@ -44,6 +44,14 @@ I4 __atomic_exchange_4(volatile void *mem, I4 val, int model)
 	return retval;
 }
 
+I8 __atomic_exchange_8(volatile void *mem, I8 val, int model)
+{
+	(void)model;
+	I8 retval = *(I8*)mem;
+	*(I8*)mem = val;
+	return retval;
+}
+
 I1 __atomic_fetch_add_1(volatile void *mem, I1 val, int model)
 {
 	(void)model;
@@ -65,6 +73,14 @@ I4 __atomic_fetch_add_4(volatile void *mem, I4 val, int model)
 	(void)model;
 	I4 old = *(I4*)mem;
 	*(I4*)mem += val;
+	return old;		
+}
+
+I8 __atomic_fetch_add_8(volatile void *mem, I8 val, int model)
+{
+	(void)model;
+	I8 old = *(I8*)mem;
+	*(I8*)mem += val;
 	return old;		
 }
 
@@ -146,6 +162,16 @@ _Bool __atomic_compare_exchange_4(volatile void *mem, void *expected, I4 desired
 	(void)strong; (void)success; (void)failure; return (had_mem == had_exp);
 }
 
+_Bool __atomic_compare_exchange_8(volatile void *mem, void *expected, I8 desired, _Bool strong, int success, int failure)
+{
+	I8 had_mem = *(I8*)mem;
+	I8 had_exp = *(I8*)expected;
+	*(I8*)expected = had_mem;
+	*(I8*)mem = (had_mem == had_exp)?desired:had_mem;
+	
+	(void)strong; (void)success; (void)failure; return (had_mem == had_exp);
+}
+
 I1 __atomic_load_1(const volatile void *mem, int model)
 {
 	(void)model;
@@ -168,5 +194,29 @@ I8 __atomic_load_8(const volatile void *mem, int model)
 {
 	(void)model;
 	return *(I8*)mem;
+}
+
+void __atomic_store_1(volatile void *mem, I1 val, int model)
+{
+	(void)model;
+	*(I1*)mem = val;
+}
+
+void __atomic_store_2(volatile void *mem, I2 val, int model)
+{
+	(void)model;
+	*(I2*)mem = val;
+}
+
+void __atomic_store_4(volatile void *mem, I4 val, int model)
+{
+	(void)model;
+	*(I4*)mem = val;
+}
+
+void __atomic_store_8(volatile void *mem, I8 val, int model)
+{
+	(void)model;
+	*(I8*)mem = val;
 }
 
