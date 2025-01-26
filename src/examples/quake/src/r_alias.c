@@ -252,9 +252,9 @@ R_AliasTransformVector
 */
 void R_AliasTransformVector (vec3_t in, vec3_t out)
 {
-	out[0] = DotProduct(in, aliastransform[0]) + aliastransform[0][3];
-	out[1] = DotProduct(in, aliastransform[1]) + aliastransform[1][3];
-	out[2] = DotProduct(in, aliastransform[2]) + aliastransform[2][3];
+	out[0] = DotProduct_Shitty(in, aliastransform[0]) + aliastransform[0][3];
+	out[1] = DotProduct_Shitty(in, aliastransform[1]) + aliastransform[1][3];
+	out[2] = DotProduct_Shitty(in, aliastransform[2]) + aliastransform[2][3];
 }
 
 
@@ -432,7 +432,7 @@ void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
 
 // lighting
 	plightnormal = r_avertexnormals[pverts->lightnormalindex];
-	lightcos = DotProduct (plightnormal, r_plightvec);
+	lightcos = DotProduct_Shitty (plightnormal, r_plightvec);
 	temp = r_ambientlight;
 
 	if (lightcos < 0)
@@ -467,7 +467,7 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 	for (i=0 ; i<r_anumverts ; i++, fv++, pverts++, pstverts++)
 	{
 	// transform and project
-		zi = 1.0 / (DotProduct(pverts->v, aliastransform[2]) +
+		zi = 1.0 / (DotProduct_Shitty(pverts->v, aliastransform[2]) +
 				aliastransform[2][3]);
 
 	// x, y, and z are scaled down by 1/2**31 in the transform, so 1/z is
@@ -475,9 +475,9 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 	// projection
 		fv->v[5] = zi;
 
-		fv->v[0] = ((DotProduct(pverts->v, aliastransform[0]) +
+		fv->v[0] = ((DotProduct_Shitty(pverts->v, aliastransform[0]) +
 				aliastransform[0][3]) * zi) + aliasxcenter;
-		fv->v[1] = ((DotProduct(pverts->v, aliastransform[1]) +
+		fv->v[1] = ((DotProduct_Shitty(pverts->v, aliastransform[1]) +
 				aliastransform[1][3]) * zi) + aliasycenter;
 
 		fv->v[2] = pstverts->s;
@@ -486,12 +486,12 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 
 	// lighting
 		plightnormal = r_avertexnormals[pverts->lightnormalindex];
-		lightcos = DotProduct (plightnormal, r_plightvec);
+		lightcos = DotProduct_Shitty (plightnormal, r_plightvec);
 		temp = r_ambientlight;
 
 		if (lightcos < 0)
 		{
-			temp += (int)(r_shadelight * lightcos);
+			temp += (int)(rf_mul(r_shadelight,lightcos));
 
 		// clamp; because we limited the minimum ambient and shading light, we
 		// don't have to clamp low light, just bright
