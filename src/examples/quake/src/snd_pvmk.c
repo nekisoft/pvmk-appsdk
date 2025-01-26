@@ -25,13 +25,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void SNDDMA_pump(void)
 {
-	while(1)
+	const int subbytes = 16384;
+	const int maxsub = (shm->samples / (subbytes/2));
+	for(int pp = 0; pp <= maxsub; pp++)
 	{
-		int submitted = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, shm->buffer + (shm->samplepos*2), 1024, (shm->samples*2));
+		int submitted = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, shm->buffer + (shm->samplepos*2), subbytes, (shm->samples*2));
 		if(submitted < 0)
 			return;
 		
-		shm->samplepos += (1024/2);
+		shm->samplepos += (subbytes/2);
 		if(shm->samplepos >= (shm->samples))
 			shm->samplepos -= shm->samples;
 	}
@@ -45,8 +47,8 @@ qboolean SNDDMA_Init(void)
 
 int SNDDMA_GetDMAPos(void)
 {
-	SNDDMA_pump();
 	return shm->samplepos;
+	//SNDDMA_pump();
 }
 
 void SNDDMA_Shutdown(void)

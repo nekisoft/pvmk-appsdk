@@ -19,6 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // mathlib.h
 
+//betopp - adding shitty "rough" low-precision softfloat routines
+#include "rough_float.h"
+
 typedef float vec_t;
 typedef vec_t vec3_t[3];
 typedef vec_t vec5_t[5];
@@ -39,6 +42,7 @@ extern	int nanmask;
 #define	IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
 
 #define DotProduct(x,y) (x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
+#define DotProduct_Shitty(x,y) (rf_mul(x[0],y[0])+rf_mul(x[1],y[1])+rf_mul(x[2],y[2]))
 #define VectorSubtract(a,b,c) {c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];}
 #define VectorAdd(a,b,c) {c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];}
 #define VectorCopy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];}
@@ -54,6 +58,7 @@ int VectorCompare (vec3_t v1, vec3_t v2);
 vec_t Length (vec3_t v);
 void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross);
 float VectorNormalize (vec3_t v);		// returns vector length
+void VectorNormalize_Shitty (vec3_t v);
 void VectorInverse (vec3_t v);
 void VectorScale (vec3_t in, vec_t scale, vec3_t out);
 int Q_log2(int val);

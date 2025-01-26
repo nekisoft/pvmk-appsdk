@@ -742,6 +742,7 @@ void CL_ParseServerMessage (void)
 			Host_Error ("CL_ParseServerMessage: Bad server message");
 
 		cmd = MSG_ReadByte ();
+		//Con_Printf("cmd=%d\n", cmd);
 
 		if (cmd == -1)
 		{
@@ -763,7 +764,7 @@ void CL_ParseServerMessage (void)
 		switch (cmd)
 		{
 		default:
-			Host_Error ("CL_ParseServerMessage: Illegible server message\n");
+			Host_Error ("CL_ParseServerMessage: Illegible server message cmd=%d\n", cmd);
 			break;
 			
 		case svc_nop:

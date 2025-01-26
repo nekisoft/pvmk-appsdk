@@ -212,21 +212,17 @@ void Sys_EditFile(char *filename)
 
 }
 
+double Sys_FloatTime_Cached_Value = 0;
+int Sys_FloatTime_Cached_Valid = 0;
+
 double Sys_FloatTime (void)
 {
-    struct timeval tp;
-    struct timezone tzp; 
-    static int      secbase; 
-    
-    gettimeofday(&tp, &tzp);  
-
-    if (!secbase)
-    {
-        secbase = tp.tv_sec;
-        return tp.tv_usec/1000000.0;
-    }
-
-    return (tp.tv_sec - secbase) + tp.tv_usec/1000000.0;
+	if(!Sys_FloatTime_Cached_Valid)
+	{
+		Sys_FloatTime_Cached_Value = _sc_getticks() / 1000.0;
+	}
+	
+	return Sys_FloatTime_Cached_Value;
 }
 
 // =======================================================================

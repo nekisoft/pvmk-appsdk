@@ -49,7 +49,7 @@ void D_Sky_uv_To_st (int u, int v, fixed16_t *s, fixed16_t *t)
 	end[1] = 4096*vpn[1] + wu*vright[1] + wv*vup[1];
 	end[2] = 4096*vpn[2] + wu*vright[2] + wv*vup[2];
 	end[2] *= 3;
-	VectorNormalize (end);
+	VectorNormalize_Shitty (end);
 
 	temp = skytime*skyspeed;	// TODO: add D_SetupFrame & set this there
 	*s = (int)((temp + 6*(SKYSIZE/2-1)*end[0]) * 0x10000);

@@ -173,9 +173,9 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	splitplane = pnode->plane;
 	tplane.dist = splitplane->dist -
 			DotProduct(r_entorigin, splitplane->normal);
-	tplane.normal[0] = DotProduct (entity_rotation[0], splitplane->normal);
-	tplane.normal[1] = DotProduct (entity_rotation[1], splitplane->normal);
-	tplane.normal[2] = DotProduct (entity_rotation[2], splitplane->normal);
+	tplane.normal[0] = DotProduct_Shitty (entity_rotation[0], splitplane->normal);
+	tplane.normal[1] = DotProduct_Shitty (entity_rotation[1], splitplane->normal);
+	tplane.normal[2] = DotProduct_Shitty (entity_rotation[2], splitplane->normal);
 
 // clip edges to BSP plane
 	for ( ; pedges ; pedges = pnextedge)
@@ -185,7 +185,7 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	// set the status for the last point as the previous point
 	// FIXME: cache this stuff somehow?
 		plastvert = pedges->v[0];
-		lastdist = DotProduct (plastvert->position, tplane.normal) -
+		lastdist = DotProduct_Shitty (plastvert->position, tplane.normal) -
 				   tplane.dist;
 
 		if (lastdist > 0)
@@ -195,7 +195,7 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 
 		pvert = pedges->v[1];
 
-		dist = DotProduct (pvert->position, tplane.normal) - tplane.dist;
+		dist = DotProduct_Shitty (pvert->position, tplane.normal) - tplane.dist;
 
 		if (dist > 0)
 			side = 0;

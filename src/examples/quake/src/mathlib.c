@@ -401,6 +401,38 @@ float VectorNormalize (vec3_t v)
 
 }
 
+//good ol' q_rsqrt from Q3A
+float Q_rsqrt( float number )
+{
+	const float threehalfs = 1.5F;	
+	float x2 = number * 0.5F;
+	union { 
+		float f;
+		int i;
+	} u;
+	u.f = number;				// evil floating point bit level hacking
+	u.i  = 0x5f3759df - ( u.i >> 1 );               // what the fuck?
+	u.f  = u.f * ( threehalfs - ( x2 * u.f * u.f ) );   // 1st iteration
+	return u.f;
+}
+
+void VectorNormalize_Shitty (vec3_t v)
+{
+	float	lengthsq, ilength;
+
+	lengthsq = rf_sq(v[0]) + rf_sq(v[1]) + rf_sq(v[2]);
+	if (lengthsq)
+	{
+		ilength = Q_rsqrt(lengthsq);
+		v[0] = rf_mul(v[0], ilength);
+		v[1] = rf_mul(v[1], ilength);
+		v[2] = rf_mul(v[2], ilength);
+	}
+		
+	//return length;
+
+}
+
 void VectorInverse (vec3_t v)
 {
 	v[0] = -v[0];

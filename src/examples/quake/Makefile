@@ -39,6 +39,7 @@ CFLAGS += -Wno-unused-but-set-variable
 CFLAGS += -Wno-strict-aliasing
 CFLAGS += -Wno-array-parameter
 
+CFLAGS += -ffast-math
 
 #Flags to use when linking
 LINKFLAGS += 

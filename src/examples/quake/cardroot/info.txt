@@ -1,7 +1,7 @@
 #info.txt
-NAME:Quake
-VERS:0.1
-DESC:A port of Quake
-DEVR:Id Software and Bryan E. Topp
+NAME:LibreQuake
+VERS:0.8
+DESC:A port of Quake with free data
+DEVR:Id Software, the LibreQuake team, and Bryan E. Topp
 PUBR:Nekisoft
 

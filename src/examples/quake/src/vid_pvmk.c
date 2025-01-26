@@ -36,7 +36,7 @@ uint16_t vid_bufs[3][BASEWIDTH*BASEHEIGHT] __attribute__((aligned(1048576)));
 int vid_bufs_next = 0;
 
 short	zbuffer[BASEWIDTH*BASEHEIGHT];
-byte	surfcache[256*1024*4] __attribute__((aligned(16)));
+byte	surfcache[256*1024*16] __attribute__((aligned(16)));
 
 unsigned short	d_8to16table[256];
 unsigned	d_8to24table[256];
@@ -130,14 +130,12 @@ void	VID_Update (vrect_t *rects)
 {
 	(void)rects;
 	
+	//Only update time when flipping buffers...
+	extern int Sys_FloatTime_Cached_Valid;
+	Sys_FloatTime_Cached_Valid = 0;
+	
 	//Enqueue a flip to the buffer that's just been drawn
 	int displayed = _sc_gfx_flip(_SC_GFX_MODE_320X240_16BPP, vid.buffer);
-	if(displayed < 0)
-	{
-		//Ignore and continue...
-		_sc_pause();
-		return;
-	}
 	
 	//Figure out what buffer we'll use next. It shouldn't be the one displayed nor enqueued.
 	//If we have a choice, prefer cycling through them 1-2-3, so status bar updates can hit all of them.
