@@ -481,8 +481,8 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 			rejectpt[1] = (float)node->minmaxs[pindex[1]];
 			rejectpt[2] = (float)node->minmaxs[pindex[2]];
 			
-			d = DotProduct (rejectpt, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
+			d = DotProduct_Shitty (rejectpt, view_clipplanes[i].normal);
+			d = rf_sub(d, view_clipplanes[i].dist);
 
 			if (d <= 0)
 				return;
@@ -491,8 +491,8 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 			acceptpt[1] = (float)node->minmaxs[pindex[3+1]];
 			acceptpt[2] = (float)node->minmaxs[pindex[3+2]];
 
-			d = DotProduct (acceptpt, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
+			d = DotProduct_Shitty (acceptpt, view_clipplanes[i].normal);
+			d = rf_sub(d, view_clipplanes[i].dist);
 
 			if (d >= 0)
 				clipflags &= ~(1<<i);	// node is entirely on screen
@@ -535,16 +535,16 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 		switch (plane->type)
 		{
 		case PLANE_X:
-			dot = modelorg[0] - plane->dist;
+			dot = rf_sub(modelorg[0], plane->dist);
 			break;
 		case PLANE_Y:
-			dot = modelorg[1] - plane->dist;
+			dot = rf_sub(modelorg[1], plane->dist);
 			break;
 		case PLANE_Z:
-			dot = modelorg[2] - plane->dist;
+			dot = rf_sub(modelorg[2], plane->dist);
 			break;
 		default:
-			dot = DotProduct (modelorg, plane->normal) - plane->dist;
+			dot = rf_sub(DotProduct_Shitty (modelorg, plane->normal), plane->dist);
 			break;
 		}
 	

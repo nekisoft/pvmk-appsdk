@@ -131,18 +131,18 @@ float rf_mul(float a, float b)
 	rf_t rb = { .f = b };
 
 	//Add the exponents
-	int expsum = ((ra.i & 0x7F800000u) >> 23) + ((rb.i & 0x7F800000u) >> 23); //add biased exponents
+	int expsum = ra.p.ex + rb.p.ex; //add biased exponents
 	expsum -= 0x7F; //remove one of the biases
 	if(expsum < 20) //flush-to-zero if it's even close
 		return 0; 
 		
 	
 	//Multiply the mantissa bits
-	uint32_t ma = ((ra.i & 0x7FFFFF) | 0x800000u) >> 8; //1.15
-	uint32_t mb = ((rb.i & 0x7FFFFF) | 0x800000u) >> 8; //1.15
-	uint32_t manprod = ma * mb; //2.30
+	uint32_t ma = ra.p.ma | 0x800000u; //1.23
+	uint32_t mb = rb.p.ma | 0x800000u; //1.23
+	uint64_t manprod64 = (uint64_t)ma * (uint64_t)mb; //2.46
 
-	manprod >>= 7; //cut down to 23 bits of fraction
+	uint32_t manprod = manprod64 >> 23; //cut down to 23 bits of fraction
 	if(manprod >= 0x1000000u) //if we end up with more than "1" as our integer part, shift down
 	{
 		manprod >>= 1;
