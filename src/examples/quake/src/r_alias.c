@@ -418,12 +418,9 @@ void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
 	int		temp;
 	float	lightcos, *plightnormal;
 
-	av->fv[0] = DotProduct(pverts->v, aliastransform[0]) +
-			aliastransform[0][3];
-	av->fv[1] = DotProduct(pverts->v, aliastransform[1]) +
-			aliastransform[1][3];
-	av->fv[2] = DotProduct(pverts->v, aliastransform[2]) +
-			aliastransform[2][3];
+	av->fv[0] = rf_add(DotProduct_Shitty(pverts->v, aliastransform[0]), aliastransform[0][3]);
+	av->fv[1] = rf_add(DotProduct_Shitty(pverts->v, aliastransform[1]), aliastransform[1][3]);
+	av->fv[2] = rf_add(DotProduct_Shitty(pverts->v, aliastransform[2]), aliastransform[2][3]);
 
 	fv->v[2] = pstverts->s;
 	fv->v[3] = pstverts->t;
@@ -458,7 +455,8 @@ R_AliasTransformAndProjectFinalVerts
 */
 void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 {
-	int			i, temp;
+	int			i;//, temp;
+	float tempf;
 	float		lightcos, *plightnormal, zi;
 	trivertx_t	*pverts;
 
@@ -467,7 +465,7 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 	for (i=0 ; i<r_anumverts ; i++, fv++, pverts++, pstverts++)
 	{
 	// transform and project
-		zi = 1.0 / (DotProduct_Shitty(pverts->v, aliastransform[2]) +
+		zi = 1.0 / rf_add(DotProduct_Shitty(pverts->v, aliastransform[2]),
 				aliastransform[2][3]);
 
 	// x, y, and z are scaled down by 1/2**31 in the transform, so 1/z is
@@ -475,10 +473,10 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 	// projection
 		fv->v[5] = zi;
 
-		fv->v[0] = ((DotProduct_Shitty(pverts->v, aliastransform[0]) +
-				aliastransform[0][3]) * zi) + aliasxcenter;
-		fv->v[1] = ((DotProduct_Shitty(pverts->v, aliastransform[1]) +
-				aliastransform[1][3]) * zi) + aliasycenter;
+		fv->v[0] = rf_add(rf_mul(rf_add(DotProduct_Shitty(pverts->v, aliastransform[0]),
+				aliastransform[0][3]), zi), aliasxcenter);
+		fv->v[1] = rf_add(rf_mul(rf_add(DotProduct_Shitty(pverts->v, aliastransform[1]),
+				aliastransform[1][3]), zi), aliasycenter);
 
 		fv->v[2] = pstverts->s;
 		fv->v[3] = pstverts->t;
@@ -487,19 +485,24 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 	// lighting
 		plightnormal = r_avertexnormals[pverts->lightnormalindex];
 		lightcos = DotProduct_Shitty (plightnormal, r_plightvec);
-		temp = r_ambientlight;
+		//temp = r_ambientlight;
+		tempf = r_ambientlight;
 
 		if (lightcos < 0)
 		{
-			temp += (int)(rf_mul(r_shadelight,lightcos));
+			//temp += (int)(rf_mul(r_shadelight,lightcos));
+			tempf = rf_add(tempf, rf_mul(r_shadelight,lightcos));
 
 		// clamp; because we limited the minimum ambient and shading light, we
 		// don't have to clamp low light, just bright
-			if (temp < 0)
-				temp = 0;
+			//if (temp < 0)
+			//	temp = 0;
 		}
 
-		fv->v[4] = temp;
+		if(tempf > 0)
+			fv->v[4] = tempf;
+		else
+			fv->v[4] = 0;
 	}
 }
 
@@ -520,8 +523,8 @@ void R_AliasProjectFinalVert (finalvert_t *fv, auxvert_t *av)
 
 	fv->v[5] = zi * ziscale;
 
-	fv->v[0] = (av->fv[0] * aliasxscale * zi) + aliasxcenter;
-	fv->v[1] = (av->fv[1] * aliasyscale * zi) + aliasycenter;
+	fv->v[0] = rf_mul(rf_mul(av->fv[0], aliasxscale), zi) + aliasxcenter;
+	fv->v[1] = rf_mul(rf_mul(av->fv[1], aliasyscale), zi) + aliasycenter;
 }
 
 
@@ -637,9 +640,9 @@ void R_AliasSetupLighting (alight_t *plighting)
 	r_shadelight *= VID_GRADES;
 
 // rotate the lighting vector into the model's frame of reference
-	r_plightvec[0] = DotProduct (plighting->plightvec, alias_forward);
-	r_plightvec[1] = -DotProduct (plighting->plightvec, alias_right);
-	r_plightvec[2] = DotProduct (plighting->plightvec, alias_up);
+	r_plightvec[0] = DotProduct_Shitty (plighting->plightvec, alias_forward);
+	r_plightvec[1] = -DotProduct_Shitty (plighting->plightvec, alias_right);
+	r_plightvec[2] = DotProduct_Shitty (plighting->plightvec, alias_up);
 }
 
 /*

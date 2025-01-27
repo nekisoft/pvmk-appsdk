@@ -306,6 +306,13 @@ void TransformVector (vec3_t in, vec3_t out)
 	out[2] = DotProduct(in,vpn);		
 }
 
+void TransformVector_Shitty (vec3_t in, vec3_t out)
+{
+	out[0] = DotProduct_Shitty(in,vright);
+	out[1] = DotProduct_Shitty(in,vup);
+	out[2] = DotProduct_Shitty(in,vpn);		
+}
+
 #endif
 
 

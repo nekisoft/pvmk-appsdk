@@ -132,7 +132,7 @@ void R_AddDynamicLights (void)
 					}
 				}
 #else
-					blocklights[t*smax + s] += (rad - dist)*256;
+					blocklights[t*smax + s] += rf_mul(rf_sub(rad,dist),256);
 #endif
 			}
 		}

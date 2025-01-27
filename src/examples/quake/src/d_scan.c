@@ -149,9 +149,9 @@ void Turbulent8 (espan_t *pspan)
 		du = (float)pspan->u;
 		dv = (float)pspan->v;
 
-		sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-		tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-		zi = d_ziorigin + dv*d_zistepv + du*d_zistepu;
+		sdivz = rf_add(d_sdivzorigin, rf_add(rf_mul(dv,d_sdivzstepv), rf_mul(du,d_sdivzstepu)));
+		tdivz = rf_add(d_tdivzorigin, rf_add(rf_mul(dv,d_tdivzstepv), rf_mul(du,d_tdivzstepu)));
+		zi = rf_add(d_ziorigin, rf_add(rf_mul(dv,d_zistepv), rf_mul(du,d_zistepu)));
 		z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
 
 		r_turb_s = (int)(sdivz * z) + sadjust;
@@ -287,18 +287,18 @@ void D_DrawSpans8 (espan_t *pspan)
 		du = (float)pspan->u;
 		dv = (float)pspan->v;
 
-		sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-		tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-		zi = d_ziorigin + dv*d_zistepv + du*d_zistepu;
+		sdivz = rf_add(d_sdivzorigin, rf_add(rf_mul(dv,d_sdivzstepv), rf_mul(du,d_sdivzstepu)));
+		tdivz = rf_add(d_tdivzorigin, rf_add(rf_mul(dv,d_tdivzstepv), rf_mul(du,d_tdivzstepu)));
+		zi = rf_add(d_ziorigin, rf_add(rf_mul(dv,d_zistepv), rf_mul(du,d_zistepu)));
 		z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
 
-		s = (int)(sdivz * z) + sadjust;
+		s = (int)(rf_mul(sdivz,z)) + sadjust;
 		if (s > bbextents)
 			s = bbextents;
 		else if (s < 0)
 			s = 0;
 
-		t = (int)(tdivz * z) + tadjust;
+		t = (int)(rf_mul(tdivz, z)) + tadjust;
 		if (t > bbextentt)
 			t = bbextentt;
 		else if (t < 0)
@@ -323,7 +323,7 @@ void D_DrawSpans8 (espan_t *pspan)
 				zi += zi8stepu;
 				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
 
-				snext = (int)(sdivz * z) + sadjust;
+				snext = (int)(rf_mul(sdivz, z)) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < SPANGRAN)
@@ -331,7 +331,7 @@ void D_DrawSpans8 (espan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(tdivz * z) + tadjust;
+				tnext = (int)(rf_mul(tdivz, z)) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < SPANGRAN)
@@ -347,11 +347,11 @@ void D_DrawSpans8 (espan_t *pspan)
 			// span by division, biasing steps low so we don't run off the
 			// texture
 				spancountminus1 = (float)(spancount - 1);
-				sdivz += d_sdivzstepu * spancountminus1;
-				tdivz += d_tdivzstepu * spancountminus1;
-				zi += d_zistepu * spancountminus1;
+				sdivz = rf_add(sdivz, rf_mul(d_sdivzstepu, spancountminus1));
+				tdivz = rf_add(tdivz, rf_mul(d_tdivzstepu, spancountminus1));
+				zi = rf_add(zi, rf_mul(d_zistepu, spancountminus1));
 				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-				snext = (int)(sdivz * z) + sadjust;
+				snext = (int)(rf_mul(sdivz, z)) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < SPANGRAN)
@@ -359,7 +359,7 @@ void D_DrawSpans8 (espan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(tdivz * z) + tadjust;
+				tnext = (int)(rf_mul(tdivz, z)) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < SPANGRAN)
@@ -403,7 +403,8 @@ void D_DrawZSpans (espan_t *pspan)
 	int				izi;
 	short			*pdest;
 	unsigned		ltemp;
-	double			zi;
+	//double			zi;
+	float zi;
 	float			du, dv;
 
 // FIXME: check for clamping/range problems
@@ -420,7 +421,7 @@ void D_DrawZSpans (espan_t *pspan)
 		du = (float)pspan->u;
 		dv = (float)pspan->v;
 
-		zi = d_ziorigin + dv*d_zistepv + du*d_zistepu;
+		zi = rf_add(d_ziorigin, rf_add(rf_mul(dv,d_zistepv), rf_mul(du,d_zistepu)));
 	// we count on FP exceptions being turned off to avoid range problems
 		izi = (int)(zi * 0x8000 * 0x10000);
 

@@ -80,14 +80,14 @@ int				r_sstepx, r_tstepx, r_lstepy, r_sstepy, r_tstepy;
 int				r_zistepx, r_zistepy;
 int				d_aspancount, d_countextrastep;
 
-spanpackage_t			*a_spans;
-spanpackage_t			*d_pedgespanpackage;
+static spanpackage_t			*a_spans;
+static spanpackage_t			*d_pedgespanpackage;
 static int				ystart;
-pixel_t					*d_pdest;
+static pixel_t					*d_pdest;
 
-byte  *d_ptex;
-short					*d_pz;
-int						d_sfrac, d_tfrac, d_light, d_zi;
+static byte  *d_ptex;
+static short					*d_pz;
+static int						d_sfrac, d_tfrac, d_light, d_zi;
 int						d_ptexextrastep, d_sfracextrastep;
 int						d_tfracextrastep, d_lightextrastep, d_pdestextrastep;
 int						d_lightbasestep, d_pdestbasestep, d_ptexbasestep;
@@ -551,29 +551,29 @@ void D_PolysetCalcGradients (int skinwidth)
 	t0 = r_p0[4] - r_p2[4];
 	t1 = r_p1[4] - r_p2[4];
 	r_lstepx = (int)
-			ceil((t1 * p01_minus_p21 - t0 * p11_minus_p21) * xstepdenominv);
+			ceil((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) * xstepdenominv);
 	r_lstepy = (int)
-			ceil((t1 * p00_minus_p20 - t0 * p10_minus_p20) * ystepdenominv);
+			ceil((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) * ystepdenominv);
 
 	t0 = r_p0[2] - r_p2[2];
 	t1 = r_p1[2] - r_p2[2];
-	r_sstepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
+	r_sstepx = (int)((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) *
 			xstepdenominv);
-	r_sstepy = (int)((t1 * p00_minus_p20 - t0* p10_minus_p20) *
+	r_sstepy = (int)((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) *
 			ystepdenominv);
 
 	t0 = r_p0[3] - r_p2[3];
 	t1 = r_p1[3] - r_p2[3];
-	r_tstepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
+	r_tstepx = (int)((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) *
 			xstepdenominv);
-	r_tstepy = (int)((t1 * p00_minus_p20 - t0 * p10_minus_p20) *
+	r_tstepy = (int)((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) *
 			ystepdenominv);
 
 	t0 = r_p0[5] - r_p2[5];
 	t1 = r_p1[5] - r_p2[5];
-	r_zistepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
+	r_zistepx = (int)((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) *
 			xstepdenominv);
-	r_zistepy = (int)((t1 * p00_minus_p20 - t0 * p10_minus_p20) *
+	r_zistepy = (int)((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) *
 			ystepdenominv);
 
 #if	id386

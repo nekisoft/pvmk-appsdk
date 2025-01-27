@@ -42,8 +42,9 @@ extern	int nanmask;
 #define	IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
 
 #define DotProduct(x,y) (x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
-#define DotProduct_Shitty(x,y) (rf_mul(x[0],y[0])+rf_mul(x[1],y[1])+rf_mul(x[2],y[2]))
+#define DotProduct_Shitty(x,y) rf_add(rf_add(rf_mul(x[0],y[0]),rf_mul(x[1],y[1])),rf_mul(x[2],y[2]))
 #define VectorSubtract(a,b,c) {c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];}
+#define VectorSubtract_Shitty(a,b,c) {c[0]=rf_sub(a[0],b[0]);c[1]=rf_sub(a[1],b[1]);c[2]=rf_sub(a[2],b[2]);}
 #define VectorAdd(a,b,c) {c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];}
 #define VectorCopy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];}
 

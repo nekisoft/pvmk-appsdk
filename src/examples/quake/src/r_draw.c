@@ -100,8 +100,8 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 		world = &pv0->position[0];
 	
 	// transform and project
-		VectorSubtract (world, modelorg, local);
-		TransformVector (local, transformed);
+		VectorSubtract_Shitty (world, modelorg, local);
+		TransformVector_Shitty (local, transformed);
 	
 		if (transformed[2] < NEAR_CLIP)
 			transformed[2] = NEAR_CLIP;
@@ -129,8 +129,8 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 	world = &pv1->position[0];
 
 // transform and project
-	VectorSubtract (world, modelorg, local);
-	TransformVector (local, transformed);
+	VectorSubtract_Shitty (world, modelorg, local);
+	TransformVector_Shitty (local, transformed);
 
 	if (transformed[2] < NEAR_CLIP)
 		transformed[2] = NEAR_CLIP;
