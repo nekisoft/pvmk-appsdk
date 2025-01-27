@@ -170,10 +170,10 @@ float rf_sq(float a)
 		return 0; 
 		
 	//Multiply the mantissa bits
-	uint32_t ma = ((ra.i & 0x7FFFFF) | 0x800000u) >> 8; //1.15
-	uint32_t manprod = ma * ma; //2.30
+	uint32_t ma = ra.p.ma | 0x800000u; //1.23
+	uint64_t manprod64 = (uint64_t)ma * (uint64_t)ma; //2.46
 
-	manprod >>= 7; //cut down to 23 bits of fraction
+	uint32_t manprod = manprod64 >> 23; //cut down to 23 bits of fraction
 	if(manprod >= 0x1000000u) //if we end up with more than "1" as our integer part, shift down
 	{
 		manprod >>= 1;
