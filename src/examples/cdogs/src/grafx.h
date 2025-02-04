@@ -1,6 +1,7 @@
 #ifndef __grafx
 #define __grafx
 
+#define SCREENBYTES (320*200) //PVMK - size of screen in bytes at 8bpp
 
 struct RGB
 {

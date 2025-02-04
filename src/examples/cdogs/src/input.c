@@ -72,7 +72,7 @@ static void GetOnePlayerCmd( struct PlayerData *data,
 
 void GetPlayerCmd( int *cmd1, int *cmd2 )
 {
-  int joy1, joy2;
+  int joy1 = 0, joy2 = 0;
 
   PollDigiSticks( &joy1, &joy2);
   GetOnePlayerCmd( &gPlayer1Data, cmd1, joy1, joy2, cmd2 == NULL);

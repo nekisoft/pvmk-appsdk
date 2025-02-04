@@ -138,7 +138,7 @@ static int Follow( TActor *actor )
 static int Hunt( TActor *actor )
 {
   int cmd = 0;
-  int x, y, dx, dy;
+  int x = 0, y = 0, dx = 0, dy = 0;
 //  TActor *a;
 
   if ((actor->flags & (FLAGS_PLAYERS | FLAGS_GOOD_GUY)) == 0)

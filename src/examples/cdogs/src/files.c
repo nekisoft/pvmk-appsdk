@@ -120,7 +120,7 @@ int SaveCampaign( const char *filename, TCampaignSetting *setting )
 
   f = open( filename,
             O_WRONLY | O_CREAT | O_TRUNC /*| O_BINARY*/,
-            S_IRUSR | S_IWUSR);
+            0666);
   if (f >= 0)
   {
     i = CAMPAIGN_MAGIC;

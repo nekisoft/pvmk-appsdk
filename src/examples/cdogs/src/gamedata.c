@@ -14,7 +14,7 @@ struct PlayerData gPlayer1Data =
   "Player 1", 0, SHADE_BLUE, SHADE_BLUE, SHADE_BLUE, 0, 0,
   3, { GUN_SHOTGUN, GUN_MG, GUN_FRAGGRENADE },
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  KEYBOARD,
+  JOYSTICK_ONE,
   { keyArrowLeft, keyArrowRight, keyArrowUp, keyArrowDown, keyLeftCtrl, keyEnter }
 };
 
@@ -23,7 +23,7 @@ struct PlayerData gPlayer2Data =
   "Player 2", 1, SHADE_RED, SHADE_RED, SHADE_RED, 2, 0,
   3, { GUN_POWERGUN, GUN_FLAMER, GUN_GRENADE },
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  KEYBOARD,
+  JOYSTICK_TWO,
   { keyKeypad4, keyKeypad6, keyKeypad8, keyKeypad2, keyKeypad0, keyKeypadEnter }
 };
 
@@ -44,7 +44,7 @@ struct GameOptions gOptions =
   100,
   100,
   100,
-  0,
+  100,
   0
 };
 

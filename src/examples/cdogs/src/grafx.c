@@ -154,13 +154,6 @@ int RLEncodePics( int picCount, void **pics, void **rlePics )
   return total;
 }
 
-void vsync( void )
-{
-  //while ((inp( 0x03da) & 8) != 0);
-  //while ((inp( 0x03da) & 8) == 0);
-
-}
-
 int PicWidth( void *pic )
 {
   if (!pic)

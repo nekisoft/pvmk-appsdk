@@ -9,6 +9,9 @@
 
 struct JoyRec gSticks[2];
 
+int PvmkJoy1;
+int PvmkJoy2;
+
 
 #define VGA_PORT       0x03DA
 #define STICK_PORT     0x0201
@@ -167,9 +170,9 @@ void PollDigiSticks( int *joy1, int *joy2 )
 		//Figure out which joystick data we'll write, based on who's sending the input
 		int *bits = NULL;
 		if(inp.format == 'A')
-			bits = joy1;
+			bits = &PvmkJoy1;
 		if(inp.format == 'B')
-			bits = joy2;
+			bits = &PvmkJoy2;
 		if(bits == NULL)
 			continue;
 		
@@ -184,7 +187,7 @@ void PollDigiSticks( int *joy1, int *joy2 )
 			[_SC_BTNIDX_A]     = JOYSTICK_BUTTON1,
 			[_SC_BTNIDX_B]     = JOYSTICK_BUTTON2,
 			[_SC_BTNIDX_C]     = JOYSTICK_BUTTON3,
-			[_SC_BTNIDX_X]     = JOYSTICK_BUTTON4,
+			[_SC_BTNIDX_START] = JOYSTICK_BUTTON4,
 		};
 		for(int bb = 0; bb < 16; bb++)
 		{
@@ -192,6 +195,12 @@ void PollDigiSticks( int *joy1, int *joy2 )
 				*bits |= jsmap[bb];
 		}
 	}
+	
+	//Need to return the last inputs, even if no new events were delivered
+	if(joy1)
+		*joy1 = PvmkJoy1;
+	if(joy2)
+		*joy2 = PvmkJoy2;
 }
 
 void EnableSticks( int joy1, int joy2 )

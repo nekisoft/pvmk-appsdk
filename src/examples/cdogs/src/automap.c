@@ -97,7 +97,7 @@ static void DisplayExit( void )
   }
 }
 
-static void DisplaySummary()
+static void DisplaySummary(void)
 {
   int i, y;
   char sScore[20];

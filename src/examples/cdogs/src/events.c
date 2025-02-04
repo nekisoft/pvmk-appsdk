@@ -59,9 +59,8 @@ void SetSecondaryMouseRects( struct MouseRect *rects )
 int GetMouseRectTag( int x, int y, int *tag )
 {
   struct MouseRect *mRect;
-  int i;
 
-  for (i = 0, mRect = localRects; mRect && mRect->right > 0; i++, mRect++)
+  for (mRect = localRects; mRect && mRect->right > 0; mRect++)
   {
     if (y >= mRect->top && y <= mRect->bottom &&
         x >= mRect->left && x <= mRect->right)
@@ -70,7 +69,7 @@ int GetMouseRectTag( int x, int y, int *tag )
       return 1;
     }
   }
-  for (i = 0, mRect = localRects2; mRect && mRect->right > 0; i++, mRect++)
+  for (mRect = localRects2; mRect && mRect->right > 0; mRect++)
   {
     if (y >= mRect->top && y <= mRect->bottom &&
         x >= mRect->left && x <= mRect->right)

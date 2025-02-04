@@ -765,6 +765,8 @@ int main( int argc, char *argv[] )
   int i, wait = 0;
   char s[24];
   int compile = 1, rle = 1;
+	
+  compile = 0; //pvmk
 
   printf( "C-Dogs %s\n", CDOGS_VERSION);
 

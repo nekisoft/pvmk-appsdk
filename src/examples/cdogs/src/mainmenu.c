@@ -23,15 +23,23 @@
 #define MODE_MAIN       255
 #define MODE_PLAY       0
 #define MODE_OPTIONS    3
-#define MODE_CONTROLS   4
-#define MODE_VOLUME     5
-#define MODE_QUIT       6
-#define MODE_KEYS       7
-#define MODE_CAMPAIGN   8
-#define MODE_DOGFIGHT   9
+//#define MODE_CONTROLS   4
+//#define MODE_VOLUME     5
+//#define MODE_QUIT       6
+//#define MODE_KEYS       7
+//#define MODE_CAMPAIGN   8
+//#define MODE_DOGFIGHT   9
 
 
-#define MAIN_COUNT      7
+#define MODE_VOLUME     4
+//#define MODE_QUIT       5
+#define MODE_KEYS       5
+#define MODE_CAMPAIGN   6
+#define MODE_DOGFIGHT   7
+
+
+//#define MAIN_COUNT      7
+#define MAIN_COUNT      5
 
 static const char *mainMenu[ MAIN_COUNT] =
 {
@@ -39,9 +47,9 @@ static const char *mainMenu[ MAIN_COUNT] =
   "2 player game",
   "Dog fight",
   "Game options...",
-  "Controls...",
+  //"Controls...",
   "Sound...",
-  "Quit"
+  //"Quit"
 };
 
 #define OPTIONS_COUNT   13
@@ -63,6 +71,7 @@ static const char *optionsMenu[ OPTIONS_COUNT] =
   "Done"
 };
 
+/*
 #define CONTROLS_COUNT   7
 
 static const char *controlsMenu[ CONTROLS_COUNT] =
@@ -75,6 +84,7 @@ static const char *controlsMenu[ CONTROLS_COUNT] =
   "Calibrate joystick",
   "Done"
 };
+*/
 
 #define VOLUME_COUNT   5
 
@@ -108,7 +118,7 @@ static struct Credit credits[] =
   { "Daniel Jansson",          "Friend and fellow aikido instructor" },
   { "Chilok Lau",              "Joey's brother and a relentless game-player" },
   { "Niklas Wester",           "My LITTLE brother...yeah, I know he is taller...mumble, grumble..." },
-  { "Anneli L”fgren",          "My mother. Hi Ma! Sorry, no launcher this time..." },
+  { "Anneli L-fgren",          "My mother. Hi Ma! Sorry, no launcher this time..." },
   { "Otto Chrons",             "Author of the DSMI sound and music library" },
   { "Ethan Brodsky",           "Author of free SB stuff. Helped me out when I got started" },
   { "Tech support at DPT",     "The best support staff I've ever come across. Kudos!" },
@@ -240,13 +250,13 @@ static int SelectMain( int cmd )
 {
   static int index = 0;
 
-  if (cmd == CMD_ESC)
+  /*if (cmd == CMD_ESC)
   {
     if (index != MODE_QUIT)
       index = MODE_QUIT;
     else
       return MODE_QUIT;
-  }
+  }*/
   if (AnyButton( cmd))
   {
     switch (index)
@@ -499,6 +509,7 @@ int SelectOptions( int cmd )
   return MODE_OPTIONS;
 }
 
+/*
 static void ChangeControl( struct PlayerData *data, struct PlayerData *other )
 {
   if (data->controls == JOYSTICK_ONE)
@@ -518,7 +529,9 @@ static void ChangeControl( struct PlayerData *data, struct PlayerData *other )
       data->controls = JOYSTICK_TWO;
   }
 }
+*/
 
+/*
 static void DisplayControl( int x, int y, int controls )
 {
   if (controls == JOYSTICK_ONE)
@@ -528,7 +541,9 @@ static void DisplayControl( int x, int y, int controls )
   else
     TextStringAt( x, y, "Keyboard");
 }
+*/
 
+/*
 int SelectControls( int cmd )
 {
   static int index = 0;
@@ -591,6 +606,7 @@ int SelectControls( int cmd )
   TextStringAt( 230, 50 + 3*TextHeight(), gOptions.swapButtonsJoy2 ? "Yes" : "No");
   return MODE_CONTROLS;
 }
+*/
 
 int KeyAvailable( int key, struct PlayerData *data, int index, struct PlayerData *other )
 {
@@ -667,6 +683,7 @@ void ChangeMapKey( struct PlayerData *d1, struct PlayerData *d2 )
 
 #define SELECTKEY "Press a key"
 
+/*
 static void DisplayKeys( int x, int x2, int y, char *title, struct PlayerData *data, int index, int change )
 {
   int i;
@@ -685,7 +702,9 @@ static void DisplayKeys( int x, int x2, int y, char *title, struct PlayerData *d
     else
       DisplayMenuItem( x2, y + (i+1)*TextHeight(), keyNames[ data->keys[i]], index == i);
 }
+*/
 
+/*
 static void ShowAllKeys( int index, int change )
 {
   DisplayKeys( 75, 230,  20, "Player One", &gPlayer1Data, index, change);
@@ -697,7 +716,9 @@ static void ShowAllKeys( int index, int change )
     DisplayMenuItem( 230, 170, keyNames[ gOptions.mapKey], index == 12);
   DisplayMenuItem(  75, 180, "Done", index == 13);
 }
+*/
 
+/*
 static void HighlightKey( int index )
 {
   void *scr = GetDstScreen();
@@ -707,7 +728,9 @@ static void HighlightKey( int index )
   ShowAllKeys( index, index);
   SetDstScreen( scr);
 }
+*/
 
+/*
 int SelectKeys( int cmd )
 {
   static int index = 12;
@@ -761,6 +784,7 @@ int SelectKeys( int cmd )
   ShowAllKeys( index, -1);
   return MODE_KEYS;
 }
+*/
 
 int SelectVolume( int cmd )
 {
@@ -856,10 +880,10 @@ int MakeSelection( int mode, int cmd )
       return SelectCampaign( 1, cmd);
     case MODE_OPTIONS:
       return SelectOptions( cmd);
-    case MODE_CONTROLS:
-      return SelectControls( cmd);
-    case MODE_KEYS:
-      return SelectKeys( cmd);
+    //case MODE_CONTROLS:
+    //  return SelectControls( cmd);
+   // case MODE_KEYS:
+    //  return SelectKeys( cmd);
     case MODE_VOLUME:
       return SelectVolume( cmd);
   }
@@ -876,7 +900,7 @@ static void ShowCredits( void )
   TextStringWithTableAt( 50, 140, credits[ creditIndex].name, tablePurple);
   TextStringWithTableAt( 20, 140+TextHeight(), credits[ creditIndex].message, tableDarker);
 
-  t = clock()/CLOCKS_PER_SEC;
+  t = time(NULL); //clock()/CLOCKS_PER_SEC;
   if (t > lastTick + CREDIT_PERIOD)
   {
     creditIndex++;
@@ -893,7 +917,7 @@ int MainMenu( void *bkg )
 
   mode = MODE_MAIN;
 
-  while (mode != MODE_QUIT && mode != MODE_PLAY)
+  while (/*mode != MODE_QUIT && */mode != MODE_PLAY)
   {
     memcpy( GetDstScreen(), bkg, 64000);
     ShowControls();

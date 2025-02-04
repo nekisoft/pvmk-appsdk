@@ -5,7 +5,7 @@
 
 void ShowControls( void )
 {
-  TextStringAt( 50, 190, "(use player 1 controls or arrow keys + Enter/Backspace)");
+//  TextStringAt( 50, 190, "(use player 1 controls or arrow keys + Enter/Backspace)");
 }
 
 void DisplayMenuItem( int x, int y, const char *s, int selected )
