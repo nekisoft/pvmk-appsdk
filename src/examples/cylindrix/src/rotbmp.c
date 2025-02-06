@@ -33,17 +33,17 @@
 
 char *funky_buffer; /* pointer we will use for the double
                            buffer */ 
-long max_index;         /* The ending index of the image->buffer */
-unsigned long image_index = 0;   /* our position in the image buffer */
-long y_offset;          /* For scaling along the y axis */
-long total_ystep;      /* Determines how often we repeat or skip scan(?) lines */
-long total_index;      /* This is our ystep position in the image->buffer */
+int32_t max_index;         /* The ending index of the image->buffer */
+uint32_t image_index = 0;   /* our position in the image buffer */
+int32_t y_offset;          /* For scaling along the y axis */
+int32_t total_ystep;      /* Determines how often we repeat or skip scan(?) lines */
+int32_t total_index;      /* This is our ystep position in the image->buffer */
              
 
-long left_step = 0;
-long right_step = 0;
-long left_index = 0;
-long right_index = 0;
+int32_t left_step = 0;
+int32_t right_step = 0;
+int32_t left_index = 0;
+int32_t right_index = 0;
 
 
 
@@ -51,18 +51,18 @@ long right_index = 0;
 
 /* Digline draws a line from x1,y1 to x2,y2 but instead of drawing a
    Solid color it draws a strip from the image->buffer it is sent.  It
-   Keeps track of its position in the buffer with the static long image_index.
+   Keeps track of its position in the buffer with the static int32_t image_index.
    It also scales the line so one horizontal line from the buffer maps
    Onto our line (x1,y1),(x2,y2) */
 
 void digline( int x1, int y1, int x2, int y2, pcx_picture_ptr image )
     {
     
-     long temp_image_index = image_index; 
+     int32_t temp_image_index = image_index; 
      int d, x, y, ax, ay, sx, sy, dx, dy;
-     long xstep = 0, ystep = 0;
+     int32_t xstep = 0, ystep = 0;
      unsigned char *buffer_ptr; /* temporary pointer for easy buffer reference */
-     long local_xpixels = image->xpixels;
+     int32_t local_xpixels = image->xpixels;
      
      int hackx, hacky; /* Temporary solution to nasty clipping problem */
 
@@ -246,7 +246,7 @@ void Texture( pcx_picture_ptr image, int newx1, int newy1, int newx2, int newy2,
      funky_buffer = Return_Double_Buffer(); /* Alias our pointer to the double buffer
                                                For the pixel plot macro */
 
-     max_index = ((long)(image->xpixels + 1) * (long)(image->ypixels + 1)) << MEXP2;           
+     max_index = ((int32_t)(image->xpixels + 1) * (int32_t)(image->ypixels + 1)) << MEXP2;           
      /* This is the end of the image buffer we are mapping */
 
 
@@ -262,12 +262,12 @@ void Texture( pcx_picture_ptr image, int newx1, int newy1, int newx2, int newy2,
 
      if( line_length > line_length2 )
          {
-          right_step = ((long)line_length2 << MEXP2) / (long)line_length;
+          right_step = ((int32_t)line_length2 << MEXP2) / (int32_t)line_length;
           left_step = MAGIC2;  /*  1:1 ratio of pixels  */
          }
      else if( line_length < line_length2 )
          {
-          left_step = ((long)line_length << MEXP2) / (long)line_length2;
+          left_step = ((int32_t)line_length << MEXP2) / (int32_t)line_length2;
           right_step = MAGIC2; /*  1:1 ratio of pixels */
          }
       else /* if theyre the same */
@@ -283,12 +283,12 @@ void Texture( pcx_picture_ptr image, int newx1, int newy1, int newx2, int newy2,
 
       
      if( line_length < image->ypixels + 1)
-         y_offset = (long)(image->xpixels + 1) << MEXP2;
+         y_offset = (int32_t)(image->xpixels + 1) << MEXP2;
      else
-         y_offset = -(long)(image->xpixels + 1) << MEXP2;
+         y_offset = -(int32_t)(image->xpixels + 1) << MEXP2;
 
      
-     total_ystep = ((long)image->ypixels << MEXP2) / ((long)line_length);
+     total_ystep = ((int32_t)image->ypixels << MEXP2) / ((int32_t)line_length);
 
           
 total_index = 0;                        

@@ -39,8 +39,8 @@ typedef struct {
 
 typedef struct {
     string item[50];            /* holds all the menu selections */
-    long current_selection;     /* the users currently selected selection */
-    long num_items;             /* the number of selections */
+    int32_t current_selection;     /* the users currently selected selection */
+    int32_t num_items;             /* the number of selections */
 } GeneralMenuData;
 
 typedef struct {
@@ -55,12 +55,12 @@ typedef struct {
 } CharacterInfo;
 
 typedef struct {
-    long wingman_index;         /* identifies the player whose ai we are selecting (unused) */
+    int32_t wingman_index;         /* identifies the player whose ai we are selecting (unused) */
     string menu_title;          /* title of menu */
     CharacterInfo info[39];     /* each characters info (name, race, description ... ) */
-    long current_row;
-    long current_col;
-    long num_items;               /* the number of characters able to be selected must be a multiple of 3 */
+    int32_t current_row;
+    int32_t current_col;
+    int32_t num_items;               /* the number of characters able to be selected must be a multiple of 3 */
     boolean palette_active;       /* true if pallete is active */
     palette_type menu_palette;
 } WingmanMenuData;
@@ -74,9 +74,9 @@ typedef struct {
 } VehicleInfo;
 
 typedef struct {
-    long current_selection;
+    int32_t current_selection;
     string menu_title;
-    long num_items;
+    int32_t num_items;
     VehicleInfo info[8];
     PointFace world_obj;
     Orientation orient;
@@ -102,8 +102,8 @@ void init_all_main_menus(void);
 
 void make_menu_current( MenuScreen *menu );
 
-void character_picture_blit( long anchor_x, long anchor_y, pcx_picture *pcx );
+void character_picture_blit( int32_t anchor_x, int32_t anchor_y, pcx_picture *pcx );
 
-long ai_to_selection( long ai );
+int32_t ai_to_selection( int32_t ai );
 
 #endif

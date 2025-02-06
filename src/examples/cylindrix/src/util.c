@@ -33,7 +33,7 @@
 #include "clipping.h"  /* needed in point_visible */
 #include "util.h"
 
-extern long new_hither;     /* needed in point_visible */
+extern int32_t new_hither;     /* needed in point_visible */
 extern Matrix scale_matrix; /* needed in point_visible */
 extern game_configuration_type game_configuration; /* From omega.c */
 extern level_type level; /* From omega.c...we need it for yon_clipping_plane */
@@ -41,13 +41,13 @@ extern level_type level; /* From omega.c...we need it for yon_clipping_plane */
 extern WorldStuff world_stuff;
 
 
-long sine_table[1609]; /* sin( 0.0 ) to sin( PI/2 ) */
-long arc_cos_table[8193]; /* arccos( 0.0 ) to arccos( 1.0 ) in fixed-point
+int32_t sine_table[1609]; /* sin( 0.0 ) to sin( PI/2 ) */
+int32_t arc_cos_table[8193]; /* arccos( 0.0 ) to arccos( 1.0 ) in fixed-point
 			     19.13 */
 			     
-extern long sb_installed;        /* True if the sound card driver is installed */
-extern long keyboard_installed;  /* True if the keyboard interrupt is installed */
-extern long timer_installed;     /* True if the timer interrrupt is installed */
+extern int32_t sb_installed;        /* True if the sound card driver is installed */
+extern int32_t keyboard_installed;  /* True if the keyboard interrupt is installed */
+extern int32_t timer_installed;     /* True if the timer interrrupt is installed */
 
 void exit_gracefully(void)
 {
@@ -83,7 +83,7 @@ void exit_gracefully(void)
 
 void init_sine_table(void)
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < 1609; i++ ) {
 	sine_table[i] = ftom( sin( mtof( i ) ) );
@@ -92,47 +92,47 @@ void init_sine_table(void)
 
 void init_arc_cos_table(void)
 {
-     long i;
+     int32_t i;
 
      for( i = 0; i < 8193; i++ ) {
-	 arc_cos_table[i] = (long)(acos( ((float)i / 8192.0) ) * 8192.0);
+	 arc_cos_table[i] = (int32_t)(acos( ((float)i / 8192.0) ) * 8192.0);
      }
 }
 
 /* converts 22.10 fixed-point to float */
 
-float mtof( long magic )
+float mtof( int32_t magic )
 {
     return (float)((float)magic/(float)MAGIC);
 }
 
 /* converts float to 22.10 fixed-point */
 
-long ftom( float num )
+int32_t ftom( float num )
 {
-    return (long)(num * MAGIC);
+    return (int32_t)(num * MAGIC);
 }
 
-long rounding_ftom( float num )
+int32_t rounding_ftom( float num )
 {
     double integer_part, fractional_part;
 
     fractional_part = modf( num * (float)MAGIC, &integer_part );
 
     if( ( fractional_part > 0.0 ) && ( fractional_part >= 0.5 ) ) {
-	return (long)(integer_part + 1.0);
+	return (int32_t)(integer_part + 1.0);
     }
     else if( ( fractional_part < 0.0 ) && ( -fractional_part >= 0.5 ) ) {
-	return (long)(integer_part - 1.0);
+	return (int32_t)(integer_part - 1.0);
     }
     else {
-	return (long)(integer_part);
+	return (int32_t)(integer_part);
     }
 }
 
-long rounding_fixed_multiply( long x, long y )
+int32_t rounding_fixed_multiply( int32_t x, int32_t y )
 {
-    long temp;
+    int32_t temp;
 
     temp = (x * y) >> (MEXP - 1);
 
@@ -144,7 +144,7 @@ long rounding_fixed_multiply( long x, long y )
     }
 }
 
-long rounding_fixed_to_long( long fixed )
+int32_t rounding_fixed_to_long( int32_t fixed )
 {
     fixed = fixed >> (MEXP - 1);
 
@@ -159,7 +159,7 @@ long rounding_fixed_to_long( long fixed )
 /* warning x is expected to be in 19.13 fixed-point not 22.10 */
 /* the result is also in 19.13 fixed-point */
 
-long iarccos( long x )
+int32_t iarccos( int32_t x )
 {
     if( x > 8192 ) {
 	x = 8192;
@@ -178,9 +178,9 @@ long iarccos( long x )
 
 /* gives you the sin of the angle x(radians) in fixed-point */
 
-long isin( long x )
+int32_t isin( int32_t x )
 {
-    long factor = 1;
+    int32_t factor = 1;
 
     while( x < 0 ) {
 	x += 6434;     /* 2 pi */
@@ -199,7 +199,7 @@ long isin( long x )
 
 /* gives you the cos of the angle x(radians) in fixed-point */
 
-long icos( long x )
+int32_t icos( int32_t x )
 {
     return (isin(x+1608));
 }
@@ -210,7 +210,7 @@ long icos( long x )
    pixel.  This function finds the color based solely on the angle of the
    light source. */
 
-unsigned char diffuse_shade( long dotprod, Gradient gradient )
+unsigned char diffuse_shade( int32_t dotprod, Gradient gradient )
 {
     unsigned char num_colors = world_stuff.color_info.gradient[gradient].num_colors;
     unsigned char offset = world_stuff.color_info.gradient[gradient].first;
@@ -220,11 +220,11 @@ unsigned char diffuse_shade( long dotprod, Gradient gradient )
     }
     else {
 
-	long d_theta; /* number of radians each color in the gradient sweeps
+	int32_t d_theta; /* number of radians each color in the gradient sweeps
 			 through */
 
-	long theta;   /* angle of face to light source (arccos(dotprod)) */
-	long i;
+	int32_t theta;   /* angle of face to light source (arccos(dotprod)) */
+	int32_t i;
 
 	theta = iarccos( dotprod << 3 );
 
@@ -247,17 +247,17 @@ unsigned char diffuse_shade( long dotprod, Gradient gradient )
    source.  This function finds the color based the angle of the light souce
    and the distance from the light source. */
 
-unsigned char distance_diffuse_shade( long dotprod, long distance, Gradient gradient )
+unsigned char distance_diffuse_shade( int32_t dotprod, int32_t distance, Gradient gradient )
 {
     unsigned char num_colors = world_stuff.color_info.gradient[gradient].num_colors;
     unsigned char offset = world_stuff.color_info.gradient[gradient].first;
-    long d_theta; /* number of radians each color in the gradient sweeps
+    int32_t d_theta; /* number of radians each color in the gradient sweeps
 		     through */
-    long theta;   /* angle of face to light source (arccos(dotprod)) */
-    long i;
-    long max_distance = ((((25 << MEXP) << MEXP) / -5120) * level.yon_clipping_plane) >> MEXP;
-    long factor = ((num_colors << MEXP) << MEXP) / max_distance; /* (num_colors / max_distance) */
-    long shade;
+    int32_t theta;   /* angle of face to light source (arccos(dotprod)) */
+    int32_t i;
+    int32_t max_distance = ((((25 << MEXP) << MEXP) / -5120) * level.yon_clipping_plane) >> MEXP;
+    int32_t factor = ((num_colors << MEXP) << MEXP) / max_distance; /* (num_colors / max_distance) */
+    int32_t shade;
 
     dotprod = (dotprod >> 1) + 512 + 50; /* shading hack to make things brighter */
 
@@ -301,17 +301,17 @@ unsigned char distance_diffuse_shade( long dotprod, long distance, Gradient grad
 }
 
 
-unsigned char vehicle_menu_distance_diffuse_shade( long dotprod, long distance, Gradient gradient )
+unsigned char vehicle_menu_distance_diffuse_shade( int32_t dotprod, int32_t distance, Gradient gradient )
 {
     unsigned char num_colors = 64;
     unsigned char offset = 5;
-    long d_theta; /* number of radians each color in the gradient sweeps
+    int32_t d_theta; /* number of radians each color in the gradient sweeps
 		     through */
-    long theta;   /* angle of face to light source (arccos(dotprod)) */
-    long i;
-    long max_distance = ((((25 << MEXP) << MEXP) / -5120) * level.yon_clipping_plane) >> MEXP;
-    long factor = ((num_colors << MEXP) << MEXP) / max_distance; /* (num_colors / max_distance) */
-    long shade;
+    int32_t theta;   /* angle of face to light source (arccos(dotprod)) */
+    int32_t i;
+    int32_t max_distance = ((((25 << MEXP) << MEXP) / -5120) * level.yon_clipping_plane) >> MEXP;
+    int32_t factor = ((num_colors << MEXP) << MEXP) / max_distance; /* (num_colors / max_distance) */
+    int32_t shade;
 
     dotprod = (dotprod >> 1) + 512 + 50; /* shading hack to make things brighter */
 
@@ -358,12 +358,12 @@ unsigned char vehicle_menu_distance_diffuse_shade( long dotprod, long distance, 
 /* Finds the actual color of a pixel that is some distance away from the
    light soruce. */
 
-unsigned char tube_shade( long distance, Gradient gradient )
+unsigned char tube_shade( int32_t distance, Gradient gradient )
 {
     unsigned char num_colors = world_stuff.color_info.gradient[gradient].num_colors;
     unsigned char offset = world_stuff.color_info.gradient[gradient].first;
-    long shade;
-    long factor = ((num_colors << MEXP) << MEXP) / level.yon_clipping_plane; /* (num_colors / max_distance) */
+    int32_t shade;
+    int32_t factor = ((num_colors << MEXP) << MEXP) / level.yon_clipping_plane; /* (num_colors / max_distance) */
 
     if( num_colors == 1 ) {
 	return offset;
@@ -382,12 +382,12 @@ unsigned char tube_shade( long distance, Gradient gradient )
     }
 }
 
-unsigned char radar_tube_shade( long distance, Gradient gradient )
+unsigned char radar_tube_shade( int32_t distance, Gradient gradient )
 {
-    long num_colors = world_stuff.color_info.gradient[gradient].num_colors;
-    long offset = world_stuff.color_info.gradient[gradient].first;
-    long shade;
-    long factor = (num_colors << MEXP) / 4;
+    int32_t num_colors = world_stuff.color_info.gradient[gradient].num_colors;
+    int32_t offset = world_stuff.color_info.gradient[gradient].first;
+    int32_t shade;
+    int32_t factor = (num_colors << MEXP) / 4;
 
     distance -= (3 << MEXP);
 
@@ -722,13 +722,13 @@ void print_vehicle_info( Vehicle *v )
     printf("  vel      = (%.25f,%.25f,%.25f)\n", v->vel[X], v->vel[Y], v->vel[Z] );
 }
 
-void print_player_info( Player *p, long frame )
+void print_player_info( Player *p, int32_t frame )
 {
-    printf("%ld  position = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.position[X], p->tank.orient.position[Y], p->tank.orient.position[Z] );
-    printf("%ld  front    = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.front[X], p->tank.orient.front[Y], p->tank.orient.front[Z] );
-    printf("%ld  up       = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.up[X], p->tank.orient.up[Y], p->tank.orient.up[Z] );
-    printf("%ld  vel      = (%.25f,%.25f,%.25f)\n", frame, p->tank.vel[X], p->tank.vel[Y], p->tank.vel[Z] );
-    printf("%ld  input_table = (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", frame, (int)p->table[0], (int)p->table[1],
+    printf("%d  position = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.position[X], p->tank.orient.position[Y], p->tank.orient.position[Z] );
+    printf("%d  front    = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.front[X], p->tank.orient.front[Y], p->tank.orient.front[Z] );
+    printf("%d  up       = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.up[X], p->tank.orient.up[Y], p->tank.orient.up[Z] );
+    printf("%d  vel      = (%.25f,%.25f,%.25f)\n", frame, p->tank.vel[X], p->tank.vel[Y], p->tank.vel[Z] );
+    printf("%d  input_table = (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", frame, (int)p->table[0], (int)p->table[1],
         (int)p->table[2], (int)p->table[3], (int)p->table[4], (int)p->table[5], (int)p->table[6], (int)p->table[7],
         (int)p->table[8], (int)p->table[9], (int)p->table[10], (int)p->table[11], (int)p->table[12] );
 }

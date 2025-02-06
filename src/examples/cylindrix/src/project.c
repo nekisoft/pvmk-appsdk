@@ -42,10 +42,10 @@ extern game_stats_type game_stats; /* From omega.c */
 extern game_configuration_type game_configuration;
 extern WorldStuff world_stuff;
 
-void update_missile_target( Player *player_array, long index,
+void update_missile_target( Player *player_array, int32_t index,
 			    RadarBase *red_base, RadarBase *blue_base )
 {
-    long enemy_found, i;
+    int32_t enemy_found, i;
     float len, temp, *enemy_ptr = NULL;
     Float_Point pos;
     Projectile *p;
@@ -833,11 +833,11 @@ void create_projectile( Vehicle *v, PointFace *obj, enum projectile_type type )
     }
 }
 
-void create_decoy_projectile( Vehicle *v, long type )
+void create_decoy_projectile( Vehicle *v, int32_t type )
 {
     Projectile *p;
     short count = 0;
-    long i;
+    int32_t i;
     unsigned char owner = 99;
 
     /* find the owner of this projectile */
@@ -1094,11 +1094,11 @@ void old_move_projectile_forward_surface( Projectile *p, Vehicle *v )
 void move_projectile_forward_surface( Projectile *p, Vehicle *v )
 {
     Point temp, new_front;
-    long theta, phi;
-    long len;
-    const long surface_radius = 10086;
-    const long two_pi = (6434);
-    long proj_speed;
+    int32_t theta, phi;
+    int32_t len;
+    const int32_t surface_radius = 10086;
+    const int32_t two_pi = (6434);
+    int32_t proj_speed;
 
     if( p->type == LASER ) {
         proj_speed = ftom( v->laser_speed );
@@ -1187,10 +1187,10 @@ void move_projectile_forward_surface( Projectile *p, Vehicle *v )
 void old_move_missile_forward( Projectile *p, Vehicle *vehicle )
 {
     Vector t, v, new_front, new_up;
-    long zrot, xrot, theta, phi, diff, len;
-    const long two_pi = (6434);
-    const long pi = (3217);
-    const long delta = 178;  /* max amount missile can rotate (10 degrees) */
+    int32_t zrot, xrot, theta, phi, diff, len;
+    const int32_t two_pi = (6434);
+    const int32_t pi = (3217);
+    const int32_t delta = 178;  /* max amount missile can rotate (10 degrees) */
 
     /* first figure out the amount to rotate missile around z-axis */
 
@@ -1612,7 +1612,7 @@ void move_missile_forward( Projectile *p, Vehicle *vehicle, short seeking_on )
 void move_decoy_projectile( Projectile *p, Vehicle *v, Player player_array[] )
 {
     Vehicle temp_vehicle;
-    long player_index;
+    int32_t player_index;
 
     /* copy a bunch of shit from v into temp_vehicle so the movement functions
        will work */
@@ -1905,7 +1905,7 @@ void move_projectiles_forward( Vehicle *v, Pylons *pylons, Player *player,
 {
     Projectile *p, *last;
     Orientation o;
-    long face_index;
+    int32_t face_index;
 
     last = NULL;
     p = v->projectile_list;

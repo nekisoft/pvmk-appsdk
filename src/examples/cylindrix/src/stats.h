@@ -20,44 +20,45 @@
 
 #define STATS_H
 
+#include <stdint.h>
 
 typedef struct
     {
      char           name[80];       /* This characters name */
-     unsigned short kills;          /* How many enemies you killed */
-     unsigned short times_killed;   /* How many times character was killed */
-     unsigned short shots_fired;    /* How many projectiles you've fired */
-     unsigned short enemy_hits;     /* How many times you hit an enemy with a projectile */
-     unsigned short friendly_hits;  /* How many times you hit a friend with a projectile */
-     unsigned short misses;         /* How many shots you fired that did nothing */
-     unsigned short times_hit;      /* How many times you were hit with projectiles */
+     uint16_t kills;          /* How many enemies you killed */
+     uint16_t times_killed;   /* How many times character was killed */
+     uint16_t shots_fired;    /* How many projectiles you've fired */
+     uint16_t enemy_hits;     /* How many times you hit an enemy with a projectile */
+     uint16_t friendly_hits;  /* How many times you hit a friend with a projectile */
+     uint16_t misses;         /* How many shots you fired that did nothing */
+     uint16_t times_hit;      /* How many times you were hit with projectiles */
      int            victory;        /* Did this guy win or lose? 1 or 0 */
      float          hit_percentage; /* Hit to miss ratio */
-     unsigned short pylons_grabbed; /* How many pylons you grabbed */
+     uint16_t pylons_grabbed; /* How many pylons you grabbed */
      float          average_d;      /* Your average d throughout the game */
 
      int            user_vehicle;   /* Current vehicle controlled by user...for internal use */
-     unsigned long  total_frames;   /* Number of frames a game took...for internal use */
-     unsigned long  total_d;        /* Added d from every frame...used to compute average d */
+     uint32_t  total_frames;   /* Number of frames a game took...for internal use */
+     uint32_t  total_d;        /* Added d from every frame...used to compute average d */
     } game_stats_type;
 
 
 typedef struct
     {
      char          name[80];        /* This characters name */
-     unsigned long number_of_games; /* How many games you have played (unsigned long...hehe) */
-     unsigned long victories;       /* Number of victories */
-     unsigned long defeats;         /* Number of defeats */
+     uint32_t number_of_games; /* How many games you have played (uint32_t...hehe) */
+     uint32_t victories;       /* Number of victories */
+     uint32_t defeats;         /* Number of defeats */
      float         win_percentage;  /* Percent of the time you won */
-     unsigned long kills;           /* How many cats has this cat killed */
-     unsigned long times_killed;    /* How many times character was killed */
-     unsigned long shots_fired;     /* How many projectiles you've fired */
-     unsigned long enemy_hits;      /* How many times you hit an enemy with a projectile */
-     unsigned long friendly_hits;   /* How many times you hit an friend with a projectile */
-     unsigned long misses;          /* How many shots you fired that did nothing */
-     unsigned long times_hit;       /* How many times you were hit with projectiles */
+     uint32_t kills;           /* How many cats has this cat killed */
+     uint32_t times_killed;    /* How many times character was killed */
+     uint32_t shots_fired;     /* How many projectiles you've fired */
+     uint32_t enemy_hits;      /* How many times you hit an enemy with a projectile */
+     uint32_t friendly_hits;   /* How many times you hit an friend with a projectile */
+     uint32_t misses;          /* How many shots you fired that did nothing */
+     uint32_t times_hit;       /* How many times you were hit with projectiles */
      float         hit_percentage;  /* Hit to miss ratio */
-     unsigned long pylons_grabbed;  /* How many pylons you grabbed */
+     uint32_t pylons_grabbed;  /* How many pylons you grabbed */
     } overall_stats_type;
 
 

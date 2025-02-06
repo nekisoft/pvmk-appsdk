@@ -174,8 +174,8 @@ char version_string[] = "V2.0a1";
 int g_bRenderingFirstPlayer = 0;
 int g_bRenderingSecondPlayer = 0;
 
-extern long TIMER_CLICKS_PER_SECOND;
-extern long GAME_CLICKS_PER_SECOND;
+extern int32_t TIMER_CLICKS_PER_SECOND;
+extern int32_t GAME_CLICKS_PER_SECOND;
 
 int     level_warp   = -1;
 boolean test_anim    = FALSE;
@@ -186,7 +186,7 @@ boolean ceiling_on = TRUE; /* Are we bothering with the frame rate ceiling? */
 
 /* Stat shit */
 
-long program_over = FALSE;    /* TRUE when user wishes to leave the program */
+int32_t program_over = FALSE;    /* TRUE when user wishes to leave the program */
 
 game_stats_type game_stats;        /* Keep track of the current pilots stats for one game */
 overall_stats_type overall_stats;  /* Keep track of the current pilots overall stats */
@@ -210,8 +210,8 @@ int debug = FALSE;        /* When true the program prints out a bunch of
 int profile = FALSE;      /* When true the program prints profileing info */
 
 
-long exit_loop = FALSE;        /* tells us to exit the main game loop */
-long game_over = FALSE;        /* true if one team is victorious */
+int32_t exit_loop = FALSE;        /* tells us to exit the main game loop */
+int32_t game_over = FALSE;        /* true if one team is victorious */
 
 extern WingmanMenuData wingman_menu_data;
 
@@ -229,11 +229,11 @@ sb_mod_file *mod;
 WorldStuff world_stuff;
 MenuStuff menu_stuff;
 
-long sb_installed = FALSE;
-long timer_installed = FALSE;
-long keyboard_installed = FALSE;
-long ignore_sound_card = FALSE;
-long multiplayer_game_only = FALSE;
+int32_t sb_installed = FALSE;
+int32_t timer_installed = FALSE;
+int32_t keyboard_installed = FALSE;
+int32_t ignore_sound_card = FALSE;
+int32_t multiplayer_game_only = FALSE;
 
 int temp_int;
 
@@ -247,7 +247,7 @@ char frame_rate_str[80];   /* frame rate to be blitted on the screen */
 
 void init_game( int argc, char *argv[] )
 {
-    unsigned long key;
+    uint32_t key;
 
 	//Johnm 12/1/2001 - removed go32 stuff
 	//    _go32_dpmi_meminfo info;      /* used to get memory information */
@@ -571,24 +571,24 @@ void tournament_game_setup(void)
 
 int play_one_tournament_game( int song_number, int wingman1_alive, int wingman2_alive, int bTournamentGame )
 {
-    long status_bar = FALSE;       /* Tells if the status bar is to be drawn. */
+    int32_t status_bar = FALSE;       /* Tells if the status bar is to be drawn. */
     Orientation old_orient;        /* holds the last frames view_orientation, used for the third person view */
-    long first_person_view = TRUE; /* TRUE if camera is inside the cockpit */
-    long transporting = FALSE;     /* TRUE if user is being transported to a new vehicle */
-    long round_over = FALSE;       /* true if one team has won a round */
-    long user_victories = 0;       /* number of user_victories */
-    long enemy_victories = 0;      /* number of enemy_victoies */
-    long round = 0;                /* indicates the round being played */
-    long display_menu = FALSE;     /* if the user hits escape in the middle of the game this becomes true */
+    int32_t first_person_view = TRUE; /* TRUE if camera is inside the cockpit */
+    int32_t transporting = FALSE;     /* TRUE if user is being transported to a new vehicle */
+    int32_t round_over = FALSE;       /* true if one team has won a round */
+    int32_t user_victories = 0;       /* number of user_victories */
+    int32_t enemy_victories = 0;      /* number of enemy_victoies */
+    int32_t round = 0;                /* indicates the round being played */
+    int32_t display_menu = FALSE;     /* if the user hits escape in the middle of the game this becomes true */
     int temp_key;
     int i;
     Float_Vector temp_vect;
     pcx_picture temp_pcx;
-    long return_state = 2;             /* 0 if the user lost, 1 if the user won, 2 if the user quit */
-    long color_cycle = FALSE;
+    int32_t return_state = 2;             /* 0 if the user lost, 1 if the user won, 2 if the user quit */
+    int32_t color_cycle = FALSE;
     int bStoreTwoPlayer; //Tournament games set two_player to 0, need to store initial state to set back
 
-    const long num_rounds = 3;     /* total number of rounds allowed */
+    const int32_t num_rounds = 3;     /* total number of rounds allowed */
      
     //Don't allow split screen on tournament games
     if( bTournamentGame ) {

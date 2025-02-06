@@ -70,7 +70,7 @@ extern command_handler_type blue_commands;
 
     Player *player_array : array containing all six players
 
-    long view_vehicle : index into the player_array that indicates the vehicle
+    int32_t view_vehicle : index into the player_array that indicates the vehicle
                         who's hud we're drawing
 
     PointEdge *wire_tube : pointer to the wire_tube object that is used when
@@ -83,7 +83,7 @@ extern command_handler_type blue_commands;
 
 
 void draw_hud( enum VehicleType type, PixMap *pixmap,
-               Player *player_array, long view_vehicle, PointEdge *wire_tube,
+               Player *player_array, int32_t view_vehicle, PointEdge *wire_tube,
                RadarBase *red_base, RadarBase *blue_base )
 {
     Point p;                    /* the fixed-point version of the view_vehicles position */
@@ -100,12 +100,12 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     Point2d wing_one_order_offset = {0}; /* used to anchor the wingman order text */
     Point2d wing_two_order_offset = {0}; /* used to anchor the wingman order text */
 
-    long wing_one_index;        /* the player_array index of wingman 1 */
-    long wing_two_index;        /* the player_array index of wingman 2 */
+    int32_t wing_one_index;        /* the player_array index of wingman 1 */
+    int32_t wing_two_index;        /* the player_array index of wingman 2 */
 
-    long i;
+    int32_t i;
 
-    long found_index_one;       /* tells us if we have found wingman 1 */
+    int32_t found_index_one;       /* tells us if we have found wingman 1 */
 
     BarInfo wing_one_bar;       /* needed to draw the hitpoints of wingman 1 */
     BarInfo wing_two_bar;       /* needed to draw the hitpoints of wingman 2 */
@@ -120,13 +120,13 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     /* draw hud bitmap background on the screen */
 
     if( profile ) {
-        printf("    blit_screen( pixmap ), timer = %ld\n", Check_Timer() );
+        printf("    blit_screen( pixmap ), timer = %d\n", Check_Timer() );
     }
 
     blit_pixmap( pixmap, 2 /* green for the cross-hair */ );
 
     if( profile ) {
-        printf("    find view_vehicles wingmen, timer = %ld\n", Check_Timer() );
+        printf("    find view_vehicles wingmen, timer = %d\n", Check_Timer() );
     }
 
     /* find view_vehicles wingmen */
@@ -147,7 +147,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    initialize bars, timer = %ld\n", Check_Timer() );
+        printf("    initialize bars, timer = %d\n", Check_Timer() );
     }
 
     if( type == Beetle ) {
@@ -855,7 +855,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    draw_bar's, timer = %ld\n", Check_Timer() );
+        printf("    draw_bar's, timer = %d\n", Check_Timer() );
     }
 
     /* draw the bars */
@@ -869,7 +869,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     /* draw the radar */
 
     if( profile ) {
-        printf("    view_radar, timer = %ld\n", Check_Timer() );
+        printf("    view_radar, timer = %d\n", Check_Timer() );
     }
     
     /* draw the message if needed */
@@ -1020,7 +1020,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    draw target box, timer = %ld\n", Check_Timer() );
+        printf("    draw target box, timer = %d\n", Check_Timer() );
     }
 
     /* draw a box around the missile target */
@@ -1180,7 +1180,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    end of draw_hud, timer = %ld\n", Check_Timer() );
+        printf("    end of draw_hud, timer = %d\n", Check_Timer() );
     }
 }
 
@@ -1188,8 +1188,8 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
 
 void draw_missile_box( Point upper_left, Point lower_right, unsigned char color )
 {
-    long i;
-    long h_stub_len, v_stub_len;
+    int32_t i;
+    int32_t h_stub_len, v_stub_len;
 
     h_stub_len = (lower_right[X] - upper_left[X]) / 3;
     v_stub_len = (lower_right[Y] - upper_left[Y]) / 3;
@@ -1214,10 +1214,10 @@ void draw_missile_box( Point upper_left, Point lower_right, unsigned char color 
 
 void draw_cross_box( Point upper_left, Point lower_right, unsigned char color )
 {
-    long vert[2][4];
+    int32_t vert[2][4];
     Point2d top, left, right, bottom;
     Point2d new_upper_left, new_lower_right, center;
-    long len;
+    int32_t len;
     Edge e;
 
     center[X] = upper_left[X] + ((lower_right[X] - upper_left[X]) / 2);
@@ -1308,8 +1308,8 @@ void draw_bar( BarInfo *barinfo )
 
 void draw_horizontal_left_justified_bar( BarInfo *barinfo )
 {
-    long i, j;
-    long bar_start_x, bar_end_x;
+    int32_t i, j;
+    int32_t bar_start_x, bar_end_x;
 
     /* draw the outline first */
 
@@ -1352,8 +1352,8 @@ void draw_horizontal_left_justified_bar( BarInfo *barinfo )
 
 void draw_horizontal_right_justified_bar( BarInfo *barinfo )
 {
-    long i, j;
-    long bar_start_x, bar_end_x, bar_length;
+    int32_t i, j;
+    int32_t bar_start_x, bar_end_x, bar_length;
 
     /* draw the outline first */
 
@@ -1396,8 +1396,8 @@ void draw_horizontal_right_justified_bar( BarInfo *barinfo )
 
 void draw_vertical_top_justified_bar( BarInfo *barinfo )
 {
-    long i, j;
-    long bar_start_y, bar_end_y;
+    int32_t i, j;
+    int32_t bar_start_y, bar_end_y;
 
     /* draw the outline first */
 
@@ -1440,8 +1440,8 @@ void draw_vertical_top_justified_bar( BarInfo *barinfo )
 
 void draw_vertical_bottom_justified_bar( BarInfo *barinfo )
 {
-    long i, j;
-    long bar_start_y, bar_end_y, bar_length;
+    int32_t i, j;
+    int32_t bar_start_y, bar_end_y, bar_length;
 
     /* draw the outline first */
 
@@ -1501,7 +1501,7 @@ void blit_screen( unsigned char *buffer )
 
 void init_pixmap( PixMap *pixmap, unsigned char *buffer )
 {
-    long i, count;
+    int32_t i, count;
 
     count = 0;
 
@@ -1538,7 +1538,7 @@ void init_pixmap( PixMap *pixmap, unsigned char *buffer )
 
 void blit_pixmap( PixMap *pixmap, unsigned char new_cross_hair_color )
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < pixmap->pixels; i++ ) {
         if( pixmap->pixel[i].color != CROSS_HAIR_COLOR ) {
@@ -1550,13 +1550,13 @@ void blit_pixmap( PixMap *pixmap, unsigned char new_cross_hair_color )
     }
 }
 
-void draw_third_person_hud( Player *player_array, long view_vehicle,
+void draw_third_person_hud( Player *player_array, int32_t view_vehicle,
                             RadarBase *red_base, RadarBase *blue_base )
 {
 	(void)red_base;
 	(void)blue_base;
 	
-    long  found_index_one, i;
+    int32_t  found_index_one, i;
 
     Point p;                    /* the fixed-point version of the view_vehicles position */
     Point target;               /* used to transform the target into screen coords */

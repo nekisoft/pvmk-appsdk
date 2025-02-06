@@ -12,7 +12,7 @@
     Library General Public License for more details.
   
     You should have received a copy of the GNU Library General Public
-    License along with this library; if not, write to the Free
+    License aint32_t with this library; if not, write to the Free
     Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
@@ -41,7 +41,7 @@ extern player_events_type player_events[6]; /* From ai.c...i think */
 extern WorldStuff world_stuff;
 
 const float Cylinder_Length = 60.0; /* 60.0 */
-const long Magic_Cylinder_Length = 61440; /* 61440 */
+const int32_t Magic_Cylinder_Length = 61440; /* 61440 */
 
 void print_bounding_box( BoundingBox *b )
 {
@@ -51,7 +51,7 @@ void print_bounding_box( BoundingBox *b )
 
 void print_magic_bounding_box( MagicBoundingBox *b )
 {
-    printf("BoundingBox (%ld,%ld,%ld,%ld,%ld,%ld)\n",
+    printf("BoundingBox (%d,%d,%d,%d,%d,%d)\n",
         b->min_x, b->max_x, b->min_y, b->max_y, b->min_z, b->max_z );
 }
 
@@ -271,7 +271,7 @@ int in_poly_yz( Face *f, Point *v, Point p )
 }
 
 
-long absolute_val( long num )
+int32_t absolute_val( int32_t num )
 {
     if( num < 0 ) {
         return -num;
@@ -284,7 +284,7 @@ long absolute_val( long num )
 int edge_poly_intersect( Point *edge_vert, Edge edge,
                          Point *face_vert, Face *face )
 {
-    long A, B, C, D, t, max_coeff, t_denom;
+    int32_t A, B, C, D, t, max_coeff, t_denom;
     Point inter;
     Vector v;
 
@@ -415,9 +415,9 @@ int edge_poly_intersect( Point *edge_vert, Edge edge,
 }
 
 int pointface_edge_intersect( PointFace *obj, Point *edge_vert, EdgeTable *et,
-                              long *face_index )
+                              int32_t *face_index )
 {
-    long i, j;
+    int32_t i, j;
 
     for( i = 0; i < obj->faces; i++ ) {
         for( j = 0; j < et->edges; j++ ) {
@@ -438,7 +438,7 @@ int pointface_edge_intersect( PointFace *obj, Point *edge_vert, EdgeTable *et,
 int super_pointface_edge_intersect( PointFace *obj, Point *edge_vert,
                                     EdgeTable *et, Float_Vector reflect )
 {
-    long i, j;
+    int32_t i, j;
     int intersect = FALSE;
 
     for( i = 0; i < obj->faces; i++ ) {
@@ -470,7 +470,7 @@ int super_pointface_edge_intersect( PointFace *obj, Point *edge_vert,
 
 int super_pylon_collision( Pylons *p, Vehicle *v, Float_Vector reflect )
 {
-    long i, collision = 0;
+    int32_t i, collision = 0;
 
     for( i = 0; i < p->pylons; i++ ) {
         if( magic_bounding_box_overlap( &(p->pylon[i].mbox), &(v->mbox) ) &&
@@ -547,9 +547,9 @@ int super_pylon_collision( Pylons *p, Vehicle *v, Float_Vector reflect )
     }
 }
 
-int pylon_projectile_collision( Pylons *pylons, Projectile *p, long *face_index )
+int pylon_projectile_collision( Pylons *pylons, Projectile *p, int32_t *face_index )
 {
-    long i;
+    int32_t i;
     Float_Point point; /* To convert projectile position */
 
 
@@ -575,7 +575,7 @@ int pylon_projectile_collision( Pylons *pylons, Projectile *p, long *face_index 
 
 int vehicle_projectile_collision( Vehicle *v, Projectile *p )
 {
-    long face_index;
+    int32_t face_index;
 
     if( magic_bounding_box_overlap( &(p->box), &(v->mbox) ) &&
         pointface_edge_intersect( v->world_collision_obj, p->world_obj->point,
@@ -841,7 +841,7 @@ int player_projectile_collision( Player *player, Projectile *p, Vehicle *v )
 
 int radar_base_projectile_collision( RadarBase *base, Projectile *p, Vehicle *v )
 {
-    long face_index;
+    int32_t face_index;
     MagicBoundingBox mbox;
     Float_Point point;
     PointFace temp_obj;
@@ -945,7 +945,7 @@ int radar_base_projectile_collision( RadarBase *base, Projectile *p, Vehicle *v 
 void init_bounding_box( Vehicle *v )
 {
     Point *ptr;
-    long j, temp;
+    int32_t j, temp;
 
     if( (ptr = v->world_collision_obj->point) == NULL ) {
         printf("init_bounding_box(): null ptr in v->world_collision_obj->point\n");
@@ -1024,7 +1024,7 @@ void init_bounding_box( Vehicle *v )
 void find_bounding_box( PointFace *obj, BoundingBox *box )
 {
     Point *ptr;
-    long j, temp;
+    int32_t j, temp;
 
     if( (ptr = obj->point) == NULL ) {
         printf("find_bounding_box(): null ptr in obj->point\n");
@@ -1097,7 +1097,7 @@ void find_bounding_box( PointFace *obj, BoundingBox *box )
 void init_projectile_bounding_box( Projectile *p )
 {
     Point *ptr;
-    long j, temp;
+    int32_t j, temp;
 
     if( (ptr = p->world_obj->point) == NULL ) {
         printf("init_projectile_bounding_box(): null ptr in p->world_obj->point\n");
@@ -1201,7 +1201,7 @@ int cap_collision( Vehicle *v, Float_Vector reflect )
 int projectile_cylinder_collision( Projectile *p )
 {
     Vector v;
-    long len;
+    int32_t len;
     Float_Point point; /* For conversion of position */
 
     point[X] = mtof( p->orient.position[X] );
@@ -1414,7 +1414,7 @@ void build_collision_table( CollisionTable c_table,
                             Player p[], Pylons *pylons, RadarBase *red_base,
                             RadarBase *blue_base )
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < 6; i++ ) {
         c_table[i].collision = FALSE;
@@ -1444,7 +1444,7 @@ void build_new_collision_table( CollisionTable c_table,
                                 Pylons *pylons, RadarBase *red_base,
                                 RadarBase *blue_base )
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < 6; i++ ) {
         new_table[i].collision = FALSE;

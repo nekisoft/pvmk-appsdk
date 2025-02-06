@@ -23,7 +23,7 @@
 #include "types.h"
 
 
-typedef long Align;  /* for alignment to long boundary */
+typedef int32_t Align;  /* for alignment to int32_t boundary */
 
 union smart_heap_header {                /* block header: */
     struct {
@@ -149,9 +149,9 @@ void *smart_malloc( size_t size )
     }
     
     /*
-    printf("best_fit = %ld\n", (long)best_fit );
-    printf("best_fit->s.size = %ld\n", (long)best_fit->s.size );
-    printf("best_fit->s.next = %ld\n", (long)best_fit->s.next );
+    printf("best_fit = %ld\n", (int32_t)best_fit );
+    printf("best_fit->s.size = %ld\n", (int32_t)best_fit->s.size );
+    printf("best_fit->s.next = %ld\n", (int32_t)best_fit->s.next );
     */
     
     /* if there isn't a best_fit then barf */
@@ -170,8 +170,8 @@ void *smart_malloc( size_t size )
         old_next = best_fit->s.next;
         
         /*
-        printf("old_size = %ld\n", (long)old_size );
-        printf("old_next = %ld\n", (long)old_next );
+        printf("old_size = %ld\n", (int32_t)old_size );
+        printf("old_next = %ld\n", (int32_t)old_next );
         */
         
         best_fit->s.size = size + (size % sizeof(SmartHeapHeader) );
@@ -182,9 +182,9 @@ void *smart_malloc( size_t size )
         new_free_node->s.next = old_next;
         
         /*
-        printf("new_free_node = %ld\n", (long)new_free_node );
-        printf("new_free_node->s.size = %ld\n", (long)new_free_node->s.size );
-        printf("new_free_node->s.next = %ld\n", (long)new_free_node->s.next );        
+        printf("new_free_node = %ld\n", (int32_t)new_free_node );
+        printf("new_free_node->s.size = %ld\n", (int32_t)new_free_node->s.size );
+        printf("new_free_node->s.next = %ld\n", (int32_t)new_free_node->s.next );        
         */
         
         if( best_fit != free_list ) {
@@ -259,9 +259,9 @@ void print_smart_heap(void)
     
     while( current != NULL ) {
         printf("-------------------------\n");
-        printf("address = %ld\n", (long)current );
-        printf("size = %ld\n", (long)current->s.size );
-        printf("next = %ld\n", (long)current->s.next );
+        printf("address = %d\n", (int32_t)(intptr_t)current );
+        printf("size = %d\n", (int32_t)current->s.size );
+        printf("next = %d\n", (int32_t)(intptr_t)current->s.next );
         current = current->s.next;
     }
     

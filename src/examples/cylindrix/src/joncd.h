@@ -180,6 +180,7 @@ Copied from Ralf Brown's Interrupt List
 
 */
 
+#include <stdint.h>
 
 #define EJECT_DISK   0x00
 #define CLOSE_DISK   0x05
@@ -190,13 +191,13 @@ Copied from Ralf Brown's Interrupt List
 
 typedef struct
     {
-     unsigned char  num_drives;    /* How many cdrom drives are present? */
-     unsigned char  drive_number;  /* First cdrom drive # 0=A 1=B etc */
-     unsigned char  first_track;   /* First track on the cd */
-     unsigned char  last_track;    /* Last track on the cd */
-     unsigned long  lead_address;  /* Address of lead out track in red book format */
-     unsigned long  end_of_disk;   /* End of disk in hsg */
-     unsigned short status;        /* Bit encode status */
+     uint8_t  num_drives;    /* How many cdrom drives are present? */
+     uint8_t  drive_number;  /* First cdrom drive # 0=A 1=B etc */
+     uint8_t  first_track;   /* First track on the cd */
+     uint8_t  last_track;    /* Last track on the cd */
+     uint32_t  lead_address;  /* Address of lead out track in red book format */
+     uint32_t  end_of_disk;   /* End of disk in hsg */
+     uint16_t status;        /* Bit encode status */
     } cdrom_data_type;
 
 
@@ -215,7 +216,7 @@ void Cd_Command( unsigned char comcode );
 void Cd_Lock( unsigned char lock_mode );
 void Cd_Status( void );
 void Get_Audio_Info( void );
-unsigned long Track_Pos( int tracknum );
+uint32_t Track_Pos( int tracknum );
 void Play_Song( int tracknum );
 void Set_Cd_Volume( int volume );
 void Stop_Audio( void );

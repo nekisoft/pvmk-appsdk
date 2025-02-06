@@ -59,12 +59,12 @@
 
 //From main.c
 
-extern long exit_loop;  /* From omega.c */
-extern long game_over;
+extern int32_t exit_loop;  /* From omega.c */
+extern int32_t game_over;
 
 extern char version_string[];
 
-extern long program_over;    /* TRUE when user wishes to leave the program */
+extern int32_t program_over;    /* TRUE when user wishes to leave the program */
 
 extern MenuStuff menu_stuff;
 
@@ -76,12 +76,12 @@ extern level_type level;
 
 extern int master;
 
-extern long sb_installed;           /* true if the sound card is installed */
-extern long timer_installed;        /* true if the timer interrupt is installed */
-extern long keyboard_installed;     /* true if the keyboard interrupt is installed */
-extern long multiplayer_game_only;  /* true if the cylindrix disk aint in the drive */
+extern int32_t sb_installed;           /* true if the sound card is installed */
+extern int32_t timer_installed;        /* true if the timer interrupt is installed */
+extern int32_t keyboard_installed;     /* true if the keyboard interrupt is installed */
+extern int32_t multiplayer_game_only;  /* true if the cylindrix disk aint in the drive */
 
-long quit_game = FALSE;
+int32_t quit_game = FALSE;
 
 extern game_stats_type game_stats;
 
@@ -517,7 +517,7 @@ void tournament_wingman_menu_left_arrow(void);
 
 /* exit_event_loop tells the event loop when to exit */
 
-long exit_event_loop = FALSE;
+int32_t exit_event_loop = FALSE;
 
 void make_menu_current( MenuScreen *menu )
 {
@@ -948,12 +948,12 @@ void pilot_selection_menu_escape_key(void)
 
 void pilot_selection_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 80;
-    const long y_start = 45;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 80;
+    const int32_t y_start = 45;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -1459,12 +1459,12 @@ void pilot_delete_menu_escape_key(void)
 
 void pilot_delete_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 80;
-    const long y_start = 45;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 80;
+    const int32_t y_start = 45;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -1563,9 +1563,9 @@ void pilot_input_menu_escape_key(void)
 
 void pilot_input_menu_draw_menu(void)
 {
-    const long x_start = 10;
-    const long y_start = 90;
-    //const long y_spacing = 15;
+    const int32_t x_start = 10;
+    const int32_t y_start = 90;
+    //const int32_t y_spacing = 15;
     int exit_loop = FALSE;
     char prompt[80] = "PILOT NAME:";
     char pilot_name[80] = "";
@@ -2118,12 +2118,12 @@ void main_menu_escape_key(void)
 
 void main_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color = SELECTED_TEXT_COLOR;
-    const long x_start = 75;
-    const long y_start = 55;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 55;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -2286,12 +2286,12 @@ void options_menu_escape_key(void)
 
 void options_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -2459,12 +2459,12 @@ void detail_menu_escape_key(void)
 
 void detail_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -2687,12 +2687,12 @@ void sound_menu_escape_key(void)
 
 void sound_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
     BarInfo bar_info;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -2805,7 +2805,7 @@ void keyboard_menu_left_arrow(void)
 
 void keyboard_menu_return_key(void)
 {
-    unsigned long scancode;
+    uint32_t scancode;
 
     if( sb_installed ) {
         Play_Menu_Sound( menu_stuff.menu_sounds.enter_sound );
@@ -2938,13 +2938,13 @@ void keyboard_menu_escape_key(void)
 
 void keyboard_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 10;
-    const long y_start = 30;
-    const long y_spacing = 7;
-    long x, y;
-    unsigned long current_scancode = 0;
+    const int32_t x_start = 10;
+    const int32_t y_start = 30;
+    const int32_t y_spacing = 7;
+    int32_t x, y;
+    uint32_t current_scancode = 0;
     char temp_str[80];
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -3163,12 +3163,12 @@ void joystick_menu_escape_key(void)
 
 void joystick_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 55;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 55;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -3579,13 +3579,13 @@ void joystick_config_menu_escape_key(void)
 
 void joystick_config_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 50;
-    const long y_start = 50;
-    const long y_spacing = 10;
-    long x, y;
-    unsigned long current_action = 0;
+    const int32_t x_start = 50;
+    const int32_t y_start = 50;
+    const int32_t y_spacing = 10;
+    int32_t x, y;
+    uint32_t current_action = 0;
     char temp_str[80];
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -3790,12 +3790,12 @@ void game_menu_escape_key(void)
 
 void game_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -3952,12 +3952,12 @@ void custom_game_menu_escape_key(void)
 
 void custom_game_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 25;
-    const long y_start = 45;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 25;
+    const int32_t y_start = 45;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -4023,7 +4023,7 @@ void init_custom_game_menu(void)
 /* methods for wingman_menu */
 
 
-long selection_to_ai( long selection )
+int32_t selection_to_ai( int32_t selection )
 {
     if( selection == 0 ) {  /* Megan Hunter */
         return 9;
@@ -4147,7 +4147,7 @@ long selection_to_ai( long selection )
     }
 }
 
-long ai_to_selection( long ai )
+int32_t ai_to_selection( int32_t ai )
 {
     if( ai == 9 ) {  /* Megan Hunter */
         return 0;
@@ -4373,7 +4373,7 @@ void wingman_menu_left_arrow(void)
 
 void custom_wingman1_menu_return_key(void)
 {
-    long current_selection;
+    int32_t current_selection;
 
     current_selection = (wingman_menu_data.current_row * 3) + wingman_menu_data.current_col;
 
@@ -4398,7 +4398,7 @@ void custom_wingman1_menu_return_key(void)
 
 void custom_wingman2_menu_return_key(void)
 {
-    long current_selection;
+    int32_t current_selection;
 
     current_selection = (wingman_menu_data.current_row * 3) + wingman_menu_data.current_col;
 
@@ -4425,7 +4425,7 @@ void custom_wingman2_menu_return_key(void)
 
 void custom_opponent1_menu_return_key(void)
 {
-    long current_selection;
+    int32_t current_selection;
 
     current_selection = (wingman_menu_data.current_row * 3) + wingman_menu_data.current_col;
 
@@ -4448,7 +4448,7 @@ void custom_opponent1_menu_return_key(void)
 
 void custom_opponent2_menu_return_key(void)
 {
-    long current_selection;
+    int32_t current_selection;
 
     current_selection = (wingman_menu_data.current_row * 3) + wingman_menu_data.current_col;
 
@@ -4471,7 +4471,7 @@ void custom_opponent2_menu_return_key(void)
 
 void custom_opponent3_menu_return_key(void)
 {
-    long current_selection;
+    int32_t current_selection;
 
     current_selection = (wingman_menu_data.current_row * 3) + wingman_menu_data.current_col;
 
@@ -4551,10 +4551,10 @@ void custom_opponent3_menu_escape_key(void)
     }
 }
 
-void character_picture_blit( long anchor_x, long anchor_y, pcx_picture *pcx )
+void character_picture_blit( int32_t anchor_x, int32_t anchor_y, pcx_picture *pcx )
 {
 
-    long i = 0, x, y;
+    int32_t i = 0, x, y;
 
     for( y = anchor_y; y < anchor_y + pcx->ypixels + 1; y++ ) {
         for( x = anchor_x; x < anchor_x + pcx->xpixels + 1; x++ ) {
@@ -4568,26 +4568,26 @@ void character_picture_blit( long anchor_x, long anchor_y, pcx_picture *pcx )
 
 void wingman_menu_draw_menu(void)
 {
-    long current_selection, i;
+    int32_t current_selection, i;
 
-    const long name_x = 60;
-    const long name_y = 120;
+    const int32_t name_x = 60;
+    const int32_t name_y = 120;
 
-    const long race_x = 220;
-    const long race_y = 120;
+    const int32_t race_x = 220;
+    const int32_t race_y = 120;
 
-    const long description_x = 110;
-    const long description_x_2 = 30;
-    const long description_y = 130;
-    const long description_space = 10;
+    const int32_t description_x = 110;
+    const int32_t description_x_2 = 30;
+    const int32_t description_y = 130;
+    const int32_t description_space = 10;
 
-    const long vehicle_x = 150;
-    const long vehicle_y = 170;
+    const int32_t vehicle_x = 150;
+    const int32_t vehicle_y = 170;
 
     RGB_color *character_palette = NULL;
     pcx_picture *pcx = NULL;
 
-    long anchor_x = 0, anchor_y = 0;
+    int32_t anchor_x = 0, anchor_y = 0;
     Point upper_left, lower_right;
 
     char temp_str[50];
@@ -4870,7 +4870,7 @@ void wingman_menu_draw_menu(void)
 
 void init_custom_wingman1_menu(void)
 {
-    long selection;
+    int32_t selection;
 
     custom_wingman1_menu.up_arrow = (Method)wingman_menu_up_arrow;
     custom_wingman1_menu.down_arrow = (Method)wingman_menu_down_arrow;
@@ -4896,7 +4896,7 @@ void init_custom_wingman1_menu(void)
 
 void init_custom_wingman2_menu(void)
 {
-    long selection;
+    int32_t selection;
 
     custom_wingman2_menu.up_arrow = (Method)wingman_menu_up_arrow;
     custom_wingman2_menu.down_arrow = (Method)wingman_menu_down_arrow;
@@ -4922,7 +4922,7 @@ void init_custom_wingman2_menu(void)
 
 void init_custom_opponent1_menu(void)
 {
-    long selection;
+    int32_t selection;
 
     custom_opponent1_menu.up_arrow = (Method)wingman_menu_up_arrow;
     custom_opponent1_menu.down_arrow = (Method)wingman_menu_down_arrow;
@@ -4948,7 +4948,7 @@ void init_custom_opponent1_menu(void)
 
 void init_custom_opponent2_menu(void)
 {
-    long selection;
+    int32_t selection;
 
     custom_opponent2_menu.up_arrow = (Method)wingman_menu_up_arrow;
     custom_opponent2_menu.down_arrow = (Method)wingman_menu_down_arrow;
@@ -4974,7 +4974,7 @@ void init_custom_opponent2_menu(void)
 
 void init_custom_opponent3_menu(void)
 {
-    long selection;
+    int32_t selection;
 
     custom_opponent3_menu.up_arrow = (Method)wingman_menu_up_arrow;
     custom_opponent3_menu.down_arrow = (Method)wingman_menu_down_arrow;
@@ -5001,7 +5001,7 @@ void init_custom_opponent3_menu(void)
 
 void init_wingman_data(void)
 {
-    /* note: description_1 is about 30 characters long,
+    /* note: description_1 is about 30 characters int32_t,
              description_2 - 4 is about 41 characters each. */
 
     strcpy( wingman_menu_data.info[0].name, "MEGAN HUNTER" );
@@ -6207,7 +6207,7 @@ void init_custom_vehicle0_menu(void)
 void init_custom_vehicle1_menu(void)
 {
     string temp_str;
-    long character_index;
+    int32_t character_index;
 
     custom_vehicle1_menu.up_arrow = (Method)vehicle_menu_up_arrow;
     custom_vehicle1_menu.down_arrow = (Method)vehicle_menu_down_arrow;
@@ -6273,7 +6273,7 @@ void init_custom_vehicle1_menu(void)
 void init_custom_vehicle2_menu(void)
 {
     string temp_str;
-    long character_index;
+    int32_t character_index;
 
     custom_vehicle2_menu.up_arrow = (Method)vehicle_menu_up_arrow;
     custom_vehicle2_menu.down_arrow = (Method)vehicle_menu_down_arrow;
@@ -6340,7 +6340,7 @@ void init_custom_vehicle2_menu(void)
 
 void init_custom_vehicle3_menu(void)
 {
-    long character_index;
+    int32_t character_index;
     string temp_str;
 
     custom_vehicle3_menu.up_arrow = (Method)vehicle_menu_up_arrow;
@@ -6408,7 +6408,7 @@ void init_custom_vehicle3_menu(void)
 void init_custom_vehicle4_menu(void)
 {
     string temp_str;
-    long character_index;
+    int32_t character_index;
 
     custom_vehicle4_menu.up_arrow = (Method)vehicle_menu_up_arrow;
     custom_vehicle4_menu.down_arrow = (Method)vehicle_menu_down_arrow;
@@ -6474,7 +6474,7 @@ void init_custom_vehicle4_menu(void)
 
 void init_custom_vehicle5_menu(void)
 {
-    long character_index;
+    int32_t character_index;
     string temp_str;
 
     custom_vehicle5_menu.up_arrow = (Method)vehicle_menu_up_arrow;
@@ -6688,12 +6688,12 @@ void cylindrix_menu_escape_key(void)
 
 void cylindrix_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 60;
-    const long y_start = 30;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 60;
+    const int32_t y_start = 30;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -7066,7 +7066,7 @@ void init_tournament_vehicle0_menu(void)
 void init_tournament_vehicle1_menu(void)
 {
     string temp_str;
-    long character_index;
+    int32_t character_index;
 
     tournament_vehicle1_menu.up_arrow = (Method)vehicle_menu_up_arrow;
     tournament_vehicle1_menu.down_arrow = (Method)vehicle_menu_down_arrow;
@@ -7132,7 +7132,7 @@ void init_tournament_vehicle1_menu(void)
 void init_tournament_vehicle2_menu(void)
 {
     string temp_str;
-    long character_index;
+    int32_t character_index;
 
     tournament_vehicle2_menu.up_arrow = (Method)vehicle_menu_up_arrow;
     tournament_vehicle2_menu.down_arrow = (Method)vehicle_menu_down_arrow;
@@ -7306,7 +7306,7 @@ void tournament_wingman_menu_left_arrow(void)
 
 void tournament_wingman1_menu_return_key(void)
 {
-    long current_selection;
+    int32_t current_selection;
     
     current_selection = (wingman_menu_data.current_row * 3) + wingman_menu_data.current_col;
     
@@ -7331,7 +7331,7 @@ void tournament_wingman1_menu_return_key(void)
 
 void tournament_wingman2_menu_return_key(void)
 {
-    long current_selection;
+    int32_t current_selection;
 
     current_selection = (wingman_menu_data.current_row * 3) + wingman_menu_data.current_col;
         
@@ -7382,7 +7382,7 @@ void tournament_wingman2_menu_escape_key(void)
 
 void init_tournament_wingman1_menu(void)
 {
-    long selection;
+    int32_t selection;
 
     tournament_wingman1_menu.up_arrow = (Method)tournament_wingman_menu_up_arrow;
     tournament_wingman1_menu.down_arrow = (Method)tournament_wingman_menu_down_arrow;
@@ -7420,7 +7420,7 @@ void init_tournament_wingman1_menu(void)
 
 void init_tournament_wingman2_menu(void)
 {
-    long selection;
+    int32_t selection;
 
     tournament_wingman2_menu.up_arrow = (Method)tournament_wingman_menu_up_arrow;
     tournament_wingman2_menu.down_arrow = (Method)tournament_wingman_menu_down_arrow;
@@ -7566,12 +7566,12 @@ void tournament_game_setup_menu_escape_key(void)
 
 void tournament_game_setup_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 25;
-    const long y_start = 55;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 25;
+    const int32_t y_start = 55;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -7738,15 +7738,15 @@ void view_stats_menu_escape_key(void)
 
 void view_stats_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 5;
-    const long y_start = 170;
-    const long y_spacing = 15;
-    const long stat_x_start = 200;
-    const long stat_y_start = 35;
-    const long stat_y_spacing = 9;
-    long x, y;
+    const int32_t x_start = 5;
+    const int32_t y_start = 170;
+    const int32_t y_spacing = 15;
+    const int32_t stat_x_start = 200;
+    const int32_t stat_y_start = 35;
+    const int32_t stat_y_spacing = 9;
+    int32_t x, y;
     char str[80];
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -8058,7 +8058,7 @@ void init_all_main_menus(void)
 
 void menu_event_loop(void)
 {
-    unsigned long key;
+    uint32_t key;
     
     init_wingman_data();  /* initalizes all the characters names & descriptions */
     init_vehicle_data();  /* initalizes all the vehicles characteristics */
@@ -8170,12 +8170,12 @@ void during_game_menu_escape_key(void)
 
 void during_game_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -8313,12 +8313,12 @@ void during_game_options_menu_escape_key(void)
 
 void during_game_options_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -8476,12 +8476,12 @@ void during_game_detail_menu_escape_key(void)
 
 void during_game_detail_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -8705,12 +8705,12 @@ void during_game_sound_menu_escape_key(void)
 
 void during_game_sound_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 75;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 75;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
     BarInfo bar_info;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -8823,7 +8823,7 @@ void during_game_keyboard_menu_left_arrow(void)
 
 void during_game_keyboard_menu_return_key(void)
 {
-    unsigned long scancode;
+    uint32_t scancode;
 
     /* change color 2 to red */
     
@@ -8951,13 +8951,13 @@ void during_game_keyboard_menu_escape_key(void)
 
 void during_game_keyboard_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 10;
-    const long y_start = 30;
-    const long y_spacing = 7;
-    long x, y;
-    unsigned long current_scancode = 0;
+    const int32_t x_start = 10;
+    const int32_t y_start = 30;
+    const int32_t y_spacing = 7;
+    int32_t x, y;
+    uint32_t current_scancode = 0;
     char temp_str[80];
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -9176,12 +9176,12 @@ void during_game_joystick_menu_escape_key(void)
 
 void during_game_joystick_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 55;
-    const long y_start = 70;
-    const long y_spacing = 15;
-    long x, y;
+    const int32_t x_start = 55;
+    const int32_t y_start = 70;
+    const int32_t y_spacing = 15;
+    int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
@@ -9591,13 +9591,13 @@ void during_game_joystick_config_menu_escape_key(void)
 
 void during_game_joystick_config_menu_draw_menu(void)
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 50;
-    const long y_start = 50;
-    const long y_spacing = 10;
-    long x, y;
-    unsigned long current_action = 0;
+    const int32_t x_start = 50;
+    const int32_t y_start = 50;
+    const int32_t y_spacing = 10;
+    int32_t x, y;
+    uint32_t current_action = 0;
     char temp_str[80];
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -9709,7 +9709,7 @@ void init_during_game_joystick_config_menu(void)
 
 int during_game_menu_event_loop(void)
 {
-    unsigned long key;
+    uint32_t key;
     
     if( sb_installed ) {
         Play_Menu_Sound( menu_stuff.menu_sounds.enter_sound );
@@ -9889,15 +9889,15 @@ void custom_game_stat_menu_escape_key(void)
 
 void custom_game_stat_menu_draw_menu( /*int victory*/ void )
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 5;
-    const long y_start = 170;
-    const long y_spacing = 15;
-    const long stat_x_start = 200;
-    const long stat_y_start = 35;
-    const long stat_y_spacing = 10;
-    long x, y;
+    const int32_t x_start = 5;
+    const int32_t y_start = 170;
+    const int32_t y_spacing = 15;
+    const int32_t stat_x_start = 200;
+    const int32_t stat_y_start = 35;
+    const int32_t stat_y_spacing = 10;
+    int32_t x, y;
     char str[80];
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -10142,7 +10142,7 @@ void init_custom_game_stat_menu(void)
 
 void custom_game_stat_menu_event_loop( int victory )
 {
-    unsigned long key;
+    uint32_t key;
 
     /* init all the menus : the indenting shows the menu structure */
 
@@ -10302,15 +10302,15 @@ void tournament_game_stat_menu_escape_key(void)
 
 void tournament_game_stat_menu_draw_menu( /*int victory*/ void )
 {
-    long i;
+    int32_t i;
     unsigned char color;
-    const long x_start = 5;
-    const long y_start = 170;
-    const long y_spacing = 15;
-    const long stat_x_start = 200;
-    const long stat_y_start = 35;
-    const long stat_y_spacing = 10;
-    long x, y;
+    const int32_t x_start = 5;
+    const int32_t y_start = 170;
+    const int32_t y_spacing = 15;
+    const int32_t stat_x_start = 200;
+    const int32_t stat_y_start = 35;
+    const int32_t stat_y_spacing = 10;
+    int32_t x, y;
     char str[80];
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
@@ -10555,7 +10555,7 @@ void init_tournament_game_stat_menu(void)
 
 void tournament_game_stat_menu_event_loop( int victory )
 {
-    unsigned long key;
+    uint32_t key;
 
     /* init all the menus : the indenting shows the menu structure */
 

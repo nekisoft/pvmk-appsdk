@@ -74,8 +74,8 @@ extern int     level_warp;
 extern boolean test_anim;
 extern boolean show_readout;
 extern boolean test_samples;
-extern long exit_loop;  /* From omega.c */
-extern long game_over;
+extern int32_t exit_loop;  /* From omega.c */
+extern int32_t game_over;
 
 extern boolean ceiling_on;
 extern game_stats_type game_stats;
@@ -107,13 +107,13 @@ extern int temp_int;
 
 Float_Point cylinder_center = { 0.0, 0.0, 0.0 }; /* used by anti_missile_update */
 
-extern long sb_installed;  /* True if the sound driver thing is installed */
-extern long keyboard_installed;
-extern long timer_installed;
-extern long ignore_sound_card;  /* True if we want to completely ignore the sound card */
+extern int32_t sb_installed;  /* True if the sound driver thing is installed */
+extern int32_t keyboard_installed;
+extern int32_t timer_installed;
+extern int32_t ignore_sound_card;  /* True if we want to completely ignore the sound card */
 
 
-long destination_vehicle_index;
+int32_t destination_vehicle_index;
 
 
 void print_p_mem( char *str )
@@ -128,12 +128,12 @@ void print_p_mem( char *str )
 }
 
 
-void print_all_input_tables( Player p[], long frame_counter )
+void print_all_input_tables( Player p[], int32_t frame_counter )
 {
-    printf("player 0, frame %ld\n", frame_counter );
+    printf("player 0, frame %d\n", frame_counter );
     print_player_info( p, frame_counter );
 
-    printf("player 3, frame %ld\n", frame_counter );
+    printf("player 3, frame %d\n", frame_counter );
     print_player_info( p, frame_counter );
 
     printf("\n");
@@ -162,10 +162,10 @@ void cylindrix_init_print( char str[] )
 void display_next_opponent(void)
 {
     pcx_picture *pcx = NULL;
-    long anchor_x = 0, anchor_y = 0;
+    int32_t anchor_x = 0, anchor_y = 0;
     palette_type menu_palette;
     RGB_color *character_palette = NULL;
-    long i;
+    int32_t i;
 
     DB_Clear_Screen();
     Wait_For_Vsync();
@@ -362,7 +362,7 @@ void display_next_opponent(void)
 void tournament_init_print( char str[] )
 {
     pcx_picture *pcx = NULL;
-    long anchor_x = 0, anchor_y = 0;
+    int32_t anchor_x = 0, anchor_y = 0;
 
     Pop_Buffer( menu_stuff.wingman_menu_background.buffer );
 
@@ -791,7 +791,7 @@ void init_stuff(void)
 
 void init_color_info( ColorInfo *color_info )
 {
-    long i;
+    int32_t i;
 
     /* copy level.color_info into color_info */
 
@@ -1088,7 +1088,7 @@ void init_menu_stuff( MenuStuff *menu_stuff )
 
 void init_world_stuff( WorldStuff *world_stuff )
 {
-    long i;
+    int32_t i;
     pcx_picture temp_pcx;
 
     /* make sure all pointers in worldstuff are NULL (to prevent the freeing
@@ -1715,7 +1715,7 @@ void init_world_stuff( WorldStuff *world_stuff )
 void check_command_line_args( int argc, char *argv[],
                               unsigned char *ai_active )
 {
-    long i;
+    int32_t i;
 
     /* check for command line argument flags */
 
@@ -1991,7 +1991,7 @@ void get_user_key_table( input_table table )
 
 void anti_missile_update( WorldStuff *world_stuff )
 {
-    long i, j;
+    int32_t i, j;
     Projectile *ptr;
 
     for( i = 0; i < 6; i++ ) {
@@ -2032,7 +2032,7 @@ void anti_missile_update( WorldStuff *world_stuff )
 
 void move_everything_one_click(void)
 {
-    long i, j;
+    int32_t i, j;
     unsigned char temp;
 
     for( i = 0; i < 6; i++ ) {
@@ -2168,7 +2168,7 @@ void move_everything_one_click(void)
     }
 
     if( profile ) {
-        printf("move_vehicles(), timer = %ld\n", Check_Timer() );
+        printf("move_vehicles(), timer = %d\n", Check_Timer() );
     }
 
     /* moves the vehicles and aims the radar_bases */
@@ -2177,7 +2177,7 @@ void move_everything_one_click(void)
                    &(world_stuff.blue_radar_base), &(world_stuff.laser_obj) );
 
     if( profile ) {
-        printf("move all projectiles forward, timer = %ld\n", Check_Timer() );
+        printf("move all projectiles forward, timer = %d\n", Check_Timer() );
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -2412,7 +2412,7 @@ void move_everything_one_click(void)
        based on the number of pylons they own */
 
     if( profile ) {
-        printf("Tally_Pylons(), timer = %ld\n", Check_Timer() );
+        printf("Tally_Pylons(), timer = %d\n", Check_Timer() );
     }
 
     Tally_Pylons( world_stuff.player_array, &(world_stuff.pylons) );
@@ -2530,7 +2530,7 @@ void John_Readout( void )
 
     if( ceiling_on )
         {
-         sprintf(path_string[0], "CEILING ON %ld CLICKS", Check_Timer());
+         sprintf(path_string[0], "CEILING ON %d CLICKS", Check_Timer());
 
          micro_string_blit( path_string[0], 10, 180, menu_stuff.micro_text.buffer,
              menu_stuff.micro_text.xpixels + 1, menu_stuff.micro_text.ypixels + 1, 191 );
@@ -2560,10 +2560,10 @@ void John_Readout( void )
 
 
 
-void draw_everything( long view_vehicle, long status_bar,
-                      long first_person_view, long transporting )
+void draw_everything( int32_t view_vehicle, int32_t status_bar,
+                      int32_t first_person_view, int32_t transporting )
 {
-	long i;
+	int32_t i;
 	int nLoop;
 
 	//This loop should loop once on 1 player, twice on two player 
@@ -2815,7 +2815,7 @@ void free_radar_base( RadarBase *base )
 
 void free_pylons( Pylons *pylons )
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < pylons->pylons; i++ ) {
         free_pointface( &(pylons->pylon[i].obj) );
@@ -2908,7 +2908,7 @@ void free_pixmap( PixMap *pixmap )
 
 void free_world_stuff( WorldStuff *w )
 {
-    long i;
+    int32_t i;
 
     reset_game_to_start( w, &level, &game_configuration, TRUE );
 
@@ -3004,11 +3004,11 @@ int num_vehicles_remaining( team_type team )
    It returns true when it reaches it's destination, and updates the view_vehicle to be
    the index of the player's whose vehicle we are commendeering. */
 
-int transport_towards( long *view_vehicle, WorldStuff *world_stuff )
+int transport_towards( int32_t *view_vehicle, WorldStuff *world_stuff )
 {
     Orientation *target;
-    long target_vehicle_index = 0;
-    long i;
+    int32_t target_vehicle_index = 0;
+    int32_t i;
     float len;
     Float_Vector temp;
     Float_Vector axis;
@@ -3121,8 +3121,8 @@ int transport_towards( long *view_vehicle, WorldStuff *world_stuff )
 } //transport_towards
 
 
-void get_current_view_orient( Orientation *view_o, Orientation *old_o, team_type team, long *transporting,
-                              long *first_person_view )
+void get_current_view_orient( Orientation *view_o, Orientation *old_o, team_type team, int32_t *transporting,
+                              int32_t *first_person_view )
 {
 	(void)team;
 
@@ -3195,11 +3195,11 @@ void get_current_view_orient( Orientation *view_o, Orientation *old_o, team_type
 
 
 
-void get_current_view_orient_during_fadeout( Orientation *view_o, Orientation *old_o, team_type team, long *transporting,
-                                             long *first_person_view )
+void get_current_view_orient_during_fadeout( Orientation *view_o, Orientation *old_o, team_type team, int32_t *transporting,
+                                             int32_t *first_person_view )
 {
 	(void)team;
-   // static long destination_vehicle_index;
+   // static int32_t destination_vehicle_index;
     
 
     if( (*first_person_view) && !(*transporting) ) {
@@ -3418,7 +3418,7 @@ void reset_game_to_start( WorldStuff *world_stuff, level_type *level,
 
 void free_all_samples( WorldStuff *world_stuff )
 {
-    long i, j;
+    int32_t i, j;
     
     /* free all the computer samples */
     for( i = 0; i < MAX_COMPUTER_SAMPLES; i++ ) {

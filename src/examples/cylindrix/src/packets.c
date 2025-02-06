@@ -32,8 +32,8 @@ extern game_configuration_type game_configuration;
 
 extern MenuScreen main_menu; /* From menu.c */
 
-extern long exit_loop;  /* From omega.c */
-extern long game_over;
+extern int32_t exit_loop;  /* From omega.c */
+extern int32_t game_over;
 
 
 void Encode_Input_Table( input_table table, encoded_input_table_type encoded_input_table )

@@ -16,17 +16,9 @@
     Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-//#include <dos.h>
-
-/* #include <bios.h> */
-
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
-
-/* #include "dpmi.h" */
-
-
-
 
 #define TIME_KEEPER_INT 0x8 /* 0x1C */
 #define CONTROL_8253  0x43  /* the 8253's control register */
@@ -47,7 +39,7 @@
 void Timer( void );
 void Init_Timer( void );
 void Kill_Timer( void );    
-long Check_Timer( void );
-void Set_Timer( long number );
+int32_t Check_Timer( void );
+void Set_Timer( int32_t number );
 void Set_Timer_Speed( unsigned short new_count );
 int Test_Timer( void );

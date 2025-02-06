@@ -66,7 +66,7 @@ void update_radar_base( RadarBase *base )
 
 void init_red_radar_base( RadarBase *red_base )
 {
-    long i;
+    int32_t i;
 
     red_base->team = RED_TEAM;
 
@@ -262,7 +262,7 @@ void init_red_radar_base( RadarBase *red_base )
 
 void init_blue_radar_base( RadarBase *blue_base )
 {
-    long i;
+    int32_t i;
 
     blue_base->team = BLUE_TEAM;
 
@@ -462,7 +462,7 @@ void init_blue_radar_base( RadarBase *blue_base )
 void move_base_projectiles_forward( RadarBase *base, Pylons *pylons, Player *player )
 {
     Projectile *p, *last;
-    long face_index;
+    int32_t face_index;
     Orientation o;
     Vehicle v; /* Hack Alert */
 
@@ -999,7 +999,7 @@ void aim_radar_base( RadarBase *base, Player *player, PointFace *obj )
 {
     Float_Vector new_front, axis, temp;
     float theta, len, min_len, foo;
-    long i, valid_target;
+    int32_t i, valid_target;
     const float rot_inc = 0.174532; /* 10 degrees in radians */
     const float max_attack_radius = 15.0;
     Float_Matrix rot_matrix;

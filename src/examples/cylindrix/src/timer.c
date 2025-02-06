@@ -26,21 +26,21 @@
 #include <string.h> /* For memset */
 
 /* GLOBALS */
-long TIMER_CLICKS_PER_SECOND = 1000; //pvmk - milliseconds tracked by OS
-long GAME_CLICKS_PER_SECOND  = 15;
+int32_t TIMER_CLICKS_PER_SECOND = 1000; //pvmk - milliseconds tracked by OS
+int32_t GAME_CLICKS_PER_SECOND  = 15;
 
-long timer = 0;
-long pvmk_timer_offset = 0;
-unsigned long absolute_time = 0; /* Absolute number of clicks since the beginning of the game */
-long click_threshold = 15; /* 15 is arbitrary */
+int32_t timer = 0;
+int32_t pvmk_timer_offset = 0;
+uint32_t absolute_time = 0; /* Absolute number of clicks since the beginning of the game */
+int32_t click_threshold = 15; /* 15 is arbitrary */
 
 void Init_Timer( void ) { }
 void Kill_Timer( void ) { }
-long Check_Timer( void )
+int32_t Check_Timer( void )
 {
 	return _sc_getticks() + pvmk_timer_offset;
 }
-void Set_Timer( long number )
+void Set_Timer( int32_t number )
 {
 	pvmk_timer_offset = number - _sc_getticks();
 }

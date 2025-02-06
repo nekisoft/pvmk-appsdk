@@ -34,6 +34,6 @@ typedef struct
 
 
 void Init_Voices( void );
-void Handle_Voices( WorldStuff *world_stuff, long view_vehicle, unsigned char first_person_view, unsigned char teleporting );
+void Handle_Voices( WorldStuff *world_stuff, int32_t view_vehicle, unsigned char first_person_view, unsigned char teleporting );
 void Zero_Voice( int wingman_number );
 void No_Despair( int wingman_number );

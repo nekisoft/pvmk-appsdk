@@ -54,8 +54,8 @@ void PCX_Load( char *filename, pcx_picture_ptr image )
     {
 
      FILE *fp;              /* File pointer */
-     long index;            /* Multipurpose index  */
-     long new_pos = 0;      /* Position in the image->buffer */
+     int32_t index;            /* Multipurpose index  */
+     int32_t new_pos = 0;      /* Position in the image->buffer */
      int num_bytes;         /* Number of bytes in current RLE run */
      int info;              /* Data from temp_buffer */
      unsigned char *p;
@@ -92,7 +92,7 @@ void PCX_Load( char *filename, pcx_picture_ptr image )
 
 
       /* Allocate memory for picture...the +100 is just to be safe */
-      image->buffer = (unsigned char *)malloc( ((long)(image->xpixels + 1 ) * (long)(image->ypixels + 1)) + 100 );
+      image->buffer = (unsigned char *)malloc( ((int32_t)(image->xpixels + 1 ) * (int32_t)(image->ypixels + 1)) + 100 );
       if ( image->buffer == NULL )
           {
            printf("Not Enough Memory!!!");
@@ -106,7 +106,7 @@ void PCX_Load( char *filename, pcx_picture_ptr image )
       fseek( fp, 128, SEEK_SET ); /* Move to 128 bytes from beginning of file */
 
 
-     while( new_pos < ( ((long)image->xpixels + 1 ) * (long)(image->ypixels + 1) ) )  /* Loop till beginning of color palette  */
+     while( new_pos < ( ((int32_t)image->xpixels + 1 ) * (int32_t)(image->ypixels + 1) ) )  /* Loop till beginning of color palette  */
          {                                                                            /* And end of data */
 
           info = getc(fp);              /* Store one char from the buffer  */

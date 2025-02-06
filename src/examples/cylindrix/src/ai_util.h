@@ -12,7 +12,7 @@
     Library General Public License for more details.
   
     You should have received a copy of the GNU Library General Public
-    License along with this library; if not, write to the Free
+    License aint32_t with this library; if not, write to the Free
     Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
@@ -111,7 +111,7 @@ void Update_Bullet_Hit( int projectile_strength, int tank_number, Projectile *p 
  
 int Find_Bullet_Owner( Projectile *p );
 
-void update_leader( long view_vehicle );
+void update_leader( int32_t view_vehicle );
 
 int Decoys_Active( WorldStuff *world_stuff, int index );
 

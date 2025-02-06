@@ -30,7 +30,7 @@ extern WorldStuff world_stuff;
 
 void split_pfd( PointFace *obj, PointFace *result )
 {
-    long num_points, i, j, point_index;
+    int32_t num_points, i, j, point_index;
 
     /* figure out exactly how many points result will need */
 
@@ -82,7 +82,7 @@ void add_explosion( ExplosionType type, Orientation *o, PointFace *obj,
                     Gradient gradient )
 {
     Explosion *ptr, *last;
-    long i;
+    int32_t i;
 
     last = world_stuff.explosion_list;
     ptr = world_stuff.explosion_list;
@@ -349,7 +349,7 @@ void explosion_union( PointFace *result )
 
 void explode_object_fast( PointFace *obj )
 {
-    long i, j;
+    int32_t i, j;
 
     for( i = 0; i < obj->faces; i++ ) {
         for( j = 0; j < obj->face[i].size; j++ ) {
@@ -364,7 +364,7 @@ void explode_object_fast( PointFace *obj )
 
 void explode_object_slow( PointFace *obj )
 {
-    long i, j;
+    int32_t i, j;
 
     for( i = 0; i < obj->faces; i++ ) {
         for( j = 0; j < obj->face[i].size; j++ ) {

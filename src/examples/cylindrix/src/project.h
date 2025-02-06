@@ -33,10 +33,10 @@ void projectile_transform_and_union( Projectile *list, PointFace *result );
 
 void move_projectile_forward_3d( Projectile *p, Vehicle *v );
 
-void update_missile_target( Player *player_array, long index,
+void update_missile_target( Player *player_array, int32_t index,
                 RadarBase *red_base, RadarBase *blue_base );
                 
-void create_decoy_projectile( Vehicle *v, long type );
+void create_decoy_projectile( Vehicle *v, int32_t type );
 
 #endif
 

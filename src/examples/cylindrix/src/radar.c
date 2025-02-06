@@ -31,10 +31,10 @@ extern Matrix scale_matrix;           /* scale into cannonical view volume */
 extern Matrix inv_scale_matrix;       /* inverse of scale_matrix */
 extern Matrix wtov_matrix;            /* window to viewport mapping matrix */
 
-extern long view_vertices[MAX_POINTS][3];   /* holds the vertices of obj after
+extern int32_t view_vertices[MAX_POINTS][3];   /* holds the vertices of obj after
                                         rotation */
 
-extern long projected_vertices[MAX_POINTS][4]; /* vertices of obj after rotation &
+extern int32_t projected_vertices[MAX_POINTS][4]; /* vertices of obj after rotation &
                                            projection & scaling */
 
 extern Edge global_edge_array[3000];
@@ -42,7 +42,7 @@ extern Edge global_edge_array[3000];
 extern unsigned char clipped_away[MAX_POINTS];  /* tells if a point has been clipped
                                             away or not */
 
-extern long new_hither;
+extern int32_t new_hither;
 
 /* initalizes the edgetable that is used by view_radar */
 
@@ -54,9 +54,9 @@ void init_radar( PointEdge *pe )
 /* it assumes that pe the cylider of radius 1.5 and length of 4 centered
    at the origin */
 
-void view_radar( PointEdge *pe, Player *player_array, long view_vehicle, Point2d offset )
+void view_radar( PointEdge *pe, Player *player_array, int32_t view_vehicle, Point2d offset )
 {
-    long i;
+    int32_t i;
     Point p;
     Matrix translation_matrix, temp_matrix;
     PointEdge clip_pe;

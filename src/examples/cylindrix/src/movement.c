@@ -640,7 +640,7 @@ int align_vehicle_for_landing( Vehicle *v )
     float len, theta, temp;
     Float_Point new_position, new_front, new_up, p, axis, i, j;
     Float_Matrix front_rotate, up_rotate, rotation;
-    long done = FALSE;
+    int32_t done = FALSE;
     const float rotation_increment = 0.1745329; /* 10 degrees in radians */
     const float epsilon = 0.005;
 
@@ -1240,7 +1240,7 @@ void move_vehicle_forward( Vehicle *v )
 {
     Float_Vector left, projection;
     float length;
-    long alignment_finished, movement_finished;
+    int32_t alignment_finished, movement_finished;
 
     if( v->vehicle_mode == Surface && v->alive ) {
 
@@ -1456,7 +1456,7 @@ void bounce_vehicle( Vehicle *v, Float_Vector reflect )
 
 void bounce_colliding_vehicles( CollisionTable c_table, Player p[] )
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < 6; i++ ) {
         if( c_table[i].collision ) {
@@ -1496,13 +1496,13 @@ void force_bounce_vehicle( Vehicle *v, Float_Vector reflect )
 void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
                     RadarBase *blue_base, PointFace *base_laser )
 {
-    long i;
+    int32_t i;
     CollisionTable c_table, new_c_table, new_new_c_table;
 
     /* move all the vehicles along their velocity vectors */
 
     if( profile ) {
-        printf("    move each vehicle forward, timer = %ld\n", Check_Timer());
+        printf("    move each vehicle forward, timer = %d\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1510,7 +1510,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     }
 
     if( profile ) {
-        printf("    init vehicles bbox and world_obj, timer = %ld\n", Check_Timer());
+        printf("    init vehicles bbox and world_obj, timer = %d\n", Check_Timer());
     }
 
     /* initalize every vehicles world_object and bounding box which
@@ -1522,7 +1522,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     }
 
     if( profile ) {
-        printf("    aim radar bases, timer = %ld\n", Check_Timer());
+        printf("    aim radar bases, timer = %d\n", Check_Timer());
     }
 
     /* aim the both radar_bases now so that we only have to orient their
@@ -1532,7 +1532,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     aim_radar_base( blue_base, p, base_laser );
 
     if( profile ) {
-        printf("    update radar bases, timer = %ld\n", Check_Timer());
+        printf("    update radar bases, timer = %d\n", Check_Timer());
     }
 
     /* initalize both radar_bases world_union_object and bounding boxes which
@@ -1544,7 +1544,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* find collisions */
 
     if( profile ) {
-        printf("    build_collision_table(), timer = %ld\n", Check_Timer());
+        printf("    build_collision_table(), timer = %d\n", Check_Timer());
     }
 
     build_collision_table( c_table, p, pylons, red_base, blue_base );
@@ -1552,7 +1552,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* move colliding vehicles backward */
 
     if( profile ) {
-        printf("    move colliding vehicle backward, timer = %ld\n", Check_Timer());
+        printf("    move colliding vehicle backward, timer = %d\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1564,7 +1564,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* add bouncing vectors to all colliding vehicles */
 
     if( profile ) {
-        printf("    bounce_colliding_vehicles(), timer = %ld\n", Check_Timer());
+        printf("    bounce_colliding_vehicles(), timer = %d\n", Check_Timer());
     }
 
     bounce_colliding_vehicles( c_table, p );
@@ -1572,7 +1572,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* move colliding vehicles along their velocity vectors */
 
     if( profile ) {
-        printf("    move colliding vehicles forward, timer = %ld\n", Check_Timer());
+        printf("    move colliding vehicles forward, timer = %d\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1587,7 +1587,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
        colliding vehicles */
 
     if( profile ) {
-        printf("    build_new_collision_table, timer = %ld\n", Check_Timer());
+        printf("    build_new_collision_table, timer = %d\n", Check_Timer());
     }
 
     build_new_collision_table( c_table, new_c_table, p, pylons, red_base,
@@ -1596,7 +1596,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* move the new colliding vehicles backward */
 
     if( profile ) {
-        printf("    move stuck vehicle backward, timer = %ld\n", Check_Timer());
+        printf("    move stuck vehicle backward, timer = %d\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1636,7 +1636,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* reduce every vehicles velocity by friction */
 
     if( profile ) {
-        printf("    reduce_by_friction(), timer = %ld\n", Check_Timer());
+        printf("    reduce_by_friction(), timer = %d\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {

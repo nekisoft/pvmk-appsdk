@@ -30,7 +30,7 @@
 /* G L O B A L S ///////////////////////////////////////////////////////////// */
 
 
-extern unsigned long absolute_time; /* From timer.c */
+extern uint32_t absolute_time; /* From timer.c */
 
 char ser_buffer[SERIAL_BUFF_SIZE];  /* the receive buffer */
 

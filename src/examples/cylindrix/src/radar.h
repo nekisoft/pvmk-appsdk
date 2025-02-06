@@ -22,7 +22,7 @@
 #define RADAR_H
 
 void init_radar( PointEdge *pe );
-void view_radar( PointEdge *pe, Player *player_array, long view_vehicle, Point2d offset );
+void view_radar( PointEdge *pe, Player *player_array, int32_t view_vehicle, Point2d offset );
 
 #endif
 

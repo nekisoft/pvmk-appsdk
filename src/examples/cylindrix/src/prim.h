@@ -12,7 +12,7 @@
     Library General Public License for more details.
   
     You should have received a copy of the GNU Library General Public
-    License along with this library; if not, write to the Free
+    License aint32_t with this library; if not, write to the Free
     Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
@@ -82,23 +82,23 @@ void Swap_Buffer( void );
 void Pop_Buffer( unsigned char *buffer );
 
 /* Draw the polygon into the double buffer */
-void DB_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color );
+void DB_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color );
 
 /* Improved db_poly_scan */
-void shade_DB_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color );
+void shade_DB_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color );
 
-void DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color, long *zbuff );
+void DB_zbuff_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color, int32_t *zbuff );
 
-void shade_DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color, long *zbuff );
+void shade_DB_zbuff_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color, int32_t *zbuff );
 
-void fast_DB_poly_scan( Face *p, long vert[][4], Window *win,
+void fast_DB_poly_scan( Face *p, int32_t vert[][4], Window *win,
                         unsigned char color );
                         
-void DB_transparent_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color );
+void DB_transparent_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color );
 
 /* draws an edge in the double buffer */
 
-void DB_draw_edge( long vert[][4], Edge e, unsigned char color );
+void DB_draw_edge( int32_t vert[][4], Edge e, unsigned char color );
 
 /* draw 1 pixel border around the double buffer */
 

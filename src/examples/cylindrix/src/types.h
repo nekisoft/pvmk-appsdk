@@ -12,7 +12,7 @@
     Library General Public License for more details.
   
     You should have received a copy of the GNU Library General Public
-    License along with this library; if not, write to the Free
+    License aint32_t with this library; if not, write to the Free
     Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
@@ -25,6 +25,8 @@
 
 #ifndef TYPES_H
 #define TYPES_H
+
+#include <stdint.h>
 
 
 /* Johnm 12/1/2001 stupid double to float conversin stuff */
@@ -173,37 +175,37 @@ typedef enum { RedVehicleFirstGrad, RedVehicleSecondGrad,
                LaserGrad9, LaserGrad10 } GameGradients;
 
 
-typedef unsigned char boolean; /* For john's stuff */
+typedef uint8_t boolean; /* For john's stuff */
 
 typedef struct RGB_color_typ {
-    unsigned char red;
-    unsigned char green;
-    unsigned char blue;
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
 } RGB_color, *RGB_color_ptr;
 
 
 /* The packed is so we can read in the header using sizeof header */
 typedef struct pcx_header_typ {
-    unsigned char manufacturer    PACKED_STRUCT;
-    unsigned char version         PACKED_STRUCT;
-    unsigned char encoding        PACKED_STRUCT;
-    unsigned char bits_per_pixel  PACKED_STRUCT;
-    unsigned short xstart,ystart  PACKED_STRUCT;
-    unsigned short xend, yend     PACKED_STRUCT;
-    unsigned short horz_res       PACKED_STRUCT;
-    unsigned short vert_res       PACKED_STRUCT;
-    unsigned char ega_palette[48] PACKED_STRUCT;
-    unsigned char reserved        PACKED_STRUCT;
-    unsigned char num_bit_planes  PACKED_STRUCT;
-    unsigned short bytes_per_line PACKED_STRUCT;
-    unsigned short palette_type   PACKED_STRUCT;
-    unsigned char padding[58]     PACKED_STRUCT;
+    uint8_t manufacturer    PACKED_STRUCT;
+    uint8_t version         PACKED_STRUCT;
+    uint8_t encoding        PACKED_STRUCT;
+    uint8_t bits_per_pixel  PACKED_STRUCT;
+    uint16_t xstart,ystart  PACKED_STRUCT;
+    uint16_t xend, yend     PACKED_STRUCT;
+    uint16_t horz_res       PACKED_STRUCT;
+    uint16_t vert_res       PACKED_STRUCT;
+    uint8_t ega_palette[48] PACKED_STRUCT;
+    uint8_t reserved        PACKED_STRUCT;
+    uint8_t num_bit_planes  PACKED_STRUCT;
+    uint16_t bytes_per_line PACKED_STRUCT;
+    uint16_t palette_type   PACKED_STRUCT;
+    uint8_t padding[58]     PACKED_STRUCT;
 } pcx_header, *pcx_header_ptr;
 
 
 typedef struct pcx_picture_typ { /* Structure to hold a PCX picture */
     RGB_color palette[256];   /* Color palette */
-    unsigned char *buffer;    /* Buffer to hold uncompressed picture data */
+    uint8_t *buffer;    /* Buffer to hold uncompressed picture data */
     int xpixels;              /* Number of pixels in x direction */
     int ypixels;              /* Number of pixels in y direction */
     int num_bytes;
@@ -213,15 +215,15 @@ typedef struct pcx_picture_typ { /* Structure to hold a PCX picture */
 
 /* Point2d is a 2d point in fixed-point */
 
-typedef long Point2d[2];
+typedef int32_t Point2d[2];
 
 /* Point is a 3d point in fixed-point */
 
-typedef long Point[3];
+typedef int32_t Point[3];
 
 /* Vector is a 3d vector in fixed-point (equivilent to Point) */
 
-typedef long Vector[3];
+typedef int32_t Vector[3];
 
 /* Float_Point2d is a 2d point in floating-point */
 
@@ -256,7 +258,7 @@ typedef struct {
 /* Gradient will uniquely define one gradient contained in
    ColorInfo.gradient.  It's kinda like color */
 
-typedef unsigned char Gradient;
+typedef uint8_t Gradient;
 
 /* VehicleMode will identify this vehicles state */
 
@@ -265,42 +267,42 @@ enum VehicleMode { Air, Surface, Landing };
 /* Face holds all the important information about 3d polygon */
 
 typedef struct {
-    long index[MAX_FACE_SIZE];  /* index into a list of vertices */
-    unsigned char size;         /* number of vertices in this face */
+    int32_t index[MAX_FACE_SIZE];  /* index into a list of vertices */
+    uint8_t size;         /* number of vertices in this face */
     Vector normal;              /* normal vector of this face */
-    long max_z;                 /* maximum z-coord in this face */
+    int32_t max_z;                 /* maximum z-coord in this face */
     Gradient gradient;          /* gradient to use when shading this face */
-    unsigned char transparent;  /* true if this face is transparent */
+    uint8_t transparent;  /* true if this face is transparent */
 } Face;
 
 /* PointFace holds all the points & faces of an object */
 
 typedef struct {
     Point *point;   /* pointer to an array of Points */
-    long points;    /* length of the point array */
+    int32_t points;    /* length of the point array */
     Face *face;     /* pointer to an array of Faces */
-    long faces;     /* length of the face array */
+    int32_t faces;     /* length of the face array */
 } PointFace;
 
 /* Edge identifies a line between to vertices */
 
-typedef long Edge[2];
+typedef int32_t Edge[2];
 
 /* PointEdge is a collection of 3d points and edges that define a wireframe
    object */
 
 typedef struct {
     Point *point;  /* array of points */
-    long points;   /* length of point array */
+    int32_t points;   /* length of point array */
     Edge *edge;    /* array of edges */
-    long edges;    /* length of edge aray */
+    int32_t edges;    /* length of edge aray */
 } PointEdge;
 
 /* EdgeTable is just a list of edges, there are no vertices */
 
 typedef struct {
     Edge *edge;
-    long edges;
+    int32_t edges;
 } EdgeTable;
 
 /* Window used by the polygon scanner's 2D-clipper */
@@ -309,9 +311,9 @@ typedef struct {
     int x0, y0, x1, y1;
 } Window;
 
-/* Matrix type is a 4x4 matrix of longs */
+/* Matrix type is a 4x4 matrix of int32_ts */
 
-typedef long Matrix[16];
+typedef int32_t Matrix[16];
 
 /* Float_Matrix is a 4x4 matrix of floats */
 
@@ -331,12 +333,12 @@ typedef struct {
 /* MagicBoundingBox defines a cube in fixed_point coords */
 
 typedef struct {
-    long min_x;
-    long max_x;
-    long min_y;
-    long max_y;
-    long min_z;
-    long max_z;
+    int32_t min_x;
+    int32_t max_x;
+    int32_t min_y;
+    int32_t max_y;
+    int32_t min_z;
+    int32_t max_z;
 } MagicBoundingBox;
 
 /* BoundingBox2d defines a 2d square */
@@ -353,7 +355,7 @@ typedef struct {
 enum projectile_type { MISSILE, LASER, MINE, CS_MISSILE,
                        DECOY_0, DECOY_1, DECOY_2, TRAITOR_MISSILE };
 
-/* team_type idenifies the team that something belongs to */
+/* team_type idenifies the team that something beint32_ts to */
 
 typedef enum { RED_TEAM, BLUE_TEAM, NO_TEAM } team_type;
 
@@ -368,23 +370,23 @@ typedef struct projectile {
     MagicBoundingBox box;       /* bounding box */
     EdgeTable edge_table;       /* all the edges of this projectile */
     MagicOrientation orient;    /* orientation in world_space */
-    short on_surface;           /* True if this projectile huggs the surface */
-    short frames_left;          /* Number of frame until projectiles goes poof! */
+    int16_t on_surface;           /* True if this projectile huggs the surface */
+    int16_t frames_left;          /* Number of frame until projectiles goes poof! */
     struct projectile *next;    /* Link to the next projectile */
     float *target;              /* target pointer (missiles only) */
     Float_Vector vel;           /* velocity vector (decoys only) */
     float air_rise_rot_speed;   /* rotation value used by decoys only */
     float air_spin_rot_speed;   /* rotation value used by decoys only */
     float surface_rot_speed;    /* rotation value used by decoys only */
-    unsigned char owner;        /* who shot this bullet?? 0-5 indices into player array
+    uint8_t owner;        /* who shot this bullet?? 0-5 indices into player array
                                    6 red_radar_base 7 blue_radar_base */
 } Projectile;
 
 /* Pylon contains information about one pylon */
 
 typedef struct {
-    short x;                /* x position on x-y grid */
-    short y;                /* y position on x-y grid */
+    int16_t x;                /* x position on x-y grid */
+    int16_t y;                /* y position on x-y grid */
     float height;           /* height of this pylon */
     team_type owner;        /* The team that owns this pylon */
     Gradient gradient;      /* gradient to use when shading this pylon */
@@ -397,7 +399,7 @@ typedef struct {
 /* Pylons contains information about all the pylons */
 
 typedef struct {
-    short pylons;
+    int16_t pylons;
     Pylon *pylon;
 } Pylons;
 
@@ -415,7 +417,7 @@ typedef struct {
     enum VehicleType vtype;         /* type of vehicle */
     team_type team;                 /* Team that this vehicle is on */
     enum VehicleMode vehicle_mode;  /* Is the vehicle on the surface? */
-    short alive;                    /* Is the vehicle still alive? */
+    int16_t alive;                    /* Is the vehicle still alive? */
     float surface_rad;              /* radius at which vehicle skims the surface */
 
     /* Information about this vehicles 3d object */
@@ -458,65 +460,65 @@ typedef struct {
     float *target;  /* point that the missiles are locked on */
 
     float laser_speed;             /* speed of lasers */
-    short laser_life;              /* frames a laser remains active */
-    short laser_damage;            /* Number of hit points each laser takes off */
-    short laser_reload_time;       /* time it takes to reload in frames */
-    short frames_till_fire_laser;  /* number of frames until we can shoot */
+    int16_t laser_life;              /* frames a laser remains active */
+    int16_t laser_damage;            /* Number of hit points each laser takes off */
+    int16_t laser_reload_time;       /* time it takes to reload in frames */
+    int16_t frames_till_fire_laser;  /* number of frames until we can shoot */
 
     float missile_speed;             /* speed of missiles */
     float turning_angle;             /* radians that a missile can turn per frame */
-    short missile_life;              /* frames that a missile remains active */
-    short missile_damage;            /* damage done on collision in hitpoints */
-    short missile_reload_time;       /* time it takes a missile to be reloaded */
-    short frames_till_fire_missile;  /* time till we can fire another missile */
-    short missile_generation_time;   /* time it takes a missile to be created */
-    short frames_till_new_missile;   /* time left until a new missile is generated */
-    short max_missile_storage;       /* maximum number of missiles that can be held */
-    short missiles_stored;           /* current number of stored missiles */
+    int16_t missile_life;              /* frames that a missile remains active */
+    int16_t missile_damage;            /* damage done on collision in hitpoints */
+    int16_t missile_reload_time;       /* time it takes a missile to be reloaded */
+    int16_t frames_till_fire_missile;  /* time till we can fire another missile */
+    int16_t missile_generation_time;   /* time it takes a missile to be created */
+    int16_t frames_till_new_missile;   /* time left until a new missile is generated */
+    int16_t max_missile_storage;       /* maximum number of missiles that can be held */
+    int16_t missiles_stored;           /* current number of stored missiles */
 
-    short max_projectiles;        /* max number of active projectiles */
+    int16_t max_projectiles;        /* max number of active projectiles */
     Projectile *projectile_list;  /* linked list of active projectiles */
 
     /* Information about this vehicles hitpoints */
 
-    long max_hitpoints;      /* maximum hitpoints allowed */
-    long current_hitpoints;  /* current number of hitpoints */
+    int32_t max_hitpoints;      /* maximum hitpoints allowed */
+    int32_t current_hitpoints;  /* current number of hitpoints */
 
-    short ramming_active;    /* ramming on indicator */
-    short ramming_damage;    /* hitpoints of damage resulting from one ram */
+    int16_t ramming_active;    /* ramming on indicator */
+    int16_t ramming_damage;    /* hitpoints of damage resulting from one ram */
 
-    short double_lasers_active;  /* does this vehicle shoot two lasers? */
+    int16_t double_lasers_active;  /* does this vehicle shoot two lasers? */
 
-    short mine_reload_time;          /* time it takes to reload a mine */
-    short mine_damage;               /* amount of damage a mine will inflect */
-    short mine_life;                 /* number of frames a mine will remain active */
+    int16_t mine_reload_time;          /* time it takes to reload a mine */
+    int16_t mine_damage;               /* amount of damage a mine will inflect */
+    int16_t mine_life;                 /* number of frames a mine will remain active */
 
-    short cs_missile_reload_time;    /* time to reload a cs_missile */
-    short cs_missile_life;           /* time a cs_missile remains active */
+    int16_t cs_missile_reload_time;    /* time to reload a cs_missile */
+    int16_t cs_missile_life;           /* time a cs_missile remains active */
     float cs_missile_speed;          /* speed of a cs_missile in units per frame */
 
-    short controls_scrambled;        /* true when hit by a cs_missile */
-    short frames_till_unscramble;    /* number of frames till controls will be normal */
-    short scramble_life;             /* total number of frames controls will be scrambled */
+    int16_t controls_scrambled;        /* true when hit by a cs_missile */
+    int16_t frames_till_unscramble;    /* number of frames till controls will be normal */
+    int16_t scramble_life;             /* total number of frames controls will be scrambled */
 
-    short traitor_missile_reload_time; /* time to reload a traitor_missile */
-    short traitor_missile_life;        /* time a traitor_missile remains active */
+    int16_t traitor_missile_reload_time; /* time to reload a traitor_missile */
+    int16_t traitor_missile_life;        /* time a traitor_missile remains active */
     float traitor_missile_speed;       /* speed of a traitor_missile */
 
-    short traitor_life;                   /* amount of time a vehicle is a traitor */
-    short traitor_active;                 /* true when hit by a traitor_missile */
-    short frames_till_traitor_deactivate; /* frames left for this vehicle to be a traitor */
+    int16_t traitor_life;                   /* amount of time a vehicle is a traitor */
+    int16_t traitor_active;                 /* true when hit by a traitor_missile */
+    int16_t frames_till_traitor_deactivate; /* frames left for this vehicle to be a traitor */
 
-    short anti_missile_active;       /* TRUE if anti-missile system is on */
+    int16_t anti_missile_active;       /* TRUE if anti-missile system is on */
 
-    short cloaking_active;        /* TRUE if clocking is enabled */
-    short cloak_reload_time;      /* number of frames till x key becomes active again */
-    short frames_till_cloak;      /* number of frames till x key becomes active again (decrements every frame) */
-    short cloak_time;             /* number of frames cloaking remains active until you suck another missile */
-    short frames_till_cloak_suck; /* number of frames until cloak will suck a missile (decrements every frame) */
+    int16_t cloaking_active;        /* TRUE if clocking is enabled */
+    int16_t cloak_reload_time;      /* number of frames till x key becomes active again */
+    int16_t frames_till_cloak;      /* number of frames till x key becomes active again (decrements every frame) */
+    int16_t cloak_time;             /* number of frames cloaking remains active until you suck another missile */
+    int16_t frames_till_cloak_suck; /* number of frames until cloak will suck a missile (decrements every frame) */
 
-    short decoy_life;         /* time a decoy ships remains active */
-    short decoy_reload_time;  /* number of frames till you can shoot a missile or another decoy */
+    int16_t decoy_life;         /* time a decoy ships remains active */
+    int16_t decoy_reload_time;  /* number of frames till you can shoot a missile or another decoy */
 
 } Vehicle;
 
@@ -527,8 +529,8 @@ typedef struct {
 
 typedef struct {
     boolean active;       /* True if this gradient is not empty */
-    unsigned char first;  /* The starting color of this gradient */
-    unsigned char last;   /* The last color of this gradient */
+    uint8_t first;  /* The starting color of this gradient */
+    uint8_t last;   /* The last color of this gradient */
     unsigned num_colors;  /* The number of colors in this gradient */
 } GradientInfo;
 
@@ -536,7 +538,7 @@ typedef struct {
 
 typedef struct {
     GradientInfo gradient[ NUM_GRADIENTS ]; /* array of gradients */
-    long size;                              /* number of active gradients */
+    int32_t size;                              /* number of active gradients */
 } ColorInfo;
 
 
@@ -545,7 +547,7 @@ typedef struct {
 
 /* John's Typedefs ------------------------- */
 
-typedef unsigned char input_table[ INPUT_TABLE_SIZE ];
+typedef uint8_t input_table[ INPUT_TABLE_SIZE ];
 
 /* Is the vehicle controlled by the local player,
    computer, or remote player? */
@@ -564,15 +566,15 @@ typedef struct
      sb_sample      *samples[NUMBER_CHARACTER_SOUNDS];
      state_type      state;
 
-     unsigned char   passive_aggressive;     /* 1-100...1-50 is passive 51-100 is aggressive */
-     unsigned char   bravery_cowardice;      /* 1-100...same scheme */
-     unsigned char   aerial_ground;          /* 1-100...same scheme */
-     unsigned char   obedience_disobedience; /* 1-100...same scheme */
-     unsigned char   pylon_grab;             /* 1-50 hates pylons...50-100 likes em */
-     unsigned char   radar_kill;             /* 1-50 wont kill, 50-100 loves to kill */
-     unsigned char   radar_protect;          /* 1-50 protects, 50-100 doesn't care */
-     unsigned char   skill_level;            /* Skill level 1-5  */
-     unsigned char   preferred_vehicle;      /* See vehicletype */
+     uint8_t   passive_aggressive;     /* 1-100...1-50 is passive 51-100 is aggressive */
+     uint8_t   bravery_cowardice;      /* 1-100...same scheme */
+     uint8_t   aerial_ground;          /* 1-100...same scheme */
+     uint8_t   obedience_disobedience; /* 1-100...same scheme */
+     uint8_t   pylon_grab;             /* 1-50 hates pylons...50-100 likes em */
+     uint8_t   radar_kill;             /* 1-50 wont kill, 50-100 loves to kill */
+     uint8_t   radar_protect;          /* 1-50 protects, 50-100 doesn't care */
+     uint8_t   skill_level;            /* Skill level 1-5  */
+     uint8_t   preferred_vehicle;      /* See vehicletype */
     } character_type;
 
 
@@ -615,29 +617,29 @@ typedef enum { GREETING, AFFIRMATION, NEGATION, GLOAT, DESPAIR,
 /* Basic variables that will be stored in game.cfg */
 
 typedef struct {
-    unsigned char laser;
-    unsigned char missile;
-    unsigned char special;
-    unsigned char mode_switch;
-    unsigned char up;
-    unsigned char down;
-    unsigned char left;
-    unsigned char right;
-    unsigned char up_throttle;
-    unsigned char down_throttle;
-    unsigned char strafe;
-    unsigned char wing_1_pylon;
-    unsigned char wing_1_attack;
-    unsigned char wing_1_attack_rb;
-    unsigned char wing_1_defend_rb;
-    unsigned char wing_1_group;
-    unsigned char wing_1_cancel;
-    unsigned char wing_2_pylon;
-    unsigned char wing_2_attack;
-    unsigned char wing_2_attack_rb;
-    unsigned char wing_2_defend_rb;
-    unsigned char wing_2_group;
-    unsigned char wing_2_cancel;
+    uint8_t laser;
+    uint8_t missile;
+    uint8_t special;
+    uint8_t mode_switch;
+    uint8_t up;
+    uint8_t down;
+    uint8_t left;
+    uint8_t right;
+    uint8_t up_throttle;
+    uint8_t down_throttle;
+    uint8_t strafe;
+    uint8_t wing_1_pylon;
+    uint8_t wing_1_attack;
+    uint8_t wing_1_attack_rb;
+    uint8_t wing_1_defend_rb;
+    uint8_t wing_1_group;
+    uint8_t wing_1_cancel;
+    uint8_t wing_2_pylon;
+    uint8_t wing_2_attack;
+    uint8_t wing_2_attack_rb;
+    uint8_t wing_2_defend_rb;
+    uint8_t wing_2_group;
+    uint8_t wing_2_cancel;
 
 } KeyboardConfig;
 
@@ -690,9 +692,9 @@ typedef struct
      boolean music_on;       /* Are we using cd-rom music? */
      boolean voices_on;      /* Are the voices on? */
 
-     unsigned char sound_vol;  /* the sound fx volume 0-255 */
-     unsigned char music_vol;  /* CD-rom music volume 0-255 */
-     unsigned char voice_vol;  /* the voice volume 0-255 */
+     uint8_t sound_vol;  /* the sound fx volume 0-255 */
+     uint8_t music_vol;  /* CD-rom music volume 0-255 */
+     uint8_t voice_vol;  /* the voice volume 0-255 */
 
      int red0_vehicle;      /* red team's first vehicle */
      int red1_vehicle;      /* red team's second vehicle */
@@ -746,7 +748,7 @@ typedef struct
      float angular_friction;  /* Radians per frame */
      float surface_friction;   /* Units per frame */
      float air_friction;       /* Units per frame */
-     long yon_clipping_plane; /* Magic Fixed point */
+     int32_t yon_clipping_plane; /* Magic Fixed point */
 
      Orientation base_orientations[2];
      Orientation turret_orientations[2];
@@ -764,8 +766,8 @@ typedef struct
 typedef struct {
     PointFace *world_obj;    /* 3d object in (world coords) */
     BoundingBox2d box;       /* the 2d bounding box */
-    long refresh_rate;       /* number of frames between bursts */
-    long frames_till_burst;  /* frames till next energy burst. */
+    int32_t refresh_rate;       /* number of frames between bursts */
+    int32_t frames_till_burst;  /* frames till next energy burst. */
     Float_Point center;      /* used by ai */
 } EnergyPowerUp;
 
@@ -787,21 +789,21 @@ typedef struct {
     Orientation base_orient;    /* the orientation of base_obj */
     Orientation turret_orient;  /* the orientation of turret_obj */
 
-    short current_hitpoints;  /* current number of hitpoints left */
-    short max_hitpoints;      /* maximum number of hitpoint allowed */
+    int16_t current_hitpoints;  /* current number of hitpoints left */
+    int16_t max_hitpoints;      /* maximum number of hitpoint allowed */
 
-    short alive;  /* tells if radar base is destroyed or not */
+    int16_t alive;  /* tells if radar base is destroyed or not */
 
     float *target;  /* point that missiles are locked on (not used) */
 
-    short max_projectiles;        /* maximum number of active projectiles allowed */
+    int16_t max_projectiles;        /* maximum number of active projectiles allowed */
     Projectile *projectile_list;  /* list of active projectiles */
 
-    short laser_life;              /* number of frames a laser remains active */
+    int16_t laser_life;              /* number of frames a laser remains active */
     float laser_speed;             /* speed of lasers */
-    short frames_till_fire_laser;  /* frames left until base can fire */
-    short laser_reload_time;       /* time it takes to reload after fire */
-    short laser_damage;            /* hitpoints of damage when hit */
+    int16_t frames_till_fire_laser;  /* frames left until base can fire */
+    int16_t laser_reload_time;       /* time it takes to reload after fire */
+    int16_t laser_damage;            /* hitpoints of damage when hit */
 
     team_type team;  /* team that owns this base */
 
@@ -818,30 +820,30 @@ typedef enum { VerticalTopJustified, VerticalBottomJustified,
 typedef struct {
     Point2d upper_left;
     Point2d lower_right;
-    long min_val;
-    long max_val;
-    long val;
-    unsigned char bar_color;
-    unsigned char outline_color;
+    int32_t min_val;
+    int32_t max_val;
+    int32_t val;
+    uint8_t bar_color;
+    uint8_t outline_color;
     BarType type;
 } BarInfo;
 
 typedef struct {
-    short x;
-    short y;
-    unsigned char color;
+    int16_t x;
+    int16_t y;
+    uint8_t color;
 } Pixel;
 
 typedef struct {
     Pixel *pixel;
-    long pixels;
+    int32_t pixels;
 } PixMap;
 
 
 /* CollisionInfo holds collision info for 1 vehicles */
 
 typedef struct {
-    long collision;        /* True if vehicle is colliding with something */
+    int32_t collision;        /* True if vehicle is colliding with something */
     Float_Vector reflect;  /* The sum of the normal vectors of the faces that
                               this vehicle is colliding with */
 } CollisionInfo;
@@ -861,7 +863,7 @@ typedef struct explosion {
     PointFace world_debris;
     PointFace cloud;
     PointFace world_cloud;
-    long frames_left;
+    int32_t frames_left;
     struct explosion *next;
 } Explosion;
 
@@ -1063,7 +1065,7 @@ typedef struct {
 
 typedef struct {
     Snapshot snapshot[15];
-    long size;
+    int32_t size;
 } SnapshotQueue;
 
 typedef RGB_color palette_type[256];

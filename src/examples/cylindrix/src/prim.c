@@ -89,7 +89,7 @@ struct HLine {
    int xEnd;   /* X coordinate of rightmost pixel in line */
 };
 
-/* Describes a Length-long series of horizontal lines, all assumed to
+/* Describes a Length-int32_t series of horizontal lines, all assumed to
    be on contiguous scan lines starting at YStart and proceeding
    downward (used to describe a scan-converted polygon to the
    low-level hardware-dependent drawing code) */
@@ -131,12 +131,12 @@ extern WorldStuff world_stuff;
 
 /* wrapper */
 
-void fast_DB_poly_scan( Face *p, long vert[][4], Window *win,
+void fast_DB_poly_scan( Face *p, int32_t vert[][4], Window *win,
 			unsigned char color )
 {
 	(void)win;
     struct PointListHeader plh;
-    long i;
+    int32_t i;
 
     plh.Length = p->size;
 
@@ -276,7 +276,7 @@ int FillConvexPolygon( struct PointListHeader *VertexList, int Color,
       DeltaxP = VertexPtr[PreviousIndex].x - VertexPtr[MinIndexL].x;
       DeltayP = VertexPtr[PreviousIndex].y - VertexPtr[MinIndexL].y;
 
-      if (((long)DeltaxN * DeltayP - (long)DeltayN * DeltaxP) < 0L) {
+      if (((int32_t)DeltaxN * DeltayP - (int32_t)DeltayN * DeltaxP) < 0L) {
 	 LeftEdgeDir = 1;  /* left edge runs up through vertex list */
 	 Temp = MinIndexL;       /* swap the indices so MinIndexL   */
 	 MinIndexL = MinIndexR;  /* points to the start of the left */
@@ -474,7 +474,7 @@ void Set_Video_Mode( int mode ) {
 /* Clear the double buffer by filling it with zeros */
 void DB_Clear_Screen( void )
 {
-     long i;
+     int32_t i;
      unsigned int *ptr = word_double_buffer;
 
      for( i = 0; i < 800; i++ ) {
@@ -505,7 +505,7 @@ void DB_Clear_Screen( void )
 void draw_border(void)
 {
    Edge e;
-   long vert[2][4];
+   int32_t vert[2][4];
 
    /* draw top edge */
 
@@ -550,7 +550,7 @@ void draw_border(void)
 
 void Fade_Screen( void )
     {
-     long i;
+     int32_t i;
 
      for( i = 0; i < 64000; i++ )
 	 {
@@ -568,7 +568,7 @@ void Fade_Screen( void )
 void H_Line_Fast( int x1, int x2, int y, unsigned int color )
     {
      int i;
-     long line_offset;
+     int32_t line_offset;
      unsigned short middle_word;
      unsigned short first_word;
      unsigned short last_word;
@@ -612,7 +612,7 @@ void H_Line_Fast( int x1, int x2, int y, unsigned int color )
 /* Clear the video buffer by filling it with zeros */
 void Clear_Screen( void )
     {
-   //  long i;
+   //  int32_t i;
 //
   //   for( i = 0; i < 64000; i++ )
 //	 video_buffer[i] = 0;
@@ -761,7 +761,7 @@ void Swap_Buffer( void ) {
 */
 
 /*
-    long i, end;
+    int32_t i, end;
     int index = 0;
 
 
@@ -777,7 +777,7 @@ void Swap_Buffer( void ) {
 /* copy buffer into the double buffer */
 void Pop_Buffer( unsigned char *buffer )
     {
-     long i;
+     int32_t i;
 
      for( i = 0; i < 64000; i++ )
 	 double_buffer[i] = buffer[i];
@@ -811,23 +811,23 @@ void Pop_Buffer( unsigned char *buffer )
 
 /* Function prototypes so they are all visible to one another */
 
-void DB_scanline( long y, long l[4], long r[4], Window *win,
+void DB_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
 		  unsigned char mask, unsigned char color );
-void shade_DB_scanline( long y, long l[4], long r[4], Window *win,
+void shade_DB_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
 			unsigned char mask, unsigned char color );
-void DB_zbuff_scanline( long y, long l[4], long r[4], Window *win,
-    unsigned char mask, unsigned char color, long *zbuff );
-void shade_DB_zbuff_scanline( long y, long l[4], long r[4], Window *win,
-    unsigned char mask, unsigned char color, long *zbuff );
+void DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
+    unsigned char mask, unsigned char color, int32_t *zbuff );
+void shade_DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
+    unsigned char mask, unsigned char color, int32_t *zbuff );
 
-void inc_y4( long p1[4], long p2[4], long p[4], long dp[4], long y,
+void inc_y4( int32_t p1[4], int32_t p2[4], int32_t p[4], int32_t dp[4], int32_t y,
 	     unsigned char mask );
-void inc_x4( long p1[4], long p2[4], long p[4], long dp[4], long x,
+void inc_x4( int32_t p1[4], int32_t p2[4], int32_t p[4], int32_t dp[4], int32_t x,
 	     unsigned char mask );
-void increment4( long p[4], long dp[4], unsigned char mask );
+void increment4( int32_t p[4], int32_t dp[4], unsigned char mask );
 
 
-void DB_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color )
+void DB_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color )
 /* scan converts concave polygons. */
 /* p is a pointer to the face to be scan converted. */
 /* vert is an array of vertices. p hold indices into this array. */
@@ -835,8 +835,8 @@ void DB_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color )
 /* color will be the color of the filled polygon. */
 {
     int i, li, ri, y, ly, ry, top, rem;
-    long ymin; /* MAGIC */
-    long l[4] = {0}, r[4] = {0}, dl[4] = {0}, dr[4] = {0}; /* MAGIC */
+    int32_t ymin; /* MAGIC */
+    int32_t l[4] = {0}, r[4] = {0}, dl[4] = {0}, dr[4] = {0}; /* MAGIC */
     unsigned char mask;
 
     top = 0;
@@ -888,11 +888,11 @@ void DB_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color )
     }
 }
 
-void DB_scanline( long y, long l[4], long r[4], Window *win,
+void DB_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
 		  unsigned char mask, unsigned char color )
 {
-    long lx, rx;
-    long p[4], dp[4]; /* MAGIC */
+    int32_t lx, rx;
+    int32_t p[4], dp[4]; /* MAGIC */
 
     mask &= ~0x1; /* stop interpolating x */
 
@@ -908,7 +908,7 @@ void DB_scanline( long y, long l[4], long r[4], Window *win,
 
 }
 
-void shade_DB_poly_scan( Face *p, long vert[][4], Window *win,
+void shade_DB_poly_scan( Face *p, int32_t vert[][4], Window *win,
 			 unsigned char color )
 /* scan converts concave polygons. */
 /* p is a pointer to the face to be scan converted. */
@@ -917,8 +917,8 @@ void shade_DB_poly_scan( Face *p, long vert[][4], Window *win,
 /* color will be the color of the filled polygon. */
 {
     int i, li, ri, y, ly, ry, top, rem;
-    long ymin; /* MAGIC */
-    long l[4], r[4], dl[4], dr[4]; /* MAGIC */
+    int32_t ymin; /* MAGIC */
+    int32_t l[4], r[4], dl[4], dr[4]; /* MAGIC */
     unsigned char mask;
 
     top = 0;
@@ -970,12 +970,12 @@ void shade_DB_poly_scan( Face *p, long vert[][4], Window *win,
     }
 }
 
-void shade_DB_scanline( long y, long l[4], long r[4], Window *win,
+void shade_DB_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
 			unsigned char mask, unsigned char color )
 {
 	(void)color;
-    long x, lx, rx;
-    long p[4], dp[4]; /* MAGIC */
+    int32_t x, lx, rx;
+    int32_t p[4], dp[4]; /* MAGIC */
     unsigned char *db_ptr;
 
     mask &= ~0x1; /* stop interpolating x */
@@ -1007,7 +1007,7 @@ void shade_DB_scanline( long y, long l[4], long r[4], Window *win,
     }
 }
 
-void DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color, long *zbuff )
+void DB_zbuff_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color, int32_t *zbuff )
 /* scan converts concave polygons. */
 /* p is a pointer to the face to be scan converted. */
 /* vert is an array of vertices. p hold indices into this array. */
@@ -1015,8 +1015,8 @@ void DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win, unsigned char col
 /* color will be the color of the filled polygon. */
 {
     int i, li, ri, y, ly, ry, top, rem;
-    long ymin; /* MAGIC */
-    long l[4], r[4], dl[4], dr[4]; /* MAGIC */
+    int32_t ymin; /* MAGIC */
+    int32_t l[4], r[4], dl[4], dr[4]; /* MAGIC */
     unsigned char mask;
 
     top = 0;
@@ -1068,12 +1068,12 @@ void DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win, unsigned char col
     }
 }
 
-void DB_zbuff_scanline( long y, long l[4], long r[4], Window *win,
-			unsigned char mask, unsigned char color, long *zbuff )
+void DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
+			unsigned char mask, unsigned char color, int32_t *zbuff )
 {
-    long x, lx, rx;
-    long p[4], dp[4]; /* MAGIC */
-    long *zb_ptr;
+    int32_t x, lx, rx;
+    int32_t p[4], dp[4]; /* MAGIC */
+    int32_t *zb_ptr;
     unsigned char *db_ptr;
 
     mask &= ~0x1; /* stop interpolating x */
@@ -1101,8 +1101,8 @@ void DB_zbuff_scanline( long y, long l[4], long r[4], Window *win,
     }
 }
 
-void shade_DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win,
-			       unsigned char color, long *zbuff )
+void shade_DB_zbuff_poly_scan( Face *p, int32_t vert[][4], Window *win,
+			       unsigned char color, int32_t *zbuff )
 /* scan converts concave polygons. */
 /* p is a pointer to the face to be scan converted. */
 /* vert is an array of vertices. p hold indices into this array. */
@@ -1110,8 +1110,8 @@ void shade_DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win,
 /* color will be the color of the filled polygon. */
 {
     int i, li, ri, y, ly, ry, top, rem;
-    long ymin; /* MAGIC */
-    long l[4], r[4], dl[4], dr[4]; /* MAGIC */
+    int32_t ymin; /* MAGIC */
+    int32_t l[4], r[4], dl[4], dr[4]; /* MAGIC */
     unsigned char mask;
 
     top = 0;
@@ -1163,13 +1163,13 @@ void shade_DB_zbuff_poly_scan( Face *p, long vert[][4], Window *win,
     }
 }
 
-void shade_DB_zbuff_scanline( long y, long l[4], long r[4], Window *win,
-			unsigned char mask, unsigned char color, long *zbuff )
+void shade_DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
+			unsigned char mask, unsigned char color, int32_t *zbuff )
 {
 	(void)color;
-    long x, lx, rx;
-    long p[4], dp[4]; /* MAGIC */
-    long *zb_ptr;
+    int32_t x, lx, rx;
+    int32_t p[4], dp[4]; /* MAGIC */
+    int32_t *zb_ptr;
     unsigned char *db_ptr;
 
     mask &= ~0x1; /* stop interpolating x */
@@ -1196,10 +1196,10 @@ void shade_DB_zbuff_scanline( long y, long l[4], long r[4], Window *win,
     }
 }
 
-void DB_transparent_scanline( long y, long l[4], long r[4], Window *win,
+void DB_transparent_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
 		              unsigned char mask, unsigned char color );
 
-void DB_transparent_poly_scan( Face *p, long vert[][4], Window *win, unsigned char color )
+void DB_transparent_poly_scan( Face *p, int32_t vert[][4], Window *win, unsigned char color )
 
 /* scan converts concave polygons. */
 /* p is a pointer to the face to be scan converted. */
@@ -1208,8 +1208,8 @@ void DB_transparent_poly_scan( Face *p, long vert[][4], Window *win, unsigned ch
 /* color will be the color of the filled polygon. */
 {
     int i, li, ri, y, ly, ry, top, rem;
-    long ymin; /* MAGIC */
-    long l[4] = {0}, r[4] = {0}, dl[4] = {0}, dr[4] = {0}; /* MAGIC */
+    int32_t ymin; /* MAGIC */
+    int32_t l[4] = {0}, r[4] = {0}, dl[4] = {0}, dr[4] = {0}; /* MAGIC */
     unsigned char mask;
 
     top = 0;
@@ -1261,15 +1261,15 @@ void DB_transparent_poly_scan( Face *p, long vert[][4], Window *win, unsigned ch
     }
 }
 
-void DB_transparent_scanline( long y, long l[4], long r[4], Window *win,
+void DB_transparent_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
 		              unsigned char mask, unsigned char color )
 {
 	(void)color;
-    long lx, rx;
-    long p[4], dp[4]; /* MAGIC */
-    long new_color, old_color;
-    long x;
-    long i;
+    int32_t lx, rx;
+    int32_t p[4], dp[4]; /* MAGIC */
+    int32_t new_color, old_color;
+    int32_t x;
+    int32_t i;
     unsigned char *db_ptr;
 
     mask &= ~0x1; /* stop interpolating x */
@@ -1316,10 +1316,10 @@ void DB_transparent_scanline( long y, long l[4], long r[4], Window *win,
 }
 
 
-void inc_y4( long p1[4], long p2[4], long p[4], long dp[4], long y,
+void inc_y4( int32_t p1[4], int32_t p2[4], int32_t p[4], int32_t dp[4], int32_t y,
 	     unsigned char mask )
 {
-    long dy, frac; /* MAGIC */
+    int32_t dy, frac; /* MAGIC */
 
     dy = p2[Y] - p1[Y];
     if( dy == 0 ) dy = MAGIC;
@@ -1343,10 +1343,10 @@ void inc_y4( long p1[4], long p2[4], long p[4], long dp[4], long y,
     }
 }
 
-void inc_x4( long p1[4], long p2[4], long p[4], long dp[4], long x,
+void inc_x4( int32_t p1[4], int32_t p2[4], int32_t p[4], int32_t dp[4], int32_t x,
 	    unsigned char mask )
 {
-    long dx, frac; /* MAGIC */
+    int32_t dx, frac; /* MAGIC */
 
     dx = p2[X] - p1[X];
     if( dx == 0 ) dx = MAGIC;
@@ -1370,7 +1370,7 @@ void inc_x4( long p1[4], long p2[4], long p[4], long dp[4], long x,
     }
 }
 
-void increment4( long p[4], long dp[4], unsigned char mask )
+void increment4( int32_t p[4], int32_t dp[4], unsigned char mask )
 {
     if( mask & 0x1 ) {
 	p[X] += dp[X];
@@ -1387,10 +1387,10 @@ void increment4( long p[4], long dp[4], unsigned char mask )
 }
 
 
-void inc_y( long p1[3], long p2[3], long p[3], long dp[3], long y,
+void inc_y( int32_t p1[3], int32_t p2[3], int32_t p[3], int32_t dp[3], int32_t y,
 	    unsigned char mask )
 {
-    long dy, frac; /* MAGIC */
+    int32_t dy, frac; /* MAGIC */
 
     dy = p2[Y] - p1[Y];
     if( dy == 0 ) dy = MAGIC;
@@ -1407,10 +1407,10 @@ void inc_y( long p1[3], long p2[3], long p[3], long dp[3], long y,
 }
 
 
-void inc_x( long p1[3], long p2[3], long p[3], long dp[3], long x,
+void inc_x( int32_t p1[3], int32_t p2[3], int32_t p[3], int32_t dp[3], int32_t x,
 	    unsigned char mask )
 {
-    long dx, frac; /* MAGIC */
+    int32_t dx, frac; /* MAGIC */
 
     dx = p2[X] - p1[X];
     if( dx == 0 ) dx = MAGIC;
@@ -1426,7 +1426,7 @@ void inc_x( long p1[3], long p2[3], long p[3], long dp[3], long x,
     }
 }
 
-void increment( long p[3], long dp[3], unsigned char mask )
+void increment( int32_t p[3], int32_t dp[3], unsigned char mask )
 {
     if( mask & 0x1 ) {
 	p[X] += dp[X];
@@ -1438,7 +1438,7 @@ void increment( long p[3], long dp[3], unsigned char mask )
 
 /* draws a line into the double buffer */
 
-void DB_draw_edge( long vert[][4], Edge e, unsigned char color )
+void DB_draw_edge( int32_t vert[][4], Edge e, unsigned char color )
 {
     int d, x, y, ax, ay, sx, sy, dx, dy, x1, y1, x2, y2;
 

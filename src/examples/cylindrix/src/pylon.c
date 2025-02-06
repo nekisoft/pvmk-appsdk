@@ -30,7 +30,7 @@ extern char g_DataPath[255];
 
 void change_pylon_color( Pylon *pylon, Gradient gradient )
 {
-    long i;
+    int32_t i;
 
     pylon->gradient = gradient;
     for( i = 0; i < pylon->obj.faces; i++ ) {
@@ -40,13 +40,13 @@ void change_pylon_color( Pylon *pylon, Gradient gradient )
 
 void pylon_union( Pylons *pylons, PointFace *result )
 {
-    long i, j, k;
+    int32_t i, j, k;
     Point *point_ptr;
     Face *face_ptr;
     PointFace *obj_ptr;
-    long point_start;
-    long points_added = 0;
-    long faces_added = 0;
+    int32_t point_start;
+    int32_t points_added = 0;
+    int32_t faces_added = 0;
 
     /* Remalloc the point array of result. Worst case 16 points per pylon. */
 
@@ -105,23 +105,23 @@ void pylon_union( Pylons *pylons, PointFace *result )
 void get_pylons( Pylons *pylons, char *filename )
 {
     FILE *fp;
-    long num_pylons;
-    long i, x, y, j;
+    int32_t num_pylons;
+    int32_t i, x, y, j;
     float height;
     int grad;
-    long index;
+    int32_t index;
     float h, z_step, theta;
     const float top_edge = -30.0;
     const float bottom_edge = 30.0;
     const int n = 30; /* 25 */
     const int m = 30; /* 30 */
     const float r = 10.0;
-    long point1, point2, point3, point4;
-    long temp;
+    int32_t point1, point2, point3, point4;
+    int32_t temp;
     Point *point_ptr;  /* used to avoid a lot of dereferencing */
     Face *face_ptr;    /* same here */
-    long point_size;
-    long face_size;
+    int32_t point_size;
+    int32_t face_size;
     Float_Point u, v, uxv;
     float uxv_dot_uxv, len;
     Float_Point2d temp2d;
@@ -142,7 +142,7 @@ void get_pylons( Pylons *pylons, char *filename )
 
     /* get the number of pylons in file */
 
-    fscanf( fp, " %ld ", &num_pylons );
+    fscanf( fp, " %d ", &num_pylons );
     pylons->pylons = num_pylons;
 
     /* malloc the pylons */
@@ -158,7 +158,7 @@ void get_pylons( Pylons *pylons, char *filename )
 
         /* get the pylons x y and h fields */
 
-        fscanf( fp, " %ld %ld %f ", &x, &y, &height );
+        fscanf( fp, " %d %d %f ", &x, &y, &height );
 
         pylons->pylon[i].x = x;
         pylons->pylon[i].y = y;
@@ -640,9 +640,9 @@ void print_pylons( Pylons *pylons )
     }
 }
 
-int pylon_exists( Pylons* pylons, short x, short y, long* index )
+int pylon_exists( Pylons* pylons, short x, short y, int32_t* index )
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < pylons->pylons; i++ ) {
         if( ( pylons->pylon[i].x == x ) && ( pylons->pylon[i].y == y ) ) {

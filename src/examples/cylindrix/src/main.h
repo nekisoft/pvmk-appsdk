@@ -32,11 +32,11 @@ void init_menu_stuff( MenuStuff *menu_stuff );
 void check_command_line_args( int argc, char *argv[],
                               unsigned char *ai_active );
 
-void init_modem_connection( unsigned char master, long *movement_vehicle,
-                            long *view_vehicle, long *remote_player );
+void init_modem_connection( unsigned char master, int32_t *movement_vehicle,
+                            int32_t *view_vehicle, int32_t *remote_player );
 
-void init_serial_game_state( unsigned char master, long *movement_vehicle,
-                             long *view_vehicle, long *remote_player );
+void init_serial_game_state( unsigned char master, int32_t *movement_vehicle,
+                             int32_t *view_vehicle, int32_t *remote_player );
 
 void get_user_key_table( input_table table );
 
@@ -44,14 +44,14 @@ void get_all_input( Player p[], int ai_active, int master );
 
 void move_everything_one_click(void);
 
-void draw_everything( long view_vehicle, long status_bar,
-                      long first_person_view, long transporting );
+void draw_everything( int32_t view_vehicle, int32_t status_bar,
+                      int32_t first_person_view, int32_t transporting );
 
 void free_world_stuff( WorldStuff *w );
 
 void free_menu_stuff( MenuStuff *menu_stuff );
 
-void update_leader( long view_vehicle );
+void update_leader( int32_t view_vehicle );
 
 void free_pcx_picture( pcx_picture *pic );
 
@@ -68,8 +68,8 @@ void init_local_user_team( team_type *team );
 
 int num_vehicles_remaining( team_type team );
 
-void get_current_view_orient( Orientation *o, Orientation *old_o, team_type team, long *transporting,
-                              long *first_person_view );
+void get_current_view_orient( Orientation *o, Orientation *old_o, team_type team, int32_t *transporting,
+                              int32_t *first_person_view );
                               
 int is_round_over(void);
 
@@ -92,13 +92,13 @@ void cylindrix_init_print( char str[] );
 
 void print_game_configuration_info( game_configuration_type *game_configuration, int master );
 
-void get_current_view_orient_during_fadeout( Orientation *view_o, Orientation *old_o, team_type team, long *transporting,
-                                             long *first_person_view );
+void get_current_view_orient_during_fadeout( Orientation *view_o, Orientation *old_o, team_type team, int32_t *transporting,
+                                             int32_t *first_person_view );
 
-void print_all_input_tables( Player p[], long frame_counter );
+void print_all_input_tables( Player p[], int32_t frame_counter );
 
-void ipx_get_current_view_orient( Orientation *view_o, Orientation *old_o, team_type team, long *transporting,
-                                  long *first_person_view );
+void ipx_get_current_view_orient( Orientation *view_o, Orientation *old_o, team_type team, int32_t *transporting,
+                                  int32_t *first_person_view );
 
 void display_next_opponent(void);
 

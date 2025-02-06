@@ -12,7 +12,7 @@
     Library General Public License for more details.
   
     You should have received a copy of the GNU Library General Public
-    License along with this library; if not, write to the Free
+    License aint32_t with this library; if not, write to the Free
     Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
@@ -25,11 +25,11 @@
 void find_bounding_box( PointFace *obj, BoundingBox *box );
 void print_bounding_box( BoundingBox *b );
 void print_magic_bounding_box( MagicBoundingBox *b );
-int pylon_collision( Pylons *p, Vehicle *v, long *face_index );
+int pylon_collision( Pylons *p, Vehicle *v, int32_t *face_index );
 int super_pylon_collision( Pylons *p, Vehicle *v, Float_Vector reflect );
 int player_collision( Player *player, Vehicle *v );
 int super_player_collision( Player *player, Vehicle *v, Float_Vector reflect );
-int pylon_projectile_collision( Pylons *pylons, Projectile *p, long *face_index );
+int pylon_projectile_collision( Pylons *pylons, Projectile *p, int32_t *face_index );
 int vehicle_projectile_collision( Vehicle *v, Projectile *p );
 int player_projectile_collision( Player *player, Projectile *p, Vehicle *v );
 void init_bounding_box( Vehicle *v );
@@ -56,6 +56,6 @@ void build_new_collision_table( CollisionTable c_table,
 int bounding_box_overlap_2d( BoundingBox2d *p, BoundingBox2d *q );
 int bounding_box_overlap( BoundingBox *p, BoundingBox *q );
 int pointface_edge_intersect( PointFace *obj, Point *edge_vert, EdgeTable *et,
-                              long *face_index );
+                              int32_t *face_index );
 #endif
 

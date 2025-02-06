@@ -44,11 +44,11 @@ typedef struct {
 /* clip_obj clips all the faces of obj against the cannonical view volume
    hither is the MAGIC value of the front clipping plane */
 
-void clip_obj( PointFace *clip_obj, long hither );
+void clip_obj( PointFace *clip_obj, int32_t hither );
 
-void clip_edges( PointEdge *pe, long hither );
+void clip_edges( PointEdge *pe, int32_t hither );
 
-int region( Point p, long hither );
+int region( Point p, int32_t hither );
 
 #endif
 

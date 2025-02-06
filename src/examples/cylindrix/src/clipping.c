@@ -36,7 +36,7 @@
 extern level_type level; /* From omega.c...we need it for yon_clipping_plane */
  
 
-int region( Point p, long hither)
+int region( Point p, int32_t hither)
 {
     int location = INSIDE;
 
@@ -64,7 +64,7 @@ int region( Point p, long hither)
     return location;
 }
 
-int new_region( Point p, long hither)
+int new_region( Point p, int32_t hither)
 {
     int location = INSIDE;
 
@@ -89,9 +89,9 @@ int new_region( Point p, long hither)
     return location;
 }
 
-void old_intersect( Point p1, Point p2, int plane, long hither, Point inter )
+void old_intersect( Point p1, Point p2, int plane, int32_t hither, Point inter )
 {
-    long t;
+    int32_t t;
 
     if (plane == RIGHT) {
 	t = ((p1[X] + p1[Z]) << MEXP) / ((p1[Z] - p2[Z]) - (p2[X] - p1[X]));
@@ -131,7 +131,7 @@ void old_intersect( Point p1, Point p2, int plane, long hither, Point inter )
     }
 }
 
-void intersect( Point p1, Point p2, int plane, long hither, Point inter )
+void intersect( Point p1, Point p2, int plane, int32_t hither, Point inter )
 {
     float t;
     Float_Point fp1, fp2, finter = {0};
@@ -190,8 +190,8 @@ void intersect( Point p1, Point p2, int plane, long hither, Point inter )
 
 
 /* void poly_clip_plane( Point poly[], Point polyout[], int n, int *len,
-			 long hither, int plane) */
-void poly_clip_plane( PointFace *clip_obj, Face *face, long hither, int plane )
+			 int32_t hither, int plane) */
+void poly_clip_plane( PointFace *clip_obj, Face *face, int32_t hither, int plane )
 {
     Point v1, v2, inter;
     Face new_face;
@@ -281,7 +281,7 @@ void poly_clip_plane( PointFace *clip_obj, Face *face, long hither, int plane )
     }
 }
 
-void poly_clip_3D( PointFace *clip_obj, Face *face, long hither )
+void poly_clip_3D( PointFace *clip_obj, Face *face, int32_t hither )
 {
     int outcode[MAX_FACE_SIZE] = {0}, i, result0, result1;
 
@@ -315,7 +315,7 @@ void poly_clip_3D( PointFace *clip_obj, Face *face, long hither )
     }
 }
 
-void clip_obj( PointFace *clip_obj, long hither )
+void clip_obj( PointFace *clip_obj, int32_t hither )
 {
     int i;
 
@@ -324,10 +324,10 @@ void clip_obj( PointFace *clip_obj, long hither )
     }
 }
 
-void edge_clip_3D( PointEdge *pe, Edge e, long hither )
+void edge_clip_3D( PointEdge *pe, Edge e, int32_t hither )
 {
-    long accept, done;
-    long outcode0, outcode1, outcodeOut;
+    int32_t accept, done;
+    int32_t outcode0, outcode1, outcodeOut;
     Edge out_edge;
     Point inter;
 
@@ -462,14 +462,14 @@ void edge_clip_3D( PointEdge *pe, Edge e, long hither )
     else {
 	/* if this edge is rejected make e the null edge */
 
-	e[0] = (long)NULL_INDEX;
-	e[1] = (long)NULL_INDEX;
+	e[0] = (int32_t)NULL_INDEX;
+	e[1] = (int32_t)NULL_INDEX;
     }
 }
 
-void clip_edges( PointEdge *pe, long hither )
+void clip_edges( PointEdge *pe, int32_t hither )
 {
-    long i;
+    int32_t i;
 
     for( i = 0; i < pe->edges; i++ ) {
 	edge_clip_3D( pe, pe->edge[i], hither );

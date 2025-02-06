@@ -62,7 +62,7 @@ void Init_Voices( void )
 
 
 /* Handle the gloat and despair voices */
-void Gloat_Despair( WorldStuff *world_stuff, long view_vehicle )
+void Gloat_Despair( WorldStuff *world_stuff, int32_t view_vehicle )
     {
      int i;
      Player *player_array;
@@ -101,7 +101,7 @@ void Gloat_Despair( WorldStuff *world_stuff, long view_vehicle )
 
     } /* End of Gloat_Despair */
 
-void Handle_Voices( WorldStuff *world_stuff, long view_vehicle, unsigned char first_person_view, unsigned char teleporting )
+void Handle_Voices( WorldStuff *world_stuff, int32_t view_vehicle, unsigned char first_person_view, unsigned char teleporting )
     {
      int i;
      team_type current_team;

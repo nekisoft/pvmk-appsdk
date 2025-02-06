@@ -12,7 +12,7 @@
     Library General Public License for more details.
   
     You should have received a copy of the GNU Library General Public
-    License along with this library; if not, write to the Free
+    License aint32_t with this library; if not, write to the Free
     Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
@@ -141,7 +141,7 @@ short Point_Angle_2D( Float_Point2d point, Orientation *o )
 {
     Point u_point3d, position;
     Point2d u_point2d, position2d, u, v, v_point2d;
-    long dx, dy, len, result, u_theta, v_theta;
+    int32_t dx, dy, len, result, u_theta, v_theta;
     float temp;
 
     position[X] = rounding_ftom( o->position[X] );
@@ -300,7 +300,7 @@ short Point_Angle_2D( Float_Point2d point, Orientation *o )
 
 void center( Point2d center, Point2d point, Point2d new_point )
 {
-    long x_shift;
+    int32_t x_shift;
 
     x_shift = point[X] + MAGIC_CYLINDER_CENTER - center[X];
 
@@ -321,7 +321,7 @@ void center( Point2d center, Point2d point, Point2d new_point )
 float Point_Distance_2D( Float_Point2d point, Float_Point2d position )
 {
     Point2d p, q, new_p, new_q;
-    long x, y;
+    int32_t x, y;
     float temp;
 
     p[X] = rounding_ftom( position[X] );
@@ -406,7 +406,7 @@ int ill2( Float_Point2d p1, Float_Point2d p2, Float_Point2d q1,
 
 int fixed_ill2( Point2d p1, Point2d p2, Point2d q1, Point2d q2, Point2d v )
 {
-    long mu, delta, lambda;
+    int32_t mu, delta, lambda;
     Point2d v1, v2, v3, v4;
 
     v[X] = 0;
@@ -458,9 +458,9 @@ int fixed_ill2( Point2d p1, Point2d p2, Point2d q1, Point2d q2, Point2d v )
 
 int Old_Is_Visible_2D( Float_Point2d point, Float_Point2d position, Pylons *pylons )
 {
-    long i, pos_x;
+    int32_t i, pos_x;
     Point2d p1, p2, inter, p, q;
-    long x_shift, min_x, max_x;
+    int32_t x_shift, min_x, max_x;
 
     pos_x = rounding_ftom( position[X] );
 
@@ -591,9 +591,9 @@ int Old_Is_Visible_2D( Float_Point2d point, Float_Point2d position, Pylons *pylo
 
 */
 
-long CompOutCode( Float_Point2d p, BoundingBox2d *box )
+int32_t CompOutCode( Float_Point2d p, BoundingBox2d *box )
 {
-    long outcode;
+    int32_t outcode;
 
     outcode = 0;
 
@@ -616,11 +616,11 @@ long CompOutCode( Float_Point2d p, BoundingBox2d *box )
 /* Detects whether or not a ray and a 2d bounding box intersect.  It uses
    a hacked version of Cohen-Sutherland line clipping algorithm */
 
-long ray_bounding_box_intersect_2d( Float_Point2d start, Float_Point2d end,
+int32_t ray_bounding_box_intersect_2d( Float_Point2d start, Float_Point2d end,
                                     BoundingBox2d *box )
 {
-    long accept, done;
-    long outcode0, outcode1, outcodeOut;
+    int32_t accept, done;
+    int32_t outcode0, outcode1, outcodeOut;
     Float_Point2d p0, p1;
     float x = 0.0, y = 0.0;
 
@@ -694,7 +694,7 @@ int Is_Visible_2D( Float_Point2d point, Float_Point2d position, Pylons *pylons )
     Float_Point2d p, q;
     float x_shift, min_x, max_x;
     BoundingBox2d box, ray_box;
-    long i;
+    int32_t i;
 
 
     p[X] = 31.5;
@@ -807,7 +807,7 @@ int Is_Visible_FOV_2D( Float_Point point, Orientation *o, Pylons *pylons )
 
 void iCylinder_x_y( Point point, Point2d point2d )
 {
-    long theta, radius, temp;
+    int32_t theta, radius, temp;
 
     /* find the radius of point w.r.t. the x-y plane */
 
@@ -866,7 +866,7 @@ void iCylinder_x_y( Point point, Point2d point2d )
 void Cylinder_x_y( Float_Point point, Float_Point2d point2d )
 {
     Point2d ipoint2d;
-    long theta, radius, temp;
+    int32_t theta, radius, temp;
 
     ipoint2d[X] = rounding_ftom( point[X] );
     ipoint2d[Y] = rounding_ftom( point[Y] );
@@ -1004,10 +1004,10 @@ unsigned char Find_Nearest_Visible_FOV_Enemy_3D( Player player[],
 int Is_Visible_3D( Float_Point point, Float_Point pos, Pylons *pylons )
 {
     BoundingBox ray_box;
-    long vert[2][3];
+    int32_t vert[2][3];
     EdgeTable et;
-    long edge[1][2];
-    long dummy, i;
+    int32_t edge[1][2];
+    int32_t dummy, i;
 
 
     /* build the EdgeTable */
@@ -1337,7 +1337,7 @@ int Is_Visible_2D_Pylon( Float_Point2d point, Float_Point2d position, Pylons *py
     Float_Point2d p, q;
     float x_shift, min_x, max_x;
     BoundingBox2d box, ray_box;
-    long i;
+    int32_t i;
 
 
     p[X] = 31.5;
@@ -1443,10 +1443,10 @@ int Is_Visible_2D_Pylon( Float_Point2d point, Float_Point2d position, Pylons *py
 int Is_Visible_3D_Pylon( Float_Point point, Float_Point pos, Pylons *pylons, int pylon_index )
 {
     BoundingBox ray_box;
-    long vert[2][3];
+    int32_t vert[2][3];
     EdgeTable et;
-    long edge[1][2];
-    long dummy, i;
+    int32_t edge[1][2];
+    int32_t dummy, i;
 
 
     /* build the EdgeTable */
@@ -1743,9 +1743,9 @@ void Point_Square_3D( Float_Point point, int *row, int *column, int *height )
     } /* End of Point_Square_3D */
 
 
-void update_leader( long view_vehicle )
+void update_leader( int32_t view_vehicle )
     {
-     long i;
+     int32_t i;
      boolean blue_leader_picked = FALSE;
      boolean red_leader_picked = FALSE;
 

@@ -22,7 +22,7 @@
 #define PYLON_H
 
 void pylon_union( Pylons* pylons, PointFace *result );
-int pylon_exists( Pylons* pylons, short x, short y, long* index );
+int pylon_exists( Pylons* pylons, short x, short y, int32_t* index );
 void get_pylons( Pylons *pylons, char *filename );
 void print_pylons( Pylons *pylons );
 void pylons_to_pfd( Pylons *pylons, PointFace *obj );

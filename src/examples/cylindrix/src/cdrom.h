@@ -19,6 +19,7 @@
 #ifndef CDROM_H
 #define CDROM_H
 
+#include "types.h"
 
 #define EJECT_TRAY 0
 #define RESET 2
@@ -28,47 +29,47 @@
 #define UNLOCK 0
 
 typedef struct playinfo {
-  unsigned char control PACKED_STRUCT;
-  unsigned char adr     PACKED_STRUCT;
-  unsigned char track   PACKED_STRUCT;
-  unsigned char index   PACKED_STRUCT;
-  unsigned char min     PACKED_STRUCT;
-  unsigned char sec     PACKED_STRUCT;
-  unsigned char frame   PACKED_STRUCT;
-  unsigned char zero    PACKED_STRUCT;
-  unsigned char amin    PACKED_STRUCT;
-  unsigned char asec    PACKED_STRUCT;
-  unsigned char aframe  PACKED_STRUCT;
+  uint8_t control PACKED_STRUCT;
+  uint8_t adr     PACKED_STRUCT;
+  uint8_t track   PACKED_STRUCT;
+  uint8_t index   PACKED_STRUCT;
+  uint8_t min     PACKED_STRUCT;
+  uint8_t sec     PACKED_STRUCT;
+  uint8_t frame   PACKED_STRUCT;
+  uint8_t zero    PACKED_STRUCT;
+  uint8_t amin    PACKED_STRUCT;
+  uint8_t asec    PACKED_STRUCT;
+  uint8_t aframe  PACKED_STRUCT;
 } playinfo_type;
 
 typedef struct volumeinfo {
-    unsigned char mode    PACKED_STRUCT;
-    unsigned char input0  PACKED_STRUCT;
-    unsigned char volume0 PACKED_STRUCT;
-    unsigned char input1  PACKED_STRUCT;
-    unsigned char volume1 PACKED_STRUCT;
-    unsigned char input2  PACKED_STRUCT;
-    unsigned char volume2 PACKED_STRUCT;
-    unsigned char input3  PACKED_STRUCT;
-    unsigned char volume3 PACKED_STRUCT;
+    uint8_t mode    PACKED_STRUCT;
+    uint8_t input0  PACKED_STRUCT;
+    uint8_t volume0 PACKED_STRUCT;
+    uint8_t input1  PACKED_STRUCT;
+    uint8_t volume1 PACKED_STRUCT;
+    uint8_t input2  PACKED_STRUCT;
+    uint8_t volume2 PACKED_STRUCT;
+    uint8_t input3  PACKED_STRUCT;
+    uint8_t volume3 PACKED_STRUCT;
 } volumeinfo_type;
 
 typedef struct {
-  unsigned short drives             PACKED_STRUCT;
-  unsigned char  first_drive        PACKED_STRUCT;
-  unsigned short current_track      PACKED_STRUCT;
-  unsigned long  track_position     PACKED_STRUCT;
-  unsigned char  track_type         PACKED_STRUCT;
-  unsigned char  low_audio          PACKED_STRUCT;
-  unsigned char  high_audio         PACKED_STRUCT;
-  unsigned char  disk_length_min    PACKED_STRUCT;
-  unsigned char  disk_length_sec    PACKED_STRUCT;
-  unsigned char  disk_length_frames PACKED_STRUCT;
-  unsigned long  endofdisk          PACKED_STRUCT;
-  unsigned char  upc[7]             PACKED_STRUCT;
-  unsigned char  diskid[6]          PACKED_STRUCT;
-  unsigned long  status             PACKED_STRUCT;
-  unsigned short error              PACKED_STRUCT;
+  uint16_t drives             PACKED_STRUCT;
+  uint8_t  first_drive        PACKED_STRUCT;
+  uint16_t current_track      PACKED_STRUCT;
+  uint32_t  track_position     PACKED_STRUCT;
+  uint8_t  track_type         PACKED_STRUCT;
+  uint8_t  low_audio          PACKED_STRUCT;
+  uint8_t  high_audio         PACKED_STRUCT;
+  uint8_t  disk_length_min    PACKED_STRUCT;
+  uint8_t  disk_length_sec    PACKED_STRUCT;
+  uint8_t  disk_length_frames PACKED_STRUCT;
+  uint32_t  endofdisk          PACKED_STRUCT;
+  uint8_t  upc[7]             PACKED_STRUCT;
+  uint8_t  diskid[6]          PACKED_STRUCT;
+  uint32_t  status             PACKED_STRUCT;
+  uint16_t error              PACKED_STRUCT;
 } cdrom_data_type;
 
 
@@ -81,15 +82,15 @@ void cd_set_volume (struct volumeinfo *vol);
 void cd_get_audio_info (void);
 void cd_set_track (short tracknum);
 void cd_status (void);
-void cd_seek (unsigned long location);
-void cd_play_audio (unsigned long begin, unsigned long end);
+void cd_seek (uint32_t location);
+void cd_play_audio (uint32_t begin, uint32_t end);
 void cd_stop_audio (void);
 void cd_resume_audio (void);
-void cd_cmd (unsigned char mode);
+void cd_cmd (uint8_t mode);
 short cdrom_installed (void);
 short cd_done_play (void);
-void cd_lock (unsigned char doormode);
-void Set_CD_Volume( unsigned char volume );
+void cd_lock (uint8_t doormode);
+void Set_CD_Volume( uint8_t volume );
 
 #endif
 

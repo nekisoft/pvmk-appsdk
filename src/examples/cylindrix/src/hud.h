@@ -22,10 +22,10 @@
 #define HUD_H
 
 void draw_hud( enum VehicleType type, PixMap *pixmap,
-               Player *player_array, long view_vehicle, PointEdge *wire_tube,
+               Player *player_array, int32_t view_vehicle, PointEdge *wire_tube,
                RadarBase *red_base, RadarBase *blue_base );
                
-void draw_third_person_hud( Player *player_array, long view_vehicle, 
+void draw_third_person_hud( Player *player_array, int32_t view_vehicle, 
                             RadarBase *red_base, RadarBase *blue_base );
 
 void draw_missile_box( Point upper_left, Point lower_right, unsigned char color );

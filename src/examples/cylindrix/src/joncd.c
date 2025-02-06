@@ -56,7 +56,7 @@ void Get_Audio_Info( void ) {
 
 }
 
-unsigned long Track_Pos( int tracknum ) {
+uint32_t Track_Pos( int tracknum ) {
 	(void)tracknum;
      return(1); //Johnm 12/1/2001
 } 

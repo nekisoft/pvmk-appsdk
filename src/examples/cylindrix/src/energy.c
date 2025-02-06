@@ -35,7 +35,7 @@ void init_energy_power_up( EnergyPowerUp *e )
 {
     Float_Point temp;
     Float_Point2d temp2d;
-    long i;
+    int32_t i;
 
     e->refresh_rate = 0;
     e->frames_till_burst = 0;
@@ -99,7 +99,7 @@ void init_energy_power_up( EnergyPowerUp *e )
 void update_energy( EnergyPowerUp *e, Player *p )
 {
     Float_Point2d temp;
-    long i;
+    int32_t i;
 
     for( i = 0; i < 6; i++ ) {
 

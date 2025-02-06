@@ -33,8 +33,8 @@
 node_address_type broadcast_node = { 0xff,0xff,0xff,0xff,0xff,0xff };
 
 
-extern long exit_loop;  /* From omega.c */
-extern long game_over;
+extern int32_t exit_loop;  /* From omega.c */
+extern int32_t game_over;
 
 
 extern local_address_type local_address;
@@ -62,7 +62,7 @@ int Wait_For_Nodes( IPX_game_info_type *ipx_game_info )
      int short_index = 0; /* Index into short_ptr thing */
      int process_node = 0;
      int done = 0;
-     long game_over = FALSE;
+     int32_t game_over = FALSE;
 
 
      /* Clear out the send and recieve strings */
