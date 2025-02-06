@@ -20,17 +20,9 @@
 
 #define JONIPX_H
 
-//#include <dos.h> /* For delay */
+#include "types.h"
 
-/* #define __LINUX__ */
-/* Only use linux specific __attribute__ tag on Linux */
-#ifndef PACKED_STRUCT 
-	#ifdef __LINUX__
-		#define PACKED_STRUCT __attribute__((packed))
-	#else
-		#define PACKED_STRUCT 
-	#endif
-#endif
+//#include <dos.h> /* For delay */
 
 #define MY_SOCKET 0x869C
 
@@ -75,17 +67,6 @@ typedef unsigned char node_address_type[6];
 typedef char string_type[80];
 
 typedef unsigned short address_type[2];
-
-/* #define __LINUX__ */
-/* Only use linux specific __attribute__ tag on Linux */
-#ifndef PACKED_STRUCT 
-	#ifdef __LINUX__
-		#define PACKED_STRUCT __attribute__((packed))
-	#else
-		#define PACKED_STRUCT 
-	#endif
-#endif
-
 
 typedef struct 
     {                                                        

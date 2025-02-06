@@ -44,11 +44,7 @@
 
 /* #define __LINUX__ */
 /* Only use linux specific __attribute__ tag on Linux */
-#ifdef __LINUX__
-	#define PACKED_STRUCT __attribute__((packed))
-#else
-	#define PACKED_STRUCT 
-#endif
+#define PACKED_STRUCT __attribute__((packed))
 
 #include "sb_lib.h" /* We need the declaration of sb_sample */
 //#include "sb_stub.h"

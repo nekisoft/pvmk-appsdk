@@ -57,13 +57,15 @@ void Play_Intro_Animation( void )
           Play_Voice( sample_one );
          }
 
-     sprintf(load_string, "%c:/fli/house.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/house.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/house.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
          while( !Is_Voice_Done() );
 
-     sprintf(load_string, "%c:/fli/logo.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/logo.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/logo.fli" );
 
      if( game_configuration.sound_on )
          Play_Voice( sample_two );
@@ -104,7 +106,8 @@ void Play_Cut_One( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/one.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/one.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/one.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -129,7 +132,8 @@ void Play_Cut_Two( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/two.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/two.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/two.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -155,7 +159,8 @@ void Play_Cut_Three( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/three.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/three.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/three.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -180,7 +185,8 @@ void Play_Cut_Four( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/four.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/four.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/four.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -205,7 +211,8 @@ void Play_Cut_Five( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/five.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/five.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/five.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -230,7 +237,8 @@ void Play_Cut_Six( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/six.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/six.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/six.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -255,7 +263,8 @@ void Play_Cut_Seven( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/seven.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/seven.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/seven.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -281,7 +290,8 @@ void Play_Cut_Eight( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/eight.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/eight.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/eight.fli" );
      Play_Fli_Buffered(load_string);
 
 
@@ -307,7 +317,8 @@ void Play_Cut_Nine( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/nine.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/nine.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/nine.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -332,7 +343,8 @@ void Play_Cut_Ten( void )
      if( game_configuration.sound_on )
          Play_Voice( sample_one );
 
-     sprintf(load_string, "%c:/fli/ten.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/ten.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/ten.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -367,7 +379,8 @@ void Play_Ending_Animation( void )
           Play_Voice( sample_one );
          }
 
-     sprintf(load_string, "%c:/fli/final.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/final.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/final.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
@@ -375,17 +388,20 @@ void Play_Ending_Animation( void )
           while( !Is_Voice_Done() );
           Play_Voice( sample_two );
          }
-     sprintf(load_string, "%c:/fli/fall.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/fall.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/fall.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )
          while( !Is_Voice_Done() );
 
 
-     sprintf(load_string, "%c:/fli/fade.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/fade.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/fade.fli" );
      Play_Fli_Buffered(load_string);
      
-     sprintf(load_string, "%c:/fli/cylindrx.fli", cdrom_drive_letter );
+     //sprintf(load_string, "%c:/fli/cylindrx.fli", cdrom_drive_letter );
+     sprintf(load_string, "fli/cylindrx.fli" );
      Play_Fli_Buffered(load_string);
 
      if( game_configuration.sound_on )

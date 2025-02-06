@@ -65,16 +65,6 @@ sizeof encoded input table will be 9bytes
 
 typedef unsigned char encoded_input_table_type[ENCODED_INPUT_TABLE_SIZE];
 
-/* #define __LINUX__ */
-/* Only use linux specific __attribute__ tag on Linux */
-#ifndef PACKED_STRUCT 
-	#ifdef __LINUX__
-		#define PACKED_STRUCT __attribute__((packed))
-	#else
-		#define PACKED_STRUCT 
-	#endif
-#endif
-
 typedef struct
     {
      unsigned char vehicle_one   PACKED_STRUCT;

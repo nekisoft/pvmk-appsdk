@@ -27,22 +27,6 @@
 #define LOCK 1
 #define UNLOCK 0
 
-
-  /* The __attribute__ ((PACKED)) thing is to
-     tell DJGPP not to use padding in the structure,
-     since dos is not expecting it */
-
-/* #define __LINUX__ */
-/* Only use linux specific __attribute__ tag on Linux */
-#ifndef PACKED_STRUCT 
-	#ifdef __LINUX__
-		#define PACKED_STRUCT __attribute__((packed))
-	#else
-		#define PACKED_STRUCT 
-	#endif
-#endif
-
-
 typedef struct playinfo {
   unsigned char control PACKED_STRUCT;
   unsigned char adr     PACKED_STRUCT;
