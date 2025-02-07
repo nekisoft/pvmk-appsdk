@@ -27,6 +27,7 @@
 #define TYPES_H
 
 #include <stdint.h>
+#include <inttypes.h>
 
 
 /* Johnm 12/1/2001 stupid double to float conversin stuff */
@@ -186,20 +187,20 @@ typedef struct RGB_color_typ {
 
 /* The packed is so we can read in the header using sizeof header */
 typedef struct pcx_header_typ {
-    uint8_t manufacturer    PACKED_STRUCT;
-    uint8_t version         PACKED_STRUCT;
-    uint8_t encoding        PACKED_STRUCT;
-    uint8_t bits_per_pixel  PACKED_STRUCT;
+    uint8_t manufacturer    ;
+    uint8_t version         ;
+    uint8_t encoding        ;
+    uint8_t bits_per_pixel  ;
     uint16_t xstart,ystart  PACKED_STRUCT;
     uint16_t xend, yend     PACKED_STRUCT;
     uint16_t horz_res       PACKED_STRUCT;
     uint16_t vert_res       PACKED_STRUCT;
-    uint8_t ega_palette[48] PACKED_STRUCT;
-    uint8_t reserved        PACKED_STRUCT;
-    uint8_t num_bit_planes  PACKED_STRUCT;
+    uint8_t ega_palette[48] ;
+    uint8_t reserved        ;
+    uint8_t num_bit_planes  ;
     uint16_t bytes_per_line PACKED_STRUCT;
     uint16_t palette_type   PACKED_STRUCT;
-    uint8_t padding[58]     PACKED_STRUCT;
+    uint8_t padding[58]     ;
 } pcx_header, *pcx_header_ptr;
 
 

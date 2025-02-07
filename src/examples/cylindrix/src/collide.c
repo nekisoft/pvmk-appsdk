@@ -51,7 +51,7 @@ void print_bounding_box( BoundingBox *b )
 
 void print_magic_bounding_box( MagicBoundingBox *b )
 {
-    printf("BoundingBox (%d,%d,%d,%d,%d,%d)\n",
+    printf("BoundingBox (%"PRIi32",%"PRIi32",%"PRIi32",%"PRIi32",%"PRIi32",%"PRIi32")\n",
         b->min_x, b->max_x, b->min_y, b->max_y, b->min_z, b->max_z );
 }
 

@@ -259,9 +259,9 @@ void print_smart_heap(void)
     
     while( current != NULL ) {
         printf("-------------------------\n");
-        printf("address = %d\n", (int32_t)(intptr_t)current );
-        printf("size = %d\n", (int32_t)current->s.size );
-        printf("next = %d\n", (int32_t)(intptr_t)current->s.next );
+        printf("address = %p\n", (void*)current );
+        printf("size = %"PRIi32"\n", (int32_t)current->s.size );
+        printf("next = %p\n", (void*)current->s.next );
         current = current->s.next;
     }
     

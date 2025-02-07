@@ -70,27 +70,27 @@ typedef unsigned short address_type[2];
 
 typedef struct 
     {                                                        
-     net_type          net           PACKED_STRUCT;  /* Network address */
-     node_address_type node_address  PACKED_STRUCT;  /* Node address */
+     net_type          net           ;  /* Network address */
+     node_address_type node_address  ;  /* Node address */
      unsigned short    socket        PACKED_STRUCT;  /* Big endian socket number */
     } net_address_type;
 
 typedef struct
     {
-     net_type           net          PACKED_STRUCT; /* My network address */
-     node_address_type  node_address PACKED_STRUCT; /* My node address */
+     net_type           net          ; /* My network address */
+     node_address_type  node_address ; /* My node address */
     } local_address_type;
 
 typedef struct
     {
      address_type      link              PACKED_STRUCT; /* Pointer to next ECB */
      unsigned long     ESR               PACKED_STRUCT; /* Event service routine 00000000h if none */
-     unsigned char     in_use            PACKED_STRUCT; /* In use flag */
-     unsigned char     complete          PACKED_STRUCT; /* Completing flag */
+     unsigned char     in_use            ; /* In use flag */
+     unsigned char     complete          ; /* Completing flag */
      unsigned short    socket            PACKED_STRUCT; /* Big endian socket number */
-     unsigned char     IPX_work[4]       PACKED_STRUCT; /* IPX work space */
-     unsigned char     D_work[12]        PACKED_STRUCT; /* Driver work space */
-     node_address_type immediate_address PACKED_STRUCT; /* Immediate local node address */
+     unsigned char     IPX_work[4]       ; /* IPX work space */
+     unsigned char     D_work[12]        ; /* Driver work space */
+     node_address_type immediate_address ; /* Immediate local node address */
      unsigned short    fragment_count    PACKED_STRUCT; /* Fragment count */
      unsigned long     fragment_data     PACKED_STRUCT; /* Pointer to data fragment */
      unsigned short    fragment_size     PACKED_STRUCT; /* Size of data fragment */
@@ -100,19 +100,19 @@ typedef struct
     {
      unsigned short   checksum          PACKED_STRUCT;   /* Big endian checksum */
      unsigned short   length            PACKED_STRUCT;   /* Big endian length in bytes */
-     unsigned char    transport_control PACKED_STRUCT;   /* Transport control */
-     unsigned char    packet_type       PACKED_STRUCT;   /* Packet type */
-     net_address_type destination       PACKED_STRUCT;   /* Destination network address */
-     net_address_type source            PACKED_STRUCT;   /* Source network address */
+     unsigned char    transport_control ;   /* Transport control */
+     unsigned char    packet_type       ;   /* Packet type */
+     net_address_type destination       ;   /* Destination network address */
+     net_address_type source            ;   /* Source network address */
     } IPX_header_type;
 
 
 
 typedef struct
     {
-     ECB_type        ecb         PACKED_STRUCT;
-     IPX_header_type ipx_header  PACKED_STRUCT;
-     string_type     string      PACKED_STRUCT;
+     ECB_type        ecb         ;
+     IPX_header_type ipx_header  ;
+     string_type     string      ;
     } packet_type;
 
 

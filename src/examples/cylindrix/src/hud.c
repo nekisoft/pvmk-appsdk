@@ -120,13 +120,13 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     /* draw hud bitmap background on the screen */
 
     if( profile ) {
-        printf("    blit_screen( pixmap ), timer = %d\n", Check_Timer() );
+        printf("    blit_screen( pixmap ), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     blit_pixmap( pixmap, 2 /* green for the cross-hair */ );
 
     if( profile ) {
-        printf("    find view_vehicles wingmen, timer = %d\n", Check_Timer() );
+        printf("    find view_vehicles wingmen, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* find view_vehicles wingmen */
@@ -147,7 +147,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    initialize bars, timer = %d\n", Check_Timer() );
+        printf("    initialize bars, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     if( type == Beetle ) {
@@ -855,7 +855,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    draw_bar's, timer = %d\n", Check_Timer() );
+        printf("    draw_bar's, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* draw the bars */
@@ -869,7 +869,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     /* draw the radar */
 
     if( profile ) {
-        printf("    view_radar, timer = %d\n", Check_Timer() );
+        printf("    view_radar, timer = %"PRIi32"\n", Check_Timer() );
     }
     
     /* draw the message if needed */
@@ -1020,7 +1020,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    draw target box, timer = %d\n", Check_Timer() );
+        printf("    draw target box, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* draw a box around the missile target */
@@ -1180,7 +1180,7 @@ void draw_hud( enum VehicleType type, PixMap *pixmap,
     }
 
     if( profile ) {
-        printf("    end of draw_hud, timer = %d\n", Check_Timer() );
+        printf("    end of draw_hud, timer = %"PRIi32"\n", Check_Timer() );
     }
 }
 

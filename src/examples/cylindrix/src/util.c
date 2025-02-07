@@ -724,11 +724,11 @@ void print_vehicle_info( Vehicle *v )
 
 void print_player_info( Player *p, int32_t frame )
 {
-    printf("%d  position = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.position[X], p->tank.orient.position[Y], p->tank.orient.position[Z] );
-    printf("%d  front    = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.front[X], p->tank.orient.front[Y], p->tank.orient.front[Z] );
-    printf("%d  up       = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.up[X], p->tank.orient.up[Y], p->tank.orient.up[Z] );
-    printf("%d  vel      = (%.25f,%.25f,%.25f)\n", frame, p->tank.vel[X], p->tank.vel[Y], p->tank.vel[Z] );
-    printf("%d  input_table = (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", frame, (int)p->table[0], (int)p->table[1],
+    printf("%"PRIu32"  position = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.position[X], p->tank.orient.position[Y], p->tank.orient.position[Z] );
+    printf("%"PRIu32"  front    = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.front[X], p->tank.orient.front[Y], p->tank.orient.front[Z] );
+    printf("%"PRIu32"  up       = (%.25f,%.25f,%.25f)\n", frame, p->tank.orient.up[X], p->tank.orient.up[Y], p->tank.orient.up[Z] );
+    printf("%"PRIu32"  vel      = (%.25f,%.25f,%.25f)\n", frame, p->tank.vel[X], p->tank.vel[Y], p->tank.vel[Z] );
+    printf("%"PRIu32"  input_table = (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", frame, (int)p->table[0], (int)p->table[1],
         (int)p->table[2], (int)p->table[3], (int)p->table[4], (int)p->table[5], (int)p->table[6], (int)p->table[7],
         (int)p->table[8], (int)p->table[9], (int)p->table[10], (int)p->table[11], (int)p->table[12] );
 }

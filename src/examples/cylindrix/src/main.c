@@ -130,10 +130,10 @@ void print_p_mem( char *str )
 
 void print_all_input_tables( Player p[], int32_t frame_counter )
 {
-    printf("player 0, frame %d\n", frame_counter );
+    printf("player 0, frame %"PRIi32"\n", frame_counter );
     print_player_info( p, frame_counter );
 
-    printf("player 3, frame %d\n", frame_counter );
+    printf("player 3, frame %"PRIi32"\n", frame_counter );
     print_player_info( p, frame_counter );
 
     printf("\n");
@@ -2168,7 +2168,7 @@ void move_everything_one_click(void)
     }
 
     if( profile ) {
-        printf("move_vehicles(), timer = %d\n", Check_Timer() );
+        printf("move_vehicles(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* moves the vehicles and aims the radar_bases */
@@ -2177,7 +2177,7 @@ void move_everything_one_click(void)
                    &(world_stuff.blue_radar_base), &(world_stuff.laser_obj) );
 
     if( profile ) {
-        printf("move all projectiles forward, timer = %d\n", Check_Timer() );
+        printf("move all projectiles forward, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -2412,7 +2412,7 @@ void move_everything_one_click(void)
        based on the number of pylons they own */
 
     if( profile ) {
-        printf("Tally_Pylons(), timer = %d\n", Check_Timer() );
+        printf("Tally_Pylons(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     Tally_Pylons( world_stuff.player_array, &(world_stuff.pylons) );

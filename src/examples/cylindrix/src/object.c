@@ -143,10 +143,10 @@ void init_wire_tube( PointFace *tube, PointEdge *wire_tube )
 
 void print_matrix( Matrix m )
 {
-    printf("| %-10d %-10d %-10d %-10d |\n",m[0],m[1],m[2],m[3]);
-    printf("| %-10d %-10d %-10d %-10d |\n",m[4],m[5],m[6],m[7]);
-    printf("| %-10d %-10d %-10d %-10d |\n",m[8],m[9],m[10],m[11]);
-    printf("| %-10d %-10d %-10d %-10d |\n",m[12],m[13],m[14],m[15]);
+    printf("| %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" |\n",m[0],m[1],m[2],m[3]);
+    printf("| %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" |\n",m[4],m[5],m[6],m[7]);
+    printf("| %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" |\n",m[8],m[9],m[10],m[11]);
+    printf("| %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" %-10"PRIi32" |\n",m[12],m[13],m[14],m[15]);
 }
 
 /* Multiplies two 4x4 matrices, p & q, and sticks the result in r.
@@ -318,10 +318,10 @@ void float_matrix_mult( Matrix ip, Matrix iq, Matrix result )
 void print_edge_table( EdgeTable *et )
 {
     int32_t i;
-    printf( "%d\n", et->edges );
+    printf( "%"PRIi32"\n", et->edges );
 
     for( i = 0; i < et->edges; i++ ) {
-	printf( "%d %d\n", et->edge[i][0], et->edge[i][1] );
+	printf( "%"PRIi32" %"PRIi32"\n", et->edge[i][0], et->edge[i][1] );
     }
 }
 
@@ -329,7 +329,7 @@ void print_wire_object( PointEdge *pe )
 {
     int32_t i;
 
-    printf("%d %d\n", pe->points, pe->edges );
+    printf("%"PRIi32" %"PRIi32"\n", pe->points, pe->edges );
 
     for( i = 0; i < pe->points; i++ ) {
 	printf("%f %f %f\n", mtof( pe->point[i][X] ), mtof( pe->point[i][Y] ),
@@ -337,7 +337,7 @@ void print_wire_object( PointEdge *pe )
     }
 
     for( i = 0; i < pe->edges; i++ ) {
-	printf("%d %d\n", pe->edge[i][0], pe->edge[i][1] );
+	printf("%"PRIi32" %"PRIi32"\n", pe->edge[i][0], pe->edge[i][1] );
     }
 }
 
@@ -368,7 +368,7 @@ void get_wire_object( PointEdge *pe, char *filename )
 
     /* get the size of the object */
 
-    fscanf( fp, " %d %d ", &points, &edges );
+    fscanf( fp, " %"SCNi32" %"SCNi32" ", &points, &edges );
     pe->points = points;
     pe->edges = edges;
 
@@ -400,7 +400,7 @@ void get_wire_object( PointEdge *pe, char *filename )
     /* scan in the edges */
 
     for( i = 0; i < edges; i++ ) {
-	fscanf( fp, " %d %d ", &(pe->edge[i][0]), &(pe->edge[i][1]) );
+	fscanf( fp, " %"SCNi32" %"SCNi32" ", &(pe->edge[i][0]), &(pe->edge[i][1]) );
     }
 
     fclose( fp );
@@ -985,15 +985,15 @@ void print_object( PointFace *obj )
 {
     int i, j;
 
-    printf("points = %d, faces = %d\n", obj->points, obj->faces );
+    printf("points = %"PRIi32", faces = %"PRIi32"\n", obj->points, obj->faces );
 
     for( i = 0; i < obj->points; i++ ) {
-	printf("(%d,%d,%d)\n", obj->point[i][X], obj->point[i][Y],
+	printf("(%"PRIi32",%"PRIi32",%"PRIi32")\n", obj->point[i][X], obj->point[i][Y],
 				  obj->point[i][Z]);
     }
     for( i = 0; i < obj->faces; i++ ) {
 	for( j = 0; j < obj->face[i].size; j++ ) {
-	    printf("%d ", obj->face[i].index[j]);
+	    printf("%"PRIi32" ", obj->face[i].index[j]);
 	}
 	printf("\n");
     }
@@ -1120,7 +1120,7 @@ void get_object( PointFace *obj, char *filename )
 	fscanf( fp, " %d ", &pts );
 	obj->face[i].size = pts;
 	for( j = 0; j < pts; j++ ) {
-	    fscanf( fp, " %d ", &obj->face[i].index[j]);
+	    fscanf( fp, " %"PRIi32" ", &obj->face[i].index[j]);
 	    obj->face[i].index[j]--; /* face indices start at 1 in file but */
 	}                            /* start at 0 in C. */
     }
@@ -1438,7 +1438,7 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     memcpy( view_vertices, tube_points, sizeof( Point ) * num_points );
 
     if( profile ) {
-	printf("    translation_matrix_init(), timer = %d\n", Check_Timer() );
+	printf("    translation_matrix_init(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* figure out matrix needed to translate, rotate and scale into
@@ -1451,20 +1451,20 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     translation_matrix_init( translation_matrix, -p[X], -p[Y], -p[Z] );
 
     if( profile ) {
-	printf("    rot_matrix_init(), timer = %d\n", Check_Timer() );
+	printf("    rot_matrix_init(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     rot_matrix_init( rotation_matrix, view_orientation->front,
 		     view_orientation->up );
 
     if( profile ) {
-	printf("    matrix_mult(), timer = %d\n", Check_Timer() );
+	printf("    matrix_mult(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     matrix_mult( rotation_matrix, translation_matrix, temp_matrix );
 
     if( profile ) {
-	printf("    transform view_vert for clipping, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert for clipping, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* transform view_vertices into cannonical view volume (for clipping) */
@@ -1475,7 +1475,7 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     }
 
     if( profile ) {
-        printf("    clip the points, timer = %d\n", Check_Timer() );
+        printf("    clip the points, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* assume all points are clipped_away */
@@ -1489,7 +1489,7 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     }
 
     if( profile ) {
-	printf("    translation_matrix_init, timer = %d\n", Check_Timer() );
+	printf("    translation_matrix_init, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* figure out matrix needed to unscale from cannonical view volume,
@@ -1499,7 +1499,7 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     translation_matrix_init( translation_matrix, 0, 0, vrpz );
 
     if( profile ) {
-	printf("    2 matrix mults, timer = %d\n", Check_Timer() );
+	printf("    2 matrix mults, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     matrix_mult( translation_matrix, inv_scale_matrix, temp_matrix );
@@ -1508,7 +1508,7 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     /* transform everything */
 
     if( profile ) {
-	printf("    transform view_vert into projected_vert, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert into projected_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < num_points; i++ ) {
@@ -1527,7 +1527,7 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     }
 
     if( profile ) {
-	printf("    shade and draw loop, timer = %d\n", Check_Timer() );
+	printf("    shade and draw loop, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < num_points; i++ ) {
@@ -1538,7 +1538,7 @@ void view_point_tube( Point tube_points[], int32_t num_points,
     }
 
     if( profile ) {
-        printf("    end of view_point_tube(), timer = %d\n", Check_Timer() );
+        printf("    end of view_point_tube(), timer = %"PRIi32"\n", Check_Timer() );
     }
 }
 
@@ -1560,7 +1560,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     memcpy( view_vertices, wire_tube->point, sizeof( Point ) * wire_tube->points );
 
     if( profile ) {
-	printf("    translation_matrix_init(), timer = %d\n", Check_Timer() );
+	printf("    translation_matrix_init(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* figure out matrix needed to translate, rotate and scale into
@@ -1573,20 +1573,20 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     translation_matrix_init( translation_matrix, -p[X], -p[Y], -p[Z] );
 
     if( profile ) {
-	printf("    rot_matrix_init(), timer = %d\n", Check_Timer() );
+	printf("    rot_matrix_init(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     rot_matrix_init( rotation_matrix, view_orientation->front,
 		     view_orientation->up );
 
     if( profile ) {
-	printf("    matrix_mult(), timer = %d\n", Check_Timer() );
+	printf("    matrix_mult(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     matrix_mult( rotation_matrix, translation_matrix, temp_matrix );
 
     if( profile ) {
-	printf("    transform view_vert for clipping, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert for clipping, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* transform view_vertices into cannonical view volume (for clipping) */
@@ -1597,7 +1597,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     }
 
     if( profile ) {
-	printf("    initialize clip_pe for clipping, timer = %d\n", Check_Timer() );
+	printf("    initialize clip_pe for clipping, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* initialize clip_pe for clipping */
@@ -1609,7 +1609,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     clip_pe.edges = wire_tube->edges;
 
     if( profile ) {
-        printf("    clip_edges(), timer = %d\n", Check_Timer() );
+        printf("    clip_edges(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* clip */
@@ -1617,7 +1617,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     clip_edges( &clip_pe, new_hither );
 
     if( profile ) {
-        printf( "init clipped_away array, timer = %d\n", Check_Timer() );
+        printf( "init clipped_away array, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* loop through all the edges and flag the vertices that are used */
@@ -1634,7 +1634,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     }
 
     if( profile ) {
-	printf("    translation_matrix_init, timer = %d\n", Check_Timer() );
+	printf("    translation_matrix_init, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* figure out matrix needed to unscale from cannonical view volume,
@@ -1644,7 +1644,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     translation_matrix_init( translation_matrix, 0, 0, vrpz );
 
     if( profile ) {
-	printf("    2 matrix mults, timer = %d\n", Check_Timer() );
+	printf("    2 matrix mults, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     matrix_mult( translation_matrix, inv_scale_matrix, temp_matrix );
@@ -1653,7 +1653,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     /* transform everything */
 
     if( profile ) {
-	printf("    transform view_vert into projected_vert, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert into projected_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < clip_pe.points; i++ ) {
@@ -1671,7 +1671,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     }
 
     if( profile ) {
-	printf("    shade and draw loop, timer = %d\n", Check_Timer() );
+	printf("    shade and draw loop, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < clip_pe.edges; i++ ) {
@@ -1700,7 +1700,7 @@ void view_wire_tube( PointEdge *wire_tube, Orientation *view_orientation,
     }
 
     if( profile ) {
-	printf("    end of view_wire_tube(), timer = %d\n", Check_Timer() );
+	printf("    end of view_wire_tube(), timer = %"PRIi32"\n", Check_Timer() );
     }
 }
 
@@ -1730,7 +1730,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     Float_Vector f_temp_vect;
 
     if( profile ) {
-	printf("    initialize win, timer = %d\n", Check_Timer() );
+	printf("    initialize win, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* initalize 2d-clipping window */
@@ -1741,7 +1741,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     win.y1 = 199;
 
     if( profile ) {
-	printf("    copy tube->point to view_vertices, timer = %d\n", Check_Timer() );
+	printf("    copy tube->point to view_vertices, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* copy the points from tube into view_vertices */
@@ -1749,7 +1749,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     memcpy( view_vertices, tube->point, sizeof( Point ) * tube->points );
 
     if( profile ) {
-	printf("    translation_matrix_init(), timer = %d\n", Check_Timer() );
+	printf("    translation_matrix_init(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* figure out matrix needed to translate, rotate and scale into
@@ -1762,20 +1762,20 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     translation_matrix_init( translation_matrix, -p[X], -p[Y], -p[Z] );
 
     if( profile ) {
-	printf("    rot_matrix_init(), timer = %d\n", Check_Timer() );
+	printf("    rot_matrix_init(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     rot_matrix_init( rotation_matrix, view_orientation->front,
 		     view_orientation->up );
 
     if( profile ) {
-	printf("    matrix_mult(), timer = %d\n", Check_Timer() );
+	printf("    matrix_mult(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     matrix_mult( rotation_matrix, translation_matrix, temp_matrix );
 
     if( profile ) {
-	printf("    transform view_vert for clipping, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert for clipping, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* transform view_vertices into cannonical view volume (for clipping) */
@@ -1786,7 +1786,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     }
 
     if( profile ) {
-	printf("    copy into clipped_obj, timer = %d\n", Check_Timer() );
+	printf("    copy into clipped_obj, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* copy the tubes transformed points and faces into clipped_obj */
@@ -1798,7 +1798,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     clipped_obj.faces = tube->faces;
 
     if( profile ) {
-	printf("    clip_obj(), timer = %d\n", Check_Timer() );
+	printf("    clip_obj(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* clip everything */
@@ -1806,7 +1806,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     clip_obj( &clipped_obj, new_hither );
 
     if( profile ) {
-	printf("    set clipped_away array, timer = %d\n", Check_Timer() );
+	printf("    set clipped_away array, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* assume all points have been clipped away */
@@ -1816,7 +1816,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     /* Intialize the array of faces. */
 
     if( profile ) {
-	printf("    copy clipped_obj's faces into f, timer = %d\n", Check_Timer() );
+	printf("    copy clipped_obj's faces into f, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     f_size = 0;
@@ -1836,7 +1836,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     }
 
     if( profile ) {
-	printf("    translation_matrix_init, timer = %d\n", Check_Timer() );
+	printf("    translation_matrix_init, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* figure out matrix needed to unscale from cannonical view volume,
@@ -1846,7 +1846,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     translation_matrix_init( translation_matrix, 0, 0, vrpz );
 
     if( profile ) {
-	printf("    2 matrix mults, timer = %d\n", Check_Timer() );
+	printf("    2 matrix mults, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     matrix_mult( translation_matrix, inv_scale_matrix, temp_matrix );
@@ -1855,7 +1855,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     /* transform everything */
 
     if( profile ) {
-	printf("    transform view_vert into projected_vert, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert into projected_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < clipped_obj.points; i++ ) {
@@ -1874,7 +1874,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     }
 
     if( profile ) {
-	printf("    shade and draw loop, timer = %d\n", Check_Timer() );
+	printf("    shade and draw loop, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < f_size; i++ ) {
@@ -1975,7 +1975,7 @@ void view_tube( PointFace *tube, Orientation *view_orientation, Point light )
     }
 
     if( profile ) {
-	printf("    end of draw_tube(), timer = %d\n", Check_Timer() );
+	printf("    end of draw_tube(), timer = %"PRIi32"\n", Check_Timer() );
     }
 }
 
@@ -2008,7 +2008,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     Float_Vector f_temp_vect;
 
     if( profile ) {
-	printf("    init win, timer = %d\n", Check_Timer() );
+	printf("    init win, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* initalize 2d-clipping window */
@@ -2019,7 +2019,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     win.y1 = 199;
 
     if( profile ) {
-	printf("    copy obj->point into view_vert, timer = %d\n", Check_Timer() );
+	printf("    copy obj->point into view_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* copy the points from tube into view_vertices */
@@ -2027,7 +2027,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     memcpy( view_vertices, obj->point, sizeof( Point ) * obj->points );
 
     if( profile ) {
-       printf("    setup matrices, timer = %d\n", Check_Timer() );
+       printf("    setup matrices, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* transform the objects vertices into the view volume */
@@ -2044,7 +2044,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     matrix_mult( rotation_matrix, translation_matrix, temp_matrix );
 
     if( profile ) {
-	printf("    transform view_vert, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* transform view_vertices into cannonical view volume (for clipping) */
@@ -2057,7 +2057,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     /* copy the tubes transformed points and faces into clipped_obj */
 
     if( profile ) {
-	printf("    copy into clipped_obj, timer = %d\n", Check_Timer() );
+	printf("    copy into clipped_obj, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     clipped_obj.point = view_vertices;
@@ -2067,7 +2067,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     clipped_obj.faces = obj->faces;
 
     if( profile ) {
-	printf("    clip_obj(), timer = %d\n", Check_Timer() );
+	printf("    clip_obj(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* clip everything */
@@ -2075,7 +2075,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     clip_obj( &clipped_obj, new_hither );
 
     if( profile ) {
-	printf("    setup matrices, timer = %d\n", Check_Timer() );
+	printf("    setup matrices, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* unscale all the vertices and translate by vrp */
@@ -2085,7 +2085,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     matrix_mult( translation_matrix, inv_scale_matrix, temp_matrix );
 
     if( profile ) {
-	printf("    translate and inv_scale view_vert, timer = %d\n", Check_Timer() );
+	printf("    translate and inv_scale view_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < clipped_obj.points; i++ ) {
@@ -2096,7 +2096,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
        to viewport mapping */
 
     if( profile ) {
-	printf("    project and wtov projected_vert, timer = %d\n", Check_Timer() );
+	printf("    project and wtov projected_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < clipped_obj.points; i++ ) {
@@ -2108,7 +2108,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     /* Intialize the array of faces. */
 
     if( profile ) {
-	printf("    copy front_faces into f, timer = %d\n", Check_Timer() );
+	printf("    copy front_faces into f, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     f_size = 0;
@@ -2193,7 +2193,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     }
 
     if( profile ) {
-	printf("    sort the faces, timer = %d\n", Check_Timer() );
+	printf("    sort the faces, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* sort the array according to maxz (far...close) */
@@ -2201,7 +2201,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
     qsort( (void *)f, (size_t)f_size, sizeof( Face ), cmp );
 
     if( profile ) {
-	printf("    shade and draw loop, timer = %d\n", Check_Timer() );
+	printf("    shade and draw loop, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < f_size; i++ ) {
@@ -2287,7 +2287,7 @@ void super_view_object( PointFace *obj, Orientation *view_orientation, Point lig
 	}
 
     if( profile ) {
-	printf("    end of draw_object(), timer = %d\n", Check_Timer() );
+	printf("    end of draw_object(), timer = %"PRIi32"\n", Check_Timer() );
     }
 }
 
@@ -2317,7 +2317,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     Float_Vector f_temp_vect;
 
     if( profile ) {
-	printf("    init win, timer = %d\n", Check_Timer() );
+	printf("    init win, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* initalize 2d-clipping window */
@@ -2328,7 +2328,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     win.y1 = 199;
 
     if( profile ) {
-	printf("    copy obj->point into view_vert, timer = %d\n", Check_Timer() );
+	printf("    copy obj->point into view_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* copy the points from tube into view_vertices */
@@ -2336,7 +2336,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     memcpy( view_vertices, obj->point, sizeof( Point ) * obj->points );
 
     if( profile ) {
-       printf("    setup matrices, timer = %d\n", Check_Timer() );
+       printf("    setup matrices, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* transform the objects vertices into the view volume */
@@ -2353,7 +2353,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     matrix_mult( rotation_matrix, translation_matrix, temp_matrix );
 
     if( profile ) {
-	printf("    transform view_vert, timer = %d\n", Check_Timer() );
+	printf("    transform view_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* transform view_vertices into cannonical view volume (for clipping) */
@@ -2366,7 +2366,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     /* copy the tubes transformed points and faces into clipped_obj */
 
     if( profile ) {
-	printf("    copy into clipped_obj, timer = %d\n", Check_Timer() );
+	printf("    copy into clipped_obj, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     clipped_obj.point = view_vertices;
@@ -2376,7 +2376,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     clipped_obj.faces = obj->faces;
 
     if( profile ) {
-	printf("    clip_obj(), timer = %d\n", Check_Timer() );
+	printf("    clip_obj(), timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* clip everything */
@@ -2384,7 +2384,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     clip_obj( &clipped_obj, new_hither );
 
     if( profile ) {
-	printf("    setup matrices, timer = %d\n", Check_Timer() );
+	printf("    setup matrices, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* unscale all the vertices and translate by vrp */
@@ -2394,7 +2394,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     matrix_mult( translation_matrix, inv_scale_matrix, temp_matrix );
 
     if( profile ) {
-	printf("    translate and inv_scale view_vert, timer = %d\n", Check_Timer() );
+	printf("    translate and inv_scale view_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < clipped_obj.points; i++ ) {
@@ -2405,7 +2405,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
        to viewport mapping */
 
     if( profile ) {
-	printf("    project and wtov projected_vert, timer = %d\n", Check_Timer() );
+	printf("    project and wtov projected_vert, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < clipped_obj.points; i++ ) {
@@ -2417,7 +2417,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     /* Intialize the array of faces. */
 
     if( profile ) {
-	printf("    copy front_faces into f, timer = %d\n", Check_Timer() );
+	printf("    copy front_faces into f, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     f_size = 0;
@@ -2501,7 +2501,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     }
 
     if( profile ) {
-	printf("    sort the faces, timer = %d\n", Check_Timer() );
+	printf("    sort the faces, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     /* sort the array according to maxz (far...close) */
@@ -2509,7 +2509,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     qsort( (void *)f, (size_t)f_size, sizeof( Face ), cmp );
 
     if( profile ) {
-	printf("    shade and draw loop, timer = %d\n", Check_Timer() );
+	printf("    shade and draw loop, timer = %"PRIi32"\n", Check_Timer() );
     }
 
     for( i = 0; i < f_size; i++ ) {
@@ -2702,7 +2702,7 @@ void view_object( PointFace *obj, Orientation *view_orientation, Point light )
     }
 
     if( profile ) {
-	printf("    end of draw_object(), timer = %d\n", Check_Timer() );
+	printf("    end of draw_object(), timer = %"PRIi32"\n", Check_Timer() );
     }
 }
 

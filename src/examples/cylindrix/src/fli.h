@@ -45,10 +45,10 @@ typedef struct
      uint32_t  updater_sn    PACKED_STRUCT; /* Serial number of updater prog   */
      uint16_t x_aspect      PACKED_STRUCT; /* X of display aspect ratio       */
      uint16_t y_aspect      PACKED_STRUCT; /* Y of display aspect ratio       */
-     char           reserved2[38] PACKED_STRUCT; /* Not used (set to 0x00)          */
+     char           reserved2[38] ; /* Not used (set to 0x00)          */
      uint32_t  frame1_offset PACKED_STRUCT; /* Offset of first frame           */
      uint32_t  frame2_offset PACKED_STRUCT; /* Offset of second frame          */
-     char           reserved3[40] PACKED_STRUCT; /* Not used (set to 0x00)          */
+     char           reserved3[40] ; /* Not used (set to 0x00)          */
     } PACKED_STRUCT flic_header;
 
 
@@ -57,7 +57,7 @@ typedef struct
      uint32_t  chunk_size       PACKED_STRUCT; /* Total size of the chunk */
      uint16_t chunk_type       PACKED_STRUCT; /* Chunk identifier */
      uint16_t number_of_chunks PACKED_STRUCT; /* Number of subchunks in this chunk */
-     char           reserved[8]      PACKED_STRUCT; /* Not used (set to 0x00 ) */
+     char           reserved[8]      ; /* Not used (set to 0x00 ) */
     } PACKED_STRUCT chunk_header;
 
 typedef struct

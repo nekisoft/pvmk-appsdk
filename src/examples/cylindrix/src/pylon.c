@@ -142,7 +142,7 @@ void get_pylons( Pylons *pylons, char *filename )
 
     /* get the number of pylons in file */
 
-    fscanf( fp, " %d ", &num_pylons );
+    fscanf( fp, " %"SCNi32" ", &num_pylons );
     pylons->pylons = num_pylons;
 
     /* malloc the pylons */
@@ -158,7 +158,7 @@ void get_pylons( Pylons *pylons, char *filename )
 
         /* get the pylons x y and h fields */
 
-        fscanf( fp, " %d %d %f ", &x, &y, &height );
+        fscanf( fp, " %"SCNi32" %"SCNi32" %f ", &x, &y, &height );
 
         pylons->pylon[i].x = x;
         pylons->pylon[i].y = y;

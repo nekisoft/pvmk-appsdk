@@ -1502,7 +1502,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* move all the vehicles along their velocity vectors */
 
     if( profile ) {
-        printf("    move each vehicle forward, timer = %d\n", Check_Timer());
+        printf("    move each vehicle forward, timer = %"PRIi32"\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1510,7 +1510,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     }
 
     if( profile ) {
-        printf("    init vehicles bbox and world_obj, timer = %d\n", Check_Timer());
+        printf("    init vehicles bbox and world_obj, timer = %"PRIi32"\n", Check_Timer());
     }
 
     /* initalize every vehicles world_object and bounding box which
@@ -1522,7 +1522,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     }
 
     if( profile ) {
-        printf("    aim radar bases, timer = %d\n", Check_Timer());
+        printf("    aim radar bases, timer = %"PRIi32"\n", Check_Timer());
     }
 
     /* aim the both radar_bases now so that we only have to orient their
@@ -1532,7 +1532,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     aim_radar_base( blue_base, p, base_laser );
 
     if( profile ) {
-        printf("    update radar bases, timer = %d\n", Check_Timer());
+        printf("    update radar bases, timer = %"PRIi32"\n", Check_Timer());
     }
 
     /* initalize both radar_bases world_union_object and bounding boxes which
@@ -1544,7 +1544,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* find collisions */
 
     if( profile ) {
-        printf("    build_collision_table(), timer = %d\n", Check_Timer());
+        printf("    build_collision_table(), timer = %"PRIi32"\n", Check_Timer());
     }
 
     build_collision_table( c_table, p, pylons, red_base, blue_base );
@@ -1552,7 +1552,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* move colliding vehicles backward */
 
     if( profile ) {
-        printf("    move colliding vehicle backward, timer = %d\n", Check_Timer());
+        printf("    move colliding vehicle backward, timer = %"PRIi32"\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1564,7 +1564,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* add bouncing vectors to all colliding vehicles */
 
     if( profile ) {
-        printf("    bounce_colliding_vehicles(), timer = %d\n", Check_Timer());
+        printf("    bounce_colliding_vehicles(), timer = %"PRIi32"\n", Check_Timer());
     }
 
     bounce_colliding_vehicles( c_table, p );
@@ -1572,7 +1572,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* move colliding vehicles along their velocity vectors */
 
     if( profile ) {
-        printf("    move colliding vehicles forward, timer = %d\n", Check_Timer());
+        printf("    move colliding vehicles forward, timer = %"PRIi32"\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1587,7 +1587,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
        colliding vehicles */
 
     if( profile ) {
-        printf("    build_new_collision_table, timer = %d\n", Check_Timer());
+        printf("    build_new_collision_table, timer = %"PRIi32"\n", Check_Timer());
     }
 
     build_new_collision_table( c_table, new_c_table, p, pylons, red_base,
@@ -1596,7 +1596,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* move the new colliding vehicles backward */
 
     if( profile ) {
-        printf("    move stuck vehicle backward, timer = %d\n", Check_Timer());
+        printf("    move stuck vehicle backward, timer = %"PRIi32"\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {
@@ -1636,7 +1636,7 @@ void move_vehicles( Player p[], Pylons *pylons, RadarBase *red_base,
     /* reduce every vehicles velocity by friction */
 
     if( profile ) {
-        printf("    reduce_by_friction(), timer = %d\n", Check_Timer());
+        printf("    reduce_by_friction(), timer = %"PRIi32"\n", Check_Timer());
     }
 
     for( i = 0; i < 6; i++ ) {

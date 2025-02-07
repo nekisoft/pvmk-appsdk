@@ -67,13 +67,13 @@ typedef unsigned char encoded_input_table_type[ENCODED_INPUT_TABLE_SIZE];
 
 typedef struct
     {
-     unsigned char vehicle_one   PACKED_STRUCT;
-     unsigned char vehicle_two   PACKED_STRUCT;
-     unsigned char vehicle_three PACKED_STRUCT;
-     unsigned char wingman_one   PACKED_STRUCT;
-     unsigned char wingman_two   PACKED_STRUCT;
-     unsigned char wingman_three PACKED_STRUCT;
-     string   cylinder_filename  PACKED_STRUCT;
+     unsigned char vehicle_one   ;
+     unsigned char vehicle_two   ;
+     unsigned char vehicle_three ;
+     unsigned char wingman_one   ;
+     unsigned char wingman_two   ;
+     unsigned char wingman_three ;
+     string   cylinder_filename  ;
     } game_info_type;
 
 
