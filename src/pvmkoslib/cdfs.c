@@ -847,6 +847,10 @@ int _cdfs_search(uint32_t ino, const char *filename)
 	if( (directory_st.st_mode & S_IFMT) != S_IFDIR )
 		return -_SC_ENOTDIR;
 	
+	//Hack to quickly find current directory
+	if(filename[0] == '.' && filename[1] == '\0')
+		return ino;
+	
 	//The directory's directory entry tells us where its contents are.
 	while(data_len > 0)
 	{

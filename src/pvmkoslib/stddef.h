@@ -25,6 +25,12 @@ typedef __WCHAR_TYPE__ wchar_t;
 
 typedef __UINT64_TYPE__ max_align_t __attribute__((aligned(16)));
 
+//What the everlasting fuck, why do I need this
+//What are the picolibc guys smoking that ino_t can be 16 bits
+typedef __UINT32_TYPE__ __ino_t;
+typedef __UINT64_TYPE__ __ino64_t;
+#define __machine_ino_t_defined 1
+
 #endif //_STDDEF_H
 
 #undef __need_size_t
@@ -34,3 +40,6 @@ typedef __UINT64_TYPE__ max_align_t __attribute__((aligned(16)));
 #undef __need_max_align_t
 #undef __need_NULL
 #undef __need_mbstate_t
+
+#undef __need_ino_t
+#undef __need_ino64_t
