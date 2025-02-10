@@ -104,7 +104,7 @@ void MS_Error(char* error, ...)
    shuts everything down */
 {
     va_list argptr;
-    byte*   vidmode;
+//    byte*   vidmode;
 
     INT_Shutdown();
     //vidmode = (byte*) (0x40 * 16 + 0x49);

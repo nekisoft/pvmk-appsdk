@@ -109,7 +109,7 @@ void PvmkPresent(void)
 
 void VI_WaitVBL(int vbls)
 {
-	int oldtx = timecount;
+	unsigned int oldtx = timecount;
 	while(timecount < oldtx + vbls) { PvmkTimerSim(); }
 }
 
