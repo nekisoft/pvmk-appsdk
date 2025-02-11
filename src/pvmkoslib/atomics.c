@@ -220,3 +220,23 @@ void __atomic_store_8(volatile void *mem, I8 val, int model)
 	*(I8*)mem = val;
 }
 
+I1 __sync_lock_test_and_set_1 (volatile void *mem, I1 val)
+{
+	I1 old = *(I1*)(mem);
+	*(I1*)(mem) = val;
+	return old;
+}
+
+I2 __sync_lock_test_and_set_2 (volatile void *mem, I2 val)
+{
+	I2 old = *(I2*)(mem);
+	*(I2*)(mem) = val;
+	return old;
+}
+
+I4 __sync_lock_test_and_set_4 (volatile void *mem, I4 val)
+{
+	I4 old = *(I4*)(mem);
+	*(I4*)(mem) = val;
+	return old;
+}
