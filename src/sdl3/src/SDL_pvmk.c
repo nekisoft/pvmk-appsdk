@@ -6,6 +6,8 @@
 #include "video/SDL_sysvideo.h"
 #include "video/SDL_pixels_c.h"
 #include "events/SDL_events_c.h"
+#include "joystick/SDL_sysjoystick.h"
+
 
 #if SDL_PLATFORM_PVMK
 
@@ -103,13 +105,13 @@ static bool PVMK_VideoInit(SDL_VideoDevice *_this)
         return false;
     }
 
-    mode.w = 320;
-    mode.h = 240;
+    mode.w = 640;
+    mode.h = 480;
     mode.refresh_rate = 60.0f;
     mode.format = SDL_PIXELFORMAT_RGB565;
     mode.internal = modedata;
-    modedata->gfx_mode = _SC_GFX_MODE_320X240_16BPP;
-    Pvmk_Gfx_Mode = _SC_GFX_MODE_320X240_16BPP;
+    modedata->gfx_mode = _SC_GFX_MODE_VGA_16BPP;
+    Pvmk_Gfx_Mode = _SC_GFX_MODE_VGA_16BPP;
 
     display.name = "pvmk";
     display.desktop_mode = mode;
@@ -216,14 +218,7 @@ static void PVMK_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window)
 
 static void PVMK_PumpEvents(SDL_VideoDevice *_this)
 {
-(void)_this;
-/*
-        SDL_Event ev;
-        ev.type = SDL_EVENT_QUIT;
-        ev.common.timestamp = 0;
-        SDL_PushEvent(&ev);
-        return;
-    */
+	(void)_this;
 }
 
 #define PVMK_SURFACE "SDL.internal.window.surface"
@@ -346,5 +341,231 @@ VideoBootStrap PVMK_bootstrap = {
     PVMK_Create,
     NULL // no ShowMessageBox implementation
 };
+
+static bool PVMK_JoystickInit(void)
+{
+    SDL_PrivateJoystickAdded(1);
+    SDL_PrivateJoystickAdded(2);
+    SDL_PrivateJoystickAdded(3);
+    SDL_PrivateJoystickAdded(4);
+    return true;
+}
+
+static const char *PVMK_JoystickGetDeviceName(int device_index)
+{
+    static const char *names[] =
+    {
+	"Neki32 Pad A",
+	"Neki32 Pad B",
+	"Neki32 Pad C",
+	"Neki32 Pad D",
+    };
+    if(device_index < 0 || device_index >= (int)SDL_arraysize(names))
+	return "";
+    else
+	return names[device_index];
+	
+}
+
+static int PVMK_JoystickGetCount(void)
+{
+    return 4;
+}
+
+static SDL_GUID PVMK_JoystickGetDeviceGUID(int device_index)
+{
+    return SDL_CreateJoystickGUIDForName(PVMK_JoystickGetDeviceName(device_index));
+}
+
+static SDL_JoystickID PVMK_JoystickGetDeviceInstanceID(int device_index)
+{
+    return device_index + 1;
+}
+
+static bool PVMK_JoystickOpen(SDL_Joystick *joystick, int device_index)
+{
+    (void)device_index;
+    
+    joystick->nbuttons = 12;
+    joystick->naxes = 0;
+    joystick->nhats = 0;
+
+    return true;
+}
+
+static bool PVMK_JoystickSetSensorsEnabled(SDL_Joystick *joystick, bool enabled)
+{
+    return SDL_Unsupported();
+}
+
+static void PVMK_JoystickUpdate(SDL_Joystick *joystick)
+{
+	(void)joystick;
+	static uint16_t last_buttons[4] = {0};
+	
+	int ticks = _sc_getticks();
+	_sc_input_t input = {0};
+	while(_sc_input(&input, sizeof(input), sizeof(input)) > 0)
+	{
+		switch(input.format)
+		{
+			case 'A':
+			case 'B':
+			case 'C':
+			case 'D':
+			{
+				int player = input.format - 'A';
+				SDL_Joystick *js = SDL_GetJoystickFromID(1 + player);
+				if(js)
+				{
+					int presses = input.buttons & ~last_buttons[player];
+					int releases = last_buttons[player] & ~input.buttons;
+					for(int bit = 0; bit < 16; bit++)
+					{
+						if(presses & (1u << bit))
+							SDL_SendJoystickButton(ticks, js, bit, 1);
+						if(releases & (1u << bit))
+							SDL_SendJoystickButton(ticks, js, bit, 0);
+					}
+				}
+				last_buttons[player] = input.buttons;
+			}
+			break;
+			
+			default:
+			break;
+		}
+	}
+}
+
+static void PVMK_JoystickClose(SDL_Joystick *joystick)
+{
+	(void)joystick;
+}
+
+static void PVMK_JoystickQuit(void)
+{
+
+}
+
+static bool PVMK_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapping *out)
+{
+    // There is only one possible mapping.
+    *out = (SDL_GamepadMapping){
+        .a             = { EMappingKind_Button, _SC_BTNIDX_A },
+        .b             = { EMappingKind_Button, _SC_BTNIDX_B },
+        .x             = { EMappingKind_Button, _SC_BTNIDX_X },
+        .y             = { EMappingKind_Button, _SC_BTNIDX_Y },
+        .back          = { EMappingKind_Button, _SC_BTNIDX_MODE },
+        .guide         = { EMappingKind_None,   255 },
+        .start         = { EMappingKind_Button, _SC_BTNIDX_START },
+        .leftstick     = { EMappingKind_None,   255 },
+        .rightstick    = { EMappingKind_None,   255 },
+        .leftshoulder  = { EMappingKind_Button, _SC_BTNIDX_Z },
+        .rightshoulder = { EMappingKind_Button, _SC_BTNIDX_C },
+        .dpup          = { EMappingKind_Button, _SC_BTNIDX_UP },
+        .dpdown        = { EMappingKind_Button, _SC_BTNIDX_DOWN },
+        .dpleft        = { EMappingKind_Button, _SC_BTNIDX_LEFT },
+        .dpright       = { EMappingKind_Button, _SC_BTNIDX_RIGHT },
+        .misc1         = { EMappingKind_None,   255 },
+        .right_paddle1 = { EMappingKind_None,   255 },
+        .left_paddle1  = { EMappingKind_None,   255 },
+        .right_paddle2 = { EMappingKind_None,   255 },
+        .left_paddle2  = { EMappingKind_None,   255 },
+        .leftx         = { EMappingKind_None,   255 },
+        .lefty         = { EMappingKind_None,   255 },
+        .rightx        = { EMappingKind_None,   255 },
+        .righty        = { EMappingKind_None,   255 },
+        .lefttrigger   = { EMappingKind_None,   255 },
+        .righttrigger  = { EMappingKind_None,   255 },
+    };
+    return true;
+}
+
+static void PVMK_JoystickDetect(void)
+{
+}
+
+static bool PVMK_JoystickIsDevicePresent(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name)
+{
+    // We don't override any other drivers
+    (void)vendor_id;
+    (void)product_id;
+    (void)version;
+    (void)name;
+    return false;
+}
+
+static const char *PVMK_JoystickGetDevicePath(int device_index)
+{
+    return NULL;
+}
+
+static int PVMK_JoystickGetDeviceSteamVirtualGamepadSlot(int device_index)
+{
+    return -1;
+}
+
+static int PVMK_JoystickGetDevicePlayerIndex(int device_index)
+{
+    return -1;
+}
+
+static void PVMK_JoystickSetDevicePlayerIndex(int device_index, int player_index)
+{
+    (void)device_index;
+    (void)player_index;
+}
+
+static bool PVMK_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
+{
+    (void)joystick; (void)low_frequency_rumble; (void)high_frequency_rumble;
+    return SDL_Unsupported();
+}
+
+static bool PVMK_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble)
+{
+    (void)joystick; (void)left_rumble; (void)right_rumble;
+    return SDL_Unsupported();
+}
+
+static bool PVMK_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
+{
+    (void)joystick; (void)red; (void)green; (void)blue;
+    return SDL_Unsupported();
+}
+
+static bool PVMK_JoystickSendEffect(SDL_Joystick *joystick, const void *data, int size)
+{
+    (void)joystick;
+    (void)data;
+    (void)size;
+    return SDL_Unsupported();
+}
+
+SDL_JoystickDriver SDL_PVMK_JoystickDriver = {
+    PVMK_JoystickInit,
+    PVMK_JoystickGetCount,
+    PVMK_JoystickDetect,
+    PVMK_JoystickIsDevicePresent,
+    PVMK_JoystickGetDeviceName,
+    PVMK_JoystickGetDevicePath,
+    PVMK_JoystickGetDeviceSteamVirtualGamepadSlot,
+    PVMK_JoystickGetDevicePlayerIndex,
+    PVMK_JoystickSetDevicePlayerIndex,
+    PVMK_JoystickGetDeviceGUID,
+    PVMK_JoystickGetDeviceInstanceID,
+    PVMK_JoystickOpen,
+    PVMK_JoystickRumble,
+    PVMK_JoystickRumbleTriggers,
+    PVMK_JoystickSetLED,
+    PVMK_JoystickSendEffect,
+    PVMK_JoystickSetSensorsEnabled,
+    PVMK_JoystickUpdate,
+    PVMK_JoystickClose,
+    PVMK_JoystickQuit,
+    PVMK_JoystickGetGamepadMapping
+};
+
 
 #endif //SDL_PLATFORM_PVMK

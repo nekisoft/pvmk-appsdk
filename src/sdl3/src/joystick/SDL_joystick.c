@@ -49,6 +49,9 @@
 #endif
 
 static SDL_JoystickDriver *SDL_joystick_drivers[] = {
+#ifdef SDL_JOYSTICK_PVMK
+    &SDL_PVMK_JoystickDriver,
+#endif
 #ifdef SDL_JOYSTICK_HIDAPI // Highest priority driver for supported devices
     &SDL_HIDAPI_JoystickDriver,
 #endif
@@ -3172,6 +3175,11 @@ static bool SDL_IsJoystickThrottle(Uint16 vendor_id, Uint16 product_id)
 
 static SDL_JoystickType SDL_GetJoystickGUIDType(SDL_GUID guid)
 {
+	//PVMK
+	(void)guid;
+	return SDL_JOYSTICK_TYPE_ARCADE_STICK;
+	
+	/*
     Uint16 vendor;
     Uint16 product;
 
@@ -3237,7 +3245,7 @@ static SDL_JoystickType SDL_GetJoystickGUIDType(SDL_GUID guid)
         return SDL_JOYSTICK_TYPE_GAMEPAD;
     }
 
-    return SDL_JOYSTICK_TYPE_UNKNOWN;
+    return SDL_JOYSTICK_TYPE_UNKNOWN;*/
 }
 
 bool SDL_ShouldIgnoreJoystick(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name)

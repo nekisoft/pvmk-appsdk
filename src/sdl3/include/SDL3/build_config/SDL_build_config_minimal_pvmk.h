@@ -19,8 +19,8 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SDL_build_config_minimal_h_
-#define SDL_build_config_minimal_h_
+#ifndef SDL_build_config_minimal_pvmk_h_
+#define SDL_build_config_minimal_pvmk_h_
 #define SDL_build_config_h_
 
 #include <SDL3/SDL_platform_defines.h>
@@ -39,6 +39,7 @@
 #define HAVE_MALLOC 1
 
 #define SDL_VIDEO_DRIVER_PVMK 1
+#define SDL_JOYSTICK_PVMK 1
 
 #if !defined(HAVE_STDINT_H) && !defined(_STDINT_H_)
 /* Most everything except Visual Studio 2008 and earlier has stdint.h now */
@@ -71,7 +72,9 @@ typedef unsigned int uintptr_t;
 #define SDL_AUDIO_DRIVER_DUMMY 1
 
 /* Enable the stub joystick driver (src/joystick/dummy/\*.c) */
-#define SDL_JOYSTICK_DISABLED 1
+//#define SDL_JOYSTICK_DISABLED 1
+
+#define SDL_GPU_DISABLED 1
 
 /* Enable the stub haptic driver (src/haptic/dummy/\*.c) */
 #define SDL_HAPTIC_DISABLED 1
