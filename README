@@ -1,0 +1,8 @@
+README for pvmk-appsdk
+Bryan E. Topp <betopp@betopp.com> 2025
+
+This is the Application Software Development Kit for PVMK, the Puny Video Machine Kernel. This is the operating system that runs on the Neki32 game console.
+
+The repository contains sources which are used to build the appsdk. Then, the appsdk contains the tools necessary to build applications for the console.
+
+
