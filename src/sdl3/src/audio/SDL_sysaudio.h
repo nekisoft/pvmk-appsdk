@@ -363,6 +363,7 @@ typedef struct AudioBootStrap
 } AudioBootStrap;
 
 // Not all of these are available in a given build. Use #ifdefs, etc.
+extern AudioBootStrap PVMKAUDIO_bootstrap;
 extern AudioBootStrap PRIVATEAUDIO_bootstrap;
 extern AudioBootStrap PIPEWIRE_PREFERRED_bootstrap;
 extern AudioBootStrap PIPEWIRE_bootstrap;

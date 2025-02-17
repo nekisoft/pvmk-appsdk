@@ -40,6 +40,7 @@
 
 #define SDL_VIDEO_DRIVER_PVMK 1
 #define SDL_JOYSTICK_PVMK 1
+#define SDL_AUDIO_DRIVER_PVMK 1
 
 #if !defined(HAVE_STDINT_H) && !defined(_STDINT_H_)
 /* Most everything except Visual Studio 2008 and earlier has stdint.h now */

@@ -3,16 +3,19 @@
 //Bryan E. Topp <betopp@betopp.com> 2025
 
 #include "SDL_internal.h"
+#include "audio/SDL_sysaudio.h"
+#include "audio/SDL_audiodev_c.h"
 #include "video/SDL_sysvideo.h"
 #include "video/SDL_pixels_c.h"
 #include "events/SDL_events_c.h"
 #include "joystick/SDL_sysjoystick.h"
 
-
 #if SDL_PLATFORM_PVMK
 
 //PVMK system calls
 #include <sc.h>
+
+SDL_AudioDevice *SDL_PVMK_AudioDevice = NULL;
 
 char *SDL_SYS_GetBasePath(void)
 {
@@ -45,7 +48,12 @@ void SDL_SYS_DelayNS(Uint64 ns)
 		if(now_ns >= start_ns + ns)
 			return;
 		else
+		{
+			if(SDL_PVMK_AudioDevice != NULL)
+				SDL_PlaybackAudioThreadIterate(SDL_PVMK_AudioDevice);
+				
 			_sc_pause();
+		}
 	}
 }
 
@@ -219,6 +227,11 @@ static void PVMK_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window)
 static void PVMK_PumpEvents(SDL_VideoDevice *_this)
 {
 	(void)_this;
+	
+	if(SDL_PVMK_AudioDevice != NULL)
+	{
+		SDL_PlaybackAudioThreadIterate(SDL_PVMK_AudioDevice);
+	}
 }
 
 #define PVMK_SURFACE "SDL.internal.window.surface"
@@ -278,6 +291,11 @@ static bool PVMK_UpdateWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window *win
     
     if(window->surface != NULL)
 	window->surface->pixels = surface->pixels;
+    
+	if(SDL_PVMK_AudioDevice != NULL)
+	{
+		SDL_PlaybackAudioThreadIterate(SDL_PVMK_AudioDevice);
+	}
     
     return true;
 }
@@ -565,6 +583,174 @@ SDL_JoystickDriver SDL_PVMK_JoystickDriver = {
     PVMK_JoystickClose,
     PVMK_JoystickQuit,
     PVMK_JoystickGetGamepadMapping
+};
+
+struct SDL_PrivateAudioData
+{
+	int dummy;
+	void *mixbuf;
+};
+
+static bool PVMKAUDIO_OpenDevice(SDL_AudioDevice *device)
+{
+	if(SDL_PVMK_AudioDevice != NULL)
+		return SDL_SetError("Only support one audio device");
+
+    device->hidden = (struct SDL_PrivateAudioData *)SDL_calloc(1, sizeof(*device->hidden));
+    if (!device->hidden) {
+        return false;
+    }
+
+    device->spec.channels = 2;
+    device->spec.format = SDL_AUDIO_S16LE;
+    device->spec.freq = 48000;
+    SDL_UpdatedAudioDeviceFormat(device);
+
+    // Allocate mixing buffer
+    if (device->buffer_size >= SDL_MAX_UINT32 / 2) {
+        return SDL_SetError("Mixing buffer is too large.");
+    }
+
+    device->hidden->mixbuf = (Uint8 *)SDL_malloc(device->buffer_size);
+    if (!device->hidden->mixbuf) {
+        return false;
+    }
+
+    SDL_memset(device->hidden->mixbuf, device->silence_value, device->buffer_size);
+    
+   
+SDL_PVMK_AudioDevice = device;
+    SDL_PlaybackAudioThreadSetup(device);
+    
+    return true;
+}
+
+static const Uint8 *PVMKAUDIO_LastBufPtr = NULL;
+int PVMKAUDIO_LastBufLen = 0;
+
+static bool PVMKAUDIO_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, int buflen)
+{
+	if(device != SDL_PVMK_AudioDevice)
+	{
+		//Wrong device? We only allow one open at a time
+		return false;
+	}
+	
+	if(PVMKAUDIO_LastBufPtr != NULL)
+	{
+		//Already have one buffer waiting to go, can't keep going!
+		return false;
+	}
+			
+	int enqueued = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, buffer, buflen, buflen * 3);
+	if(enqueued == -_SC_EAGAIN)
+	{
+		//Kernel's buffer is already full
+		//We'll retry this one later
+		PVMKAUDIO_LastBufPtr = buffer;
+		PVMKAUDIO_LastBufLen = buflen;
+	}
+	else
+	{
+		//Enqueued it OK
+		PVMKAUDIO_LastBufPtr = NULL;
+		PVMKAUDIO_LastBufLen = 0;
+	}
+	
+	return true;
+}
+
+static bool PVMKAUDIO_WaitDevice(SDL_AudioDevice *device)
+{
+	//Make sure we're not holding a buffer to play
+	while(PVMKAUDIO_LastBufPtr != NULL)
+	{
+		int enqueued = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, PVMKAUDIO_LastBufPtr, PVMKAUDIO_LastBufLen, PVMKAUDIO_LastBufLen * 3);
+		if(enqueued == -_SC_EAGAIN)
+		{
+			//Keep waiting for it to finish
+			_sc_pause();
+			continue;
+		}
+		if(enqueued < 0)
+		{
+			//Some other error happened
+			return false;
+		}
+		
+		//Okay, flushed out the buffer we had
+		PVMKAUDIO_LastBufPtr = NULL;
+		PVMKAUDIO_LastBufLen = 0;
+	}
+	return true;
+}
+
+static Uint8 *PVMKAUDIO_GetDeviceBuf(SDL_AudioDevice *device, int *buffer_size)
+{
+	if(PVMKAUDIO_LastBufPtr != NULL)
+	{
+		//Already have audio filled in a buffer waiting to play...
+		int enqueued = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, PVMKAUDIO_LastBufPtr, PVMKAUDIO_LastBufLen, PVMKAUDIO_LastBufLen * 3);
+		if(enqueued == -_SC_EAGAIN)
+		{
+			//Haven't yet played the buffer we already took, can't give any more room
+			*buffer_size = 0;
+			return NULL;
+		}
+		if(enqueued < 0)
+		{
+			//Failed in some way...
+			return false;
+		}
+	
+		//Successfully played the buffer we took last time, we have room now
+		PVMKAUDIO_LastBufPtr = NULL;
+		PVMKAUDIO_LastBufLen = 0;
+	}
+
+	*buffer_size = device->buffer_size;
+	return device->hidden->mixbuf;
+}
+
+static void PVMKAUDIO_CloseDevice(SDL_AudioDevice *device)
+{
+	SDL_PlaybackAudioThreadShutdown(device);
+	
+	if(SDL_PVMK_AudioDevice == device)
+		SDL_PVMK_AudioDevice = NULL;
+	
+	if(device->hidden != NULL)
+	{
+		if(device->hidden->mixbuf != NULL)
+		{
+			SDL_free(device->hidden->mixbuf);
+			device->hidden->mixbuf = NULL;
+		}
+		
+		SDL_free(device->hidden);
+		device->hidden = NULL;
+	}
+}
+
+static bool PVMKAUDIO_Init(SDL_AudioDriverImpl *impl)
+{
+    impl->OpenDevice = PVMKAUDIO_OpenDevice;
+    impl->PlayDevice = PVMKAUDIO_PlayDevice;
+    impl->WaitDevice = PVMKAUDIO_WaitDevice;
+    impl->GetDeviceBuf = PVMKAUDIO_GetDeviceBuf;
+    impl->CloseDevice = PVMKAUDIO_CloseDevice;
+    impl->OnlyHasDefaultPlaybackDevice = true;
+    impl->HasRecordingSupport = false;
+    impl->ProvidesOwnCallbackThread = true; //I mean not really, but whatever
+
+    return true;
+}
+
+AudioBootStrap PVMKAUDIO_bootstrap = {
+    "pvmkaudio",
+    "PVMK Audio Output",
+    PVMKAUDIO_Init,
+    0
 };
 
 
