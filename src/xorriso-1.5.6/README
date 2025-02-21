@@ -1,0 +1,9 @@
+README for xorriso in PVMK appsdk
+Bryan E. Topp <betopp@betopp.com> 2025
+
+This is a stripped-down version of the "xorriso" utility from the GNU Project.
+
+It is used to build ISO9660-compliant filesystems. The PVMK application SDK includes support for such filesystems, as the backing for its stdio and fcntl components.
+
+Most examples in the PVMK application SDK require this utility to build; if your system does not provide it, this copy will work.
+

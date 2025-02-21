@@ -19,6 +19,7 @@ mkdir obj
 ./src/updates_build.sh 
 ./src/examples_build.sh
 ./src/docs_build.sh
+./src/xorriso_build.sh
 date -u +%FT%TZ > out/pvmk-sdk.date
 cp ./src/README out/README
 

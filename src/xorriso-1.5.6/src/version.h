@@ -1,0 +1,8 @@
+/* Hacked up for PVMK application SDK by betopp, 2025 */
+
+#define LIBISOFS_MAJOR_VERSION 1
+#define LIBISOFS_MINOR_VERSION 5
+#define LIBISOFS_MICRO_VERSION 6
+#define BURN_MAJOR_VERSION 1
+#define BURN_MINOR_VERSION 5
+#define BURN_MICRO_VERSION 6
