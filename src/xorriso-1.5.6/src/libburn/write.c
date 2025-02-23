@@ -2806,10 +2806,10 @@ int burn_nominal_slowdown(int kb_per_second, int max_corr,
 	/* usleep might be restricted to 999999 microseconds */
 	while (to_wait > 0.0) {
 		if (to_wait >= 0.5) {
-			usleep(500000);
+			sleep(1); //usleep(500000); //pvmk - more portable
 			to_wait -= 0.5;
 		} else if (to_wait >= 0.00001) {
-			usleep((int) (to_wait * 1000000.0));
+			sleep(1); //usleep((int) (to_wait * 1000000.0)); //pvmk - more portable
 			to_wait = 0.0;
 		} else {
 			to_wait = 0.0;
@@ -3234,7 +3234,7 @@ return crap.  so we send the command, then ignore the result.
 fail:
 	d->sync_cache(d);
 fail_wo_sync:;
-	usleep(500001); /* ts A61222: to avoid a warning from remove_worker()*/
+	sleep(1); //usleep(500001); /* ts A61222: to avoid a warning from remove_worker()*/ //pvmk - more portable
 	libdax_msgs_submit(libdax_messenger, d->global_index, 0x0002010b,
 			LIBDAX_MSGS_SEV_FATAL, LIBDAX_MSGS_PRIO_HIGH,
 			"Burn run failed", 0, 0);

@@ -158,7 +158,7 @@ int spc_wait_unit_attention(struct burn_drive *d, int max_sec, char *cmd_text,
 {
 	int i, ret = 1, key = 0, asc = 0, ascq = 0, clueless_start = 0;
 	static double tests_per_second = 2.0;
-	int sleep_usecs, loop_limit, clueless_timeout, progress;
+	int /*sleep_usecs,*/ loop_limit, clueless_timeout, progress;
 	char *msg = NULL, *cmd_name = NULL, *cmd_cpt;
 	unsigned char sense[14];
 
@@ -166,7 +166,7 @@ int spc_wait_unit_attention(struct burn_drive *d, int max_sec, char *cmd_text,
 	BURN_ALLOC_MEM(cmd_name, char, 320);
 	clueless_timeout = 5 * tests_per_second + 1;
 	loop_limit = max_sec * tests_per_second + 1;
-	sleep_usecs = 1000000 / tests_per_second;
+	//sleep_usecs = 1000000 / tests_per_second;
 
 	strcpy(cmd_name, cmd_text);
 	cmd_cpt = strchr(cmd_name, ':');
@@ -174,7 +174,7 @@ int spc_wait_unit_attention(struct burn_drive *d, int max_sec, char *cmd_text,
 		*cmd_cpt = 0;
 
 	if (!(flag & 1))
-		usleep(sleep_usecs);
+		sleep(1); //usleep(sleep_usecs); //pvmk - more portable
 
 	for(i = !(flag & 1); i < loop_limit; i++) {
 		ret = spc_test_unit_ready_r(d, &key, &asc, &ascq, &progress);
@@ -251,7 +251,8 @@ handle_error:;
 			goto handle_error;
 
 slumber:;
-		usleep(sleep_usecs);
+		//usleep(sleep_usecs);
+		sleep(1); //pvmk - more portable
 	}
 	if (ret <= 0 || !(flag & 2)) {
 		sprintf(msg, "Async %s %s after %d.%d seconds",
@@ -2163,7 +2164,7 @@ int scsi_eval_cmd_outcome(struct burn_drive *d, struct command *c, void *fp,
 		if (d->cancel)
 			{done = 1; goto ex;}
 		if (usleep_time > 0)
-			usleep(usleep_time);
+			sleep(1); //usleep(usleep_time); //pvmk - more portable
 		if (d->cancel)
 			{done = 1; goto ex;}
 		if (burn_sg_log_scsi & 3) 

@@ -19,6 +19,8 @@
  * GNU GPL v2+
  */
 
+#define _GNU_SOURCE // for strdup in cygwin
+
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
 #endif

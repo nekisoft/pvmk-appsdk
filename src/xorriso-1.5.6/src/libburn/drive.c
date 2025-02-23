@@ -5,6 +5,8 @@
    Provided under GPL version 2 or later.
 */
 
+//For strdup on cygwin
+#define _GNU_SOURCE
 
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
@@ -342,7 +344,7 @@ int burn_drive__fd_from_special_adr(char *adr)
 		fd = 1;
 	if(strncmp(adr, "/dev/fd/", 8) == 0) {
 		for (i = 8; adr[i]; i++)
-			if (!isdigit(adr[i]))
+			if (!isdigit((unsigned char)adr[i]))
 		break;
 		if (i> 8 && adr[i] == 0)
 			fd = atoi(adr + 8);
@@ -1246,11 +1248,11 @@ static void strip_spaces(char *str, size_t len)
 	char *tmp, *tmp2;
 
 	/* Remove trailing blanks */
-	for (tmp = str + len - 1; tmp >= str && (isspace(*tmp) || !*tmp); tmp--)
+	for (tmp = str + len - 1; tmp >= str && (isspace((unsigned char)(*tmp)) || !*tmp); tmp--)
 		*tmp = 0;
 	/* Condense remaining blank intervals to single blanks */
 	for (tmp = str; tmp < str + len - 1 && *tmp; tmp++) {
-		if (isspace(*tmp) && isspace(*(tmp + 1))) {
+		if (isspace((unsigned char)*tmp) && isspace((unsigned char)(*(tmp + 1)))) {
 			for (tmp2 = tmp + 1; tmp2 < str + len && *tmp2; tmp2++)
 				*(tmp2 - 1) = *tmp2;
 			*(tmp2 - 1) = '\0';

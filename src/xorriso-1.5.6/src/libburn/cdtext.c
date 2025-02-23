@@ -463,7 +463,7 @@ static int v07t_hexcode(char *payload, int flag)
 		goto double_byte;
 	if (strlen(payload) != 4)
 		return -1;
-	if (!(isxdigit(payload[2]) && isxdigit(payload[3])))
+	if (!(isxdigit((unsigned char)payload[2]) && isxdigit((unsigned char)payload[3])))
 		return -1;
 	sscanf(payload + 2, "%x", &x);
 	return x;

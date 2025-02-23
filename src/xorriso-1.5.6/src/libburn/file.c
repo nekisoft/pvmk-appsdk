@@ -218,9 +218,10 @@ struct burn_source *burn_fd_source_new(int datafd, int subfd, off_t size)
 
 static int fifo_sleep(int flag)
 {
-	static unsigned long sleeptime = 50000; /* 50 ms */
+	//static unsigned long sleeptime = 50000; /* 50 ms */
 
-	usleep(sleeptime);
+	//usleep(sleeptime);
+	sleep(1); //pvmk - whatever, more portable
 	return 0;
 }
 
@@ -332,14 +333,14 @@ static void fifo_free(struct burn_source *source)
 {
 	struct burn_source_fifo *fs = source->data;
 	int wait_count;
-	static int wait_max = 30, wait_usleep = 100000;
+	static int wait_max = 30;//, wait_usleep = 100000;
 
 	burn_fifo_abort(fs, 0);
 	for (wait_count = 0; wait_count <= wait_max; wait_count++) {
 		if (fs->thread_is_valid <= 0)
 	break;
 		if (wait_count < wait_max)
-			usleep(wait_usleep);
+			sleep(1); //usleep(wait_usleep); //pvmk - sleep more portable
 	}
 	if (wait_count > wait_max) {
 		/* The shoveler thread might still be active. If so, it would
@@ -766,7 +767,8 @@ int burn_fifo_fill_data(struct burn_source *source, char *buf, int bufsize,
 			{ret = 0; goto ex;}
 		}
 
-		usleep(100000);
+		//usleep(100000);
+		sleep(1); //pvmk - more portable
 		wait_count++;
 
 		/* <<<

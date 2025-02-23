@@ -6,6 +6,8 @@
  * or later as published by the Free Software Foundation. 
  * See COPYING file for details.
  */
+ 
+ #define _GNU_SOURCE // for strdup in cygwin
 
 #ifdef HAVE_CONFIG_H
 #include "../config.h"

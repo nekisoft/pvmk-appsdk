@@ -1609,7 +1609,7 @@ int ziso_is_zisofs_stream(IsoStream *stream, int *stream_type,
     ZisofsFilterStreamData *data;
     ZisofsComprStreamData *cnstd;
     ZisofsUncomprStreamData *unstd;
-    uint8_t algo_num;
+    uint8_t algo_num = 0;
 
     *stream_type = 0; 
     if (stream->class == &ziso_stream_compress_class && !(flag & 2)) {

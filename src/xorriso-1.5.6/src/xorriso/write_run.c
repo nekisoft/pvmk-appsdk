@@ -824,7 +824,7 @@ int Xorriso_write_application_use(struct XorrisO *xorriso,
  if(l <= 1) {
    memset(data, path[0], 512);
  } else if(l == 4 && path[0] == '0' && path[1] == 'x' &&
-           isxdigit(path[2]) && isxdigit(path[3])) {
+           isxdigit((unsigned char)(path[2])) && isxdigit((unsigned char)(path[3]))) {
    sscanf(path + 2, "%x", &byte);
    memset(data, (int) byte, 512);
  } else {

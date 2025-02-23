@@ -1191,7 +1191,7 @@ int Xorriso_option_setfattr_listi(struct XorrisO *xorriso, char *path,
    valuept= ept + 1;
    v_len= strlen(valuept);
    for(ept= valuept + v_len - 1; ept > valuept; ept--)
-     if(isspace(*ept))
+     if(isspace((unsigned char)(*ept)))
        *ept= 0;
      else
    break;
@@ -1451,7 +1451,7 @@ int Xorriso_option_speed(struct XorrisO *xorriso, char *speed_in, int flag)
    goto set_speed_and_exit;
 
  for(cpt= speed+strlen(speed)-1; cpt>=speed; cpt--)
-   if(isdigit(*cpt) || *cpt=='.')
+   if(isdigit((unsigned char)(*cpt)) || *cpt=='.')
  break;
  cpt++;
 

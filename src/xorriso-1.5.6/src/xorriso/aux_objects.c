@@ -22,6 +22,8 @@
 
 */
 
+#define _GNU_SOURCE // for strdup in cygwin
+
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
 #endif
@@ -133,10 +135,10 @@ int Splitpart__read_next_num(char *base_pt, char **next_pt, off_t *num,
  double sfak;
 
  *num= 0;
- for(cpt= base_pt; *cpt!=0 && !isdigit(*cpt); cpt++);
+ for(cpt= base_pt; *cpt!=0 && !isdigit((unsigned char)(*cpt)); cpt++);
  if(*cpt==0)
    return(0);
- for(ept= cpt; *ept!=0 && isdigit(*ept); ept++)
+ for(ept= cpt; *ept!=0 && isdigit((unsigned char)(*ept)); ept++)
    *num= (*num)*10+(*ept)-'0';
  scale[0]= '1';
  scale[1]= *ept;

@@ -13,6 +13,8 @@
  * 
  */
 
+#define _GNU_SOURCE // for strdup in cygwin, kill
+
 #ifdef HAVE_CONFIG_H
 #include "../../config.h"
 #endif

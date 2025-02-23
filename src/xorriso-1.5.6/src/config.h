@@ -6,6 +6,7 @@
 #define Libburn_use_sg_dummY 1
 #define LIBDAX_MSGS_SINGLE_THREADED 1
 #define LIBISO_MSGS_SINGLE_THREADED 1
+#define _GNU_SOURCE // for strdup in cygwin
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD

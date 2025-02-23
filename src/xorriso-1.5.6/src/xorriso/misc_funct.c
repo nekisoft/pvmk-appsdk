@@ -268,7 +268,7 @@ int Decode_date_weekday(char *text, int flag)
    if(strncmp(text,days[i],3)==0)
      return(i);
  if((strlen(text)==3 || (strlen(text)==4 && text[3]==',')) &&
-    isalpha(text[0]) && isalpha(text[1]) && isalpha(text[2]))
+    isalpha((unsigned char)(text[0])) && isalpha((unsigned char)(text[1])) && isalpha((unsigned char)(text[2])))
    return(7);
  return(-1);
 }
@@ -293,7 +293,7 @@ int Decode_date_mday(char *text, int flag)
  int ret, i;
 
  for(i= 0; text[i]!=0; i++)
-   if(!isdigit(text[i]))
+   if(!isdigit((unsigned char)(text[i])))
      return(-1);
  if(strlen(text)>2 || text[0]==0)
    return(-2);
@@ -310,9 +310,9 @@ int Decode_date_hms(char *text, struct tm *erg, int flag)
  for(i= 0; i<9; i+= 3) {
    if(i==6&&text[i]==0)
  break;
-   if(!isdigit(text[i]))
+   if(!isdigit((unsigned char)(text[i])))
      return(-1);
-   if(!isdigit(text[i+1]))
+   if(!isdigit((unsigned char)(text[i+1])))
      return(-1);
    if(text[i+2]!=':' && !(text[i+2]==0 && i>=3))
      return(-1);
@@ -338,7 +338,7 @@ int Decode_date_year(char *text, int flag)
  int ret, i;
 
  for(i= 0; text[i]!=0; i++)
-   if(!isdigit(text[i]))
+   if(!isdigit((unsigned char)(text[i])))
      return(-1);
  if(strlen(text)!=4)
    return(-2);
@@ -363,7 +363,7 @@ int Decode_date_timezone(char *text, struct tm *erg, int flag)
    }
  if(text[0]=='+' || text[0]=='-') {
    for(i= 1; text[i]!=0; i++)
-     if(!isdigit(text[i]))
+     if(!isdigit((unsigned char)(text[i])))
        return(-1);
    if(i!=5)
      return(-1);
@@ -523,7 +523,7 @@ int Decode_xorriso_timestamp(struct tm *erg, char *code, int flag)
    return(0);
  strcpy(buf, code);
  for(i= 0; buf[i]!=0 && i<4; i++)
-   if(!isdigit(buf[i]))
+   if(!isdigit((unsigned char)(buf[i])))
      return(0);
  if(buf[4]!='.')
    return(0);
@@ -531,13 +531,13 @@ int Decode_xorriso_timestamp(struct tm *erg, char *code, int flag)
  sscanf(buf, "%d", &year);
  if(year<1900 || year>3000)
    return(0);
- if(!(isdigit(buf[5]) && isdigit(buf[6]) && buf[7]=='.'))
+ if(!(isdigit((unsigned char)(buf[5])) && isdigit((unsigned char)(buf[6])) && buf[7]=='.'))
    return(0);
  buf[7]= 0;
  sscanf(buf+5, "%d", &month);
  if(month<1 || month>12)
    return(0);
- if(!(isdigit(buf[8]) && isdigit(buf[9]) && (buf[10]=='.' || buf[10]==0)))
+ if(!(isdigit((unsigned char)(buf[8])) && isdigit((unsigned char)(buf[9])) && (buf[10]=='.' || buf[10]==0)))
    return(0);
  buf[10]= 0;
  sscanf(buf+8, "%d", &day);
@@ -545,8 +545,8 @@ int Decode_xorriso_timestamp(struct tm *erg, char *code, int flag)
    return(0);
  if(l==10)
    goto done;
- if(!(isdigit(buf[11]) && isdigit(buf[12]) &&
-      (isdigit(buf[13]) || buf[13]==0)))
+ if(!(isdigit((unsigned char)(buf[11])) && isdigit((unsigned char)(buf[12])) &&
+      (isdigit((unsigned char)(buf[13])) || buf[13]==0)))
    return(0);
  mem= buf[13];
  buf[13]= 0;
@@ -556,8 +556,8 @@ int Decode_xorriso_timestamp(struct tm *erg, char *code, int flag)
    return(0);
  if(l==13)
    goto done;
- if(!(isdigit(buf[13]) && isdigit(buf[14]) &&
-      (isdigit(buf[15]) || buf[15]==0)))
+ if(!(isdigit((unsigned char)(buf[13])) && isdigit((unsigned char)(buf[14])) &&
+      (isdigit((unsigned char)(buf[15])) || buf[15]==0)))
    return(0);
  mem= buf[15];
  buf[15]= 0;
@@ -567,7 +567,7 @@ int Decode_xorriso_timestamp(struct tm *erg, char *code, int flag)
    return(0);
  if(l==15)
    goto done;
- if(!(isdigit(buf[15]) && isdigit(buf[16]) && buf[17]==0))
+ if(!(isdigit((unsigned char)(buf[15])) && isdigit((unsigned char)(buf[16])) && buf[17]==0))
    return(0);
  sscanf(buf+15, "%d", &second);
  if(second<0 || second>59)
@@ -595,7 +595,7 @@ time_t Decode_timestring(char *code, time_t *date, int flag)
  if(code[0]=='-' || code[0]=='+' || code[0]=='=' || code[0]=='@'){
    if(code[1]==0)
      return(0);
-   if(!isdigit(code[1]))
+   if(!isdigit((unsigned char)(code[1])))
      return(0);
    value= -1;
    if(code[0]=='=' || code[0]=='@') {
@@ -1303,7 +1303,7 @@ int Xorriso__to_upper(char *in, char *out, int out_size, int flag)
  int i;
 
  for(i= 0; i < out_size - 1 && in[i] != 0; i++)
-   if(isalpha(in[i]))
+   if(isalpha((unsigned char)(in[i])))
      out[i]= toupper(in[i]);
    else
      out[i]= in[i];

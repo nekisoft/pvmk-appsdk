@@ -170,7 +170,8 @@ void burn_finish(void)
 		libdax_msgs_submit(libdax_messenger, -1, 0x00020107,
 			LIBDAX_MSGS_SEV_WARNING, LIBDAX_MSGS_PRIO_HIGH,
 			"A drive is still busy on shutdown of library", 0, 0);
-		usleep(1000001);
+		//usleep(1000001);
+		sleep(1); //pvmk - more portable
 		burn_abort(4440, burn_abort_pacifier, abort_message_prefix);
 	}
 
@@ -481,7 +482,8 @@ int burn_builtin_abort_handler(void *handle, int signum, int flag)
 #ifdef Libburn_signal_handler_verbouS
 					fprintf(stderr, "libburn_ABORT: pid %d sending signum %d to pid %d\n", (int) getpid(), (int) signum, (int) abort_control_pid);
 #endif
-					kill(abort_control_pid, signum);
+					//kill(abort_control_pid, signum);
+					exit(-1); //pvmk - more portable
 			}
 
 #ifdef Libburn_signal_handler_verbouS
@@ -490,7 +492,8 @@ int burn_builtin_abort_handler(void *handle, int signum, int flag)
 
 			return -2;
 		} else {
-			usleep(1000000); /* calm down */
+			//usleep(1000000); /* calm down */
+			sleep(1); //pvmk - more portable
 			return -2;
 		}
 

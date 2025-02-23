@@ -318,12 +318,12 @@ static void *erase_worker_func(struct w_list *w)
 #define Libburn_protect_erase_threaD 1
 
 #ifdef Libburn_protect_erase_threaD
-	sigset_t sigset;//, oldset;
+	//sigset_t sigset;//, oldset;
 
 	/* Protect blank thread from being interrupted by external signals */
-	sigfillset(&sigset);
-	sigdelset(&sigset, SIGSEGV);
-	sigdelset(&sigset, SIGILL);
+	//sigfillset(&sigset);
+	//sigdelset(&sigset, SIGSEGV);
+	//sigdelset(&sigset, SIGILL);
 //	p thread_sigmask(SIG_SETMASK, &sigset, &oldset); //pvmk - no p threads
 #endif /* Libburn_protect_erase_threaD */
 
@@ -416,12 +416,12 @@ static void *format_worker_func(struct w_list *w)
 #define Libburn_protect_format_threaD 1
 
 #ifdef Libburn_protect_format_threaD
-	sigset_t sigset;//, oldset;
+	//sigset_t sigset;//, oldset;
 
 	/* Protect format thread from being interrupted by external signals */
-	sigfillset(&sigset);
-	sigdelset(&sigset, SIGSEGV);
-	sigdelset(&sigset, SIGILL);
+	//sigfillset(&sigset);
+	//sigdelset(&sigset, SIGSEGV);
+	//sigdelset(&sigset, SIGILL);
 	//p thread_sigmask(SIG_SETMASK, &sigset, &oldset); //pvmk - no p threads
 #endif /* Libburn_protect_format_threaD */
 
@@ -545,12 +545,12 @@ static void *write_disc_worker_func(struct w_list *w)
 #define Libburn_protect_write_threaD 1
 
 #ifdef Libburn_protect_write_threaD
-	sigset_t sigset;//, oldset;
+	//sigset_t sigset;//, oldset;
 
 	/* Protect write thread from being interrupted by external signals */
-	sigfillset(&sigset);
-	sigdelset(&sigset, SIGSEGV);
-	sigdelset(&sigset, SIGILL);
+	//sigfillset(&sigset);
+	//sigdelset(&sigset, SIGSEGV);
+	//sigdelset(&sigset, SIGILL);
 	//p thread_sigmask(SIG_SETMASK, &sigset, &oldset); //pvmk - no p threads
 #endif /* Libburn_protect_write_threaD */
 
@@ -697,12 +697,12 @@ static void *fifo_worker_func(struct w_list *w)
 #define Libburn_protect_fifo_threaD 1
 
 #ifdef Libburn_protect_fifo_threaD
-	sigset_t sigset;//, oldset;
+	//sigset_t sigset;//, oldset;
 
 	/* Protect fifo thread from being interrupted by external signals */
-	sigfillset(&sigset);
-	sigdelset(&sigset, SIGSEGV);
-	sigdelset(&sigset, SIGILL);
+	//sigfillset(&sigset);
+	//sigdelset(&sigset, SIGSEGV);
+	//sigdelset(&sigset, SIGILL);
 	//p thread_sigmask(SIG_SETMASK, &sigset, &oldset); //pvmk - no p threads
 #endif /* Libburn_protect_fifo_threaD */
 

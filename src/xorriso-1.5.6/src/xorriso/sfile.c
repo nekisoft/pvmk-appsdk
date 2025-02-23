@@ -702,7 +702,7 @@ int Sfile_sep_make_argv(char *progname, char *line, char *separators,
      if(*separators) {
        if(strchr(separators, *cpt) != NULL)
    continue;
-     } else if(isspace(*cpt))
+     } else if(isspace((unsigned char)(*cpt)))
    continue;
      start= cpt;
      buf[0]= 0;
@@ -717,7 +717,7 @@ int Sfile_sep_make_argv(char *progname, char *line, char *separators,
        if(*separators) {
          if(strchr(separators, *cpt) != NULL)
      break;
-       } else if(isspace(*cpt))
+       } else if(isspace((unsigned char)(*cpt)))
      break;
        if(*cpt=='"'){
          l= cpt-start; bufl= strlen(buf);

@@ -8,6 +8,8 @@
  * GNU LGPL v2.1 (including option for GPL v2 or later)
  *
  */
+ 
+ #define _GNU_SOURCE // for strdup in cygwin
 
 #ifdef HAVE_CONFIG_H
 #include "../config.h"

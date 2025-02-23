@@ -13,6 +13,8 @@
  * IsoDataSource to read image data.
  */
 
+#define _GNU_SOURCE // for strdup in cygwin
+
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
 #endif
@@ -2078,10 +2080,10 @@ invalid_zf:
             if (ecma119_map == 2 || ecma119_map == 3) {
                 for (cpt = name; *cpt != 0; cpt++) {
                     if (ecma119_map == 2) {
-                        if (islower(*cpt))
+                        if (islower((unsigned char)(*cpt)))
                             *cpt = toupper(*cpt);
                     } else {
-                        if (isupper(*cpt))
+                        if (isupper((unsigned char)(*cpt)))
                             *cpt = tolower(*cpt);
                     }
                 }
@@ -6299,7 +6301,7 @@ void iso_image_assess_ecma119_name(IsoImage *image, struct stat *info,
 
     was_dot = 1; 
     for (i = 0; i < lid; i++) {
-        if (islower(name[i])) {
+        if (islower((unsigned char)name[i])) {
             tc->allow_lowercase = 1;
         } else if (name[i] == '.' && !was_dot) {
             was_dot = 1;

@@ -8,6 +8,8 @@
  * GNU GPL v2+
  */
 
+#define _GNU_SOURCE // for strdup in cygwin
+
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
 #endif
@@ -16,6 +18,7 @@
 #include <regex.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h> // strcasecmp
 #include <errno.h>
 #include <sys/stat.h>
 
