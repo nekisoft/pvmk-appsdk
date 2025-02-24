@@ -33,7 +33,7 @@
 
 /* for -charset */
 #include <iconv.h>
-#include <langinfo.h>
+//#include <langinfo.h>
 #include <locale.h>
 
 
@@ -403,7 +403,8 @@ get_single:;
    if(xorriso->tolerate_stdin_eof)
      {ret= -2; goto ex;}
    /* need a very dramatic end */
-   kill(getpid(),SIGHUP);
+   //kill(getpid(),SIGHUP);
+   abort(); //pvmk - more portable
    {ret= -1; goto ex;}
  }
 
@@ -813,8 +814,9 @@ ex:;
 
 /* @param flag bit0= no error message in case of failure
 */
+#if 0
 static int Xorriso_obtain_lock(struct XorrisO *xorriso,
-                               pthread_mutex_t *lock_handle,
+                               int *lock_handle,
                                char *purpose, int flag)
 {
  int ret;
@@ -835,12 +837,13 @@ static int Xorriso_obtain_lock(struct XorrisO *xorriso,
  }
  return(1);
 }
-
+#endif
 
 /* @param flag bit0= no error message in case of failure
 */
+#if 0
 static int Xorriso_release_lock(struct XorrisO *xorriso,
-                               pthread_mutex_t *lock_handle,
+                               int *lock_handle,
                                char *purpose, int flag)
 {
  int ret;
@@ -860,14 +863,14 @@ static int Xorriso_release_lock(struct XorrisO *xorriso,
  }
  return(1);
 }
-
+#endif
 
 static int Xorriso_lock_outlists(struct XorrisO *xorriso, int flag)
 {
  int ret;
 
- ret= Xorriso_obtain_lock(xorriso, &(xorriso->result_msglists_lock),
-                          "outlists", 0);
+ ret= 1;// Xorriso_obtain_lock(xorriso, &(xorriso->result_msglists_lock),
+          //                "outlists", 0);
  return(ret);
 }
 
@@ -876,8 +879,8 @@ static int Xorriso_unlock_outlists(struct XorrisO *xorriso, int flag)
 {
  int ret;
 
- ret= Xorriso_release_lock(xorriso, &(xorriso->result_msglists_lock),
-                           "outlists", 0);
+ ret=1; //Xorriso_release_lock(xorriso, &(xorriso->result_msglists_lock),
+           //                "outlists", 0);
  return(ret);
 }
 
@@ -937,7 +940,7 @@ bit15= with bit1 to bit3: close depicted log file
    {ret= -1; goto ex;}
 
 #ifdef Xorriso_fetch_with_msg_queueS
- ret= pthread_mutex_lock(&(xorriso->write_to_channel_lock));
+ ret= 0; //pthread_mutex_lock(&(xorriso->write_to_channel_lock));
  if(ret != 0) {
    /* Cannot report failure through the failing message output system */
    complaints++;
@@ -1154,7 +1157,7 @@ ex:
 #ifdef Xorriso_fetch_with_msg_queueS
 
  if(locked) {
-   uret= pthread_mutex_unlock(&(xorriso->write_to_channel_lock));
+   uret= 0 ;//pthread_mutex_unlock(&(xorriso->write_to_channel_lock));
    if(uret != 0) {
      /* Cannot report failure through the failing message output system */
      complaints++;
@@ -1267,8 +1270,8 @@ int Xorriso_peek_outlists(struct XorrisO *xorriso, int stack_handle,
  start_time= time(NULL);
 
 try_again:;
- ret= Xorriso_obtain_lock(xorriso, &(xorriso->msgw_fetch_lock),
-                          "message watcher fetch operation", 0);
+ ret= 1; //Xorriso_obtain_lock(xorriso, &(xorriso->msgw_fetch_lock),
+           //               "message watcher fetch operation", 0);
  if(ret <= 0)
    {yes= -2; goto ex;}
  locked= 1;
@@ -1283,8 +1286,8 @@ try_again:;
  if(xorriso->msg_watcher_state == 2 && xorriso->msgw_msg_pending)
    yes|= 2;
 
- ret= Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
-                           "message watcher fetch operation", 0);
+ ret=1 ;// Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
+          //                 "message watcher fetch operation", 0);
  if(ret <= 0)
    {yes= -2; goto ex;}
  locked= 0;
@@ -1297,8 +1300,8 @@ try_again:;
 
 ex:;
  if(locked) {
-   ret= Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
-                             "message watcher fetch operation", 0);
+   ret=1;// Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
+           //                  "message watcher fetch operation", 0);
    if(ret <= 0 && yes >= 0)
      yes= -2;
  }
@@ -1537,9 +1540,9 @@ int Xorriso_start_msg_watcher(struct XorrisO *xorriso,
 	#if 0
  int ret, u_wait= 1000, locked= 0, pushed= 0, uret, line_count= 0;
  struct Xorriso_lsT *result_list= NULL, *info_list= NULL;
- pthread_attr_t attr;
- pthread_attr_t *attr_pt = NULL;
- pthread_t thread;
+ //pthread_attr_t attr;
+ //pthread_attr_t *attr_pt = NULL;
+ //pthread_t thread;
 
  ret= pthread_mutex_lock(&(xorriso->msg_watcher_lock));
  if(ret != 0) {
@@ -1659,8 +1662,8 @@ int Xorriso_stop_msg_watcher(struct XorrisO *xorriso, int flag)
    usleep(u_wait);
  }
 
- ret= Xorriso_obtain_lock(xorriso, &(xorriso->msgw_fetch_lock),
-                          "message watcher fetch operation", 1);
+ ret=1;// Xorriso_obtain_lock(xorriso, &(xorriso->msgw_fetch_lock),
+         //                 "message watcher fetch operation", 1);
  if(ret <= 0) {
    Xorriso_msgs_submit(xorriso, 0,
            "Cannot obtain mutex lock for managing concurrent message watcher",
@@ -1673,8 +1676,8 @@ int Xorriso_stop_msg_watcher(struct XorrisO *xorriso, int flag)
                             &result_list, &info_list, 0);
  if(ret > 0) {
    xorriso->msgw_msg_pending= 2;
-   Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
-                        "message watcher fetch operation", 1);
+  // Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
+                 //       "message watcher fetch operation", 1);
    Xorriso_process_msg_lists(xorriso, result_list, info_list,
                              &line_count, 0);
    xorriso->msgw_msg_pending= 0;
@@ -1682,8 +1685,8 @@ int Xorriso_stop_msg_watcher(struct XorrisO *xorriso, int flag)
    Xorriso_lst_destroy_all(&info_list, 0);
  } else {
    xorriso->msgw_msg_pending= 0;
-   Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
-                        "message watcher fetch operation", 1);
+ //  Xorriso_release_lock(xorriso, &(xorriso->msgw_fetch_lock),
+                  //      "message watcher fetch operation", 1);
  }
 
  xorriso->msgw_result_handler= NULL;
@@ -3724,7 +3727,7 @@ int Xorriso_status(struct XorrisO *xorriso, char *filter, FILE *fp, int flag)
    Xorriso_status_result(xorriso,filter,fp,flag&2);
 
  Xorriso_get_local_charset(xorriso, &local_charset, 0);
- nl_charset= nl_langinfo(CODESET);
+ nl_charset= ""; //nl_langinfo(CODESET);
  is_default= (strcmp(local_charset, nl_charset) == 0);
  sprintf(line, "-local_charset %s\n", Text_shellsafe(local_charset, sfe, 0));
  if(!(is_default && no_defaults))
@@ -4368,7 +4371,7 @@ int Xorriso_launch_frontend(struct XorrisO *xorriso, int argc, char **argv,
 
  /* To be controlled by: configure --enable-external-filters-setuid */
 
- if(getuid() != geteuid()) {
+ if(1 /*getuid() != geteuid()*/ ) {
    sprintf(xorriso->info_text,
           "-set_filter: UID and EUID differ. Will not run external programs.");
    Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, 0, "FATAL", 0);
@@ -4408,8 +4411,8 @@ int Xorriso_launch_frontend(struct XorrisO *xorriso, int argc, char **argv,
        adrpt= reply_pipe_adr;
      ret= stat(adrpt, &stbuf);
      if(ret == -1) {
-       ret= mknod(adrpt, S_IFIFO | S_IRWXU | S_IRWXG | S_IRWXO | S_IRWXO,
-                  (dev_t) 0);
+       ret= -1; errno = ENOSYS; //mknod(adrpt, S_IFIFO | S_IRWXU | S_IRWXG | S_IRWXO | S_IRWXO,
+                  //(dev_t) 0);
        if(ret == -1) {
           sprintf(xorriso->info_text,
                   "-launch_frontend: Cannot create named pipe %s",
@@ -4421,7 +4424,7 @@ int Xorriso_launch_frontend(struct XorrisO *xorriso, int argc, char **argv,
      }
    }
  } else {
-   ret= pipe(command_pipe);
+   ret= -1; errno = ENOSYS; //pipe(command_pipe);
    if (ret == -1) {
 no_pipe_open:
      sprintf(xorriso->info_text,
@@ -4429,13 +4432,13 @@ no_pipe_open:
      Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, errno, "FAILURE", 0);
      ret= 0; goto ex;
    }
-   ret= pipe(reply_pipe);
+   ret= -1; errno = ENOSYS; //pipe(reply_pipe);
    if (ret == -1)
      goto no_pipe_open;
  }
 
  if(argc > 0) {
-   cpid = fork();
+   cpid = -1; errno = ENOSYS; //fork();
    if (cpid == -1) {
      sprintf(xorriso->info_text,
              "-launch_frontend: Failed to create a child process");

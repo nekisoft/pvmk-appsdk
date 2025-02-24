@@ -43,6 +43,27 @@
 #include "sort_cmp.h"
 #include "disk_ops.h"
 
+//pvmk - horrible windows hacks
+#ifndef S_IFLNK
+#define lstat stat
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISUID
+#define S_ISUID 0
+#endif
+#ifndef S_ISGID
+#define S_ISGID 0
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#ifndef S_IFBLK
+#define S_ISBLK(x) 0
+#endif
+
 
 int Xorriso__read_pacifier(IsoImage *image, IsoFileSource *filesource)
 {
@@ -436,7 +457,7 @@ cannot_set_perm:;
 
  if(uid != disk_uid || gid != disk_gid) {
 
-   ret= chown(disk_path, uid, gid); /* don't complain if it fails */
+   ret= -1;// chown(disk_path, uid, gid); /* don't complain if it fails */
 
    /* Check whether xattr are still set and try to set them again if needed.
       E.g. Linux 3.16 removes security.capability on chown(2).
@@ -826,10 +847,10 @@ int Xorriso_tree_restore_node(struct XorrisO *xorriso, IsoNode *node,
  int target_deleted= 0, buf_size= 32 * 1024;
  char *what= "[unknown filetype]";
  char *buf= NULL, type_text[5], *temp_path= NULL, *buf_pt, *reason;
- char *link_target, *open_path_pt= NULL;
+ char /* *link_target, */ *open_path_pt= NULL;
  off_t todo= 0, size, seek_ret, last_p_count= 0, already_done, read_count= 0;
  void *data_stream= NULL;
- mode_t mode;
+ //mode_t mode;
  dev_t dev= 0;
  struct stat stbuf;
  struct utimbuf utime_buffer;
@@ -850,7 +871,7 @@ int Xorriso_tree_restore_node(struct XorrisO *xorriso, IsoNode *node,
    img_offset= bytes= 0;
  if(LIBISO_ISDIR(node)) {
    what= "directory";
-   ret= mkdir(disk_path, 0777);
+   ret= -1; errno = ENOSYS; //mkdir(disk_path, 0777);
    l_errno= errno;
 
  } else if(LIBISO_ISREG(node) || ISO_NODE_IS_BOOTCAT(node)) {
@@ -1108,8 +1129,8 @@ bad_md5:;
 
  } else if(LIBISO_ISLNK(node)) {
    what= "symbolic link";
-   link_target= (char *) iso_symlink_get_dest((IsoSymlink *) node);
-   ret= symlink(link_target, disk_path);
+//   link_target= (char *) iso_symlink_get_dest((IsoSymlink *) node);
+   ret=-1; errno = ENOSYS; // symlink(link_target, disk_path);
    l_errno= errno;
 
  } else if(LIBISO_ISCHR(node)) {
@@ -1125,7 +1146,7 @@ ignored:;
      }
      {ret= 2; goto ex;}
    }
-   mode= S_IFCHR | 0777;
+ //  mode= S_IFCHR | 0777;
    ret= Xorriso_node_get_dev(xorriso, node, img_path, &dev, 0);
    if(ret<=0)
      goto ex;
@@ -1137,28 +1158,28 @@ probably_damaged:;
      sprintf(xorriso->info_text + strlen(xorriso->info_text), 
              " %s 0 1", LIBISO_ISCHR(node) ? "c" : "b");
      Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, errno, "FAILURE", 0);
-     ret= 0; goto ex;
-   }
-   ret= mknod(disk_path, mode, dev);
+   }     ret= 0; goto ex;
+
+   ret= -1; errno = ENOSYS; //mknod(disk_path, mode, dev);
    l_errno= errno;
 
  } else if(LIBISO_ISBLK(node)) {
    what= "block device";
    if(xorriso->allow_restore!=2)
      goto ignored;
-   mode= S_IFBLK | 0777;
+//   mode= S_IFBLK | 0777;
    ret= Xorriso_node_get_dev(xorriso, node, img_path, &dev, 0);
    if(ret<=0)
      goto ex;
    if(dev == (dev_t) 1)
      goto probably_damaged;
-   ret= mknod(disk_path, mode, dev);
+   ret=-1; errno = ENOSYS; // mknod(disk_path, mode, dev);
    l_errno= errno;
 
  } else if(LIBISO_ISFIFO(node)) {
    what= "named pipe";
-   mode= S_IFIFO | 0777;
-   ret= mknod(disk_path, mode, dev);
+//   mode= S_IFIFO | 0777;
+   ret= -1; errno = ENOSYS; //mknod(disk_path, mode, dev);
    l_errno= errno;
 
  } else if(LIBISO_ISSOCK(node)) {
@@ -2042,7 +2063,7 @@ int Xorriso_restore(struct XorrisO *xorriso,
    if(stbuf_ret==-1 && (source_is_dir && !source_is_split) &&
       !(node_count || node_register)) {
                                                          /* make a directory */
-     ret= mkdir(path, 0777);
+     ret=-1; errno = ENOSYS; // mkdir(path, 0777);
      if(ret==-1) {
        Xorriso_process_msg_queues(xorriso,0);
        Xorriso_msgs_submit(xorriso, 0, disk_path, 0, "ERRFILE", 0);
@@ -2590,7 +2611,7 @@ int Xorriso_extract_boot_images(struct XorrisO *xorriso, char *disk_dir_path,
      ret= 0; goto ex;
    }
  } else {
-   ret= mkdir(eff_path, 0777);
+   ret=-1; errno = ENOSYS; // mkdir(eff_path, 0777);
    if(ret == -1) {
      sprintf(xorriso->info_text,
              "-extract_boot_images: cannot create directory : ");

@@ -2528,7 +2528,7 @@ struct xorriso_md5_state {
   struct XorrisO *xorriso;
   void *ctx;
   struct SpotlisT *spotlist;
-  pthread_mutex_t spot_mutex;
+//  pthread_mutex_t spot_mutex;
 
   /* Checksum tag cursor */
   uint32_t md5_start;

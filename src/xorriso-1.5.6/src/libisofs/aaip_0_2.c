@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <pwd.h>
-#include <grp.h>
+//#include <pwd.h>
+//#include <grp.h>
 #include <sys/stat.h>
 
 #include "libisofs.h"
@@ -435,7 +435,7 @@ static ssize_t aaip_encode_acl_text(char *acl_text, mode_t st_mode,
        name[cpt - (rpt + 5)]= 0;
        if(flag & 2) {
          type= Aaip_ACL_USER_N;
-         pwd= getpwnam(name);
+         pwd= NULL; //getpwnam(name); //pvmk - don't care
          if(pwd == NULL) {
            num= aaip_numeric_id(name, 0);
            if(num <= 0) {
@@ -446,8 +446,8 @@ static ssize_t aaip_encode_acl_text(char *acl_text, mode_t st_mode,
              {ret= -2; goto ex;}
            }
            uid= huid= num;
-         } else
-           uid= huid= pwd->pw_uid;
+         }// else
+          // uid= huid= pwd->pw_uid;
          /* Convert uid into Qualifier Record */
          for(i= 0; huid != 0; i++)
            huid= huid >> 8;
@@ -487,7 +487,7 @@ static ssize_t aaip_encode_acl_text(char *acl_text, mode_t st_mode,
        name[cpt - (rpt + 6)]= 0;
        if(flag & 2) {
          type= Aaip_ACL_GROUP_N;
-         grp= getgrnam(name);
+         grp= NULL; //getgrnam(name); //pvmk - don't care
          if(grp == NULL) {
            num= aaip_numeric_id(name, 0);
            if(num <= 0) {
@@ -498,8 +498,8 @@ static ssize_t aaip_encode_acl_text(char *acl_text, mode_t st_mode,
              {ret= -2; goto ex;}
            }
            gid= hgid= num;
-         } else
-           gid= hgid= grp->gr_gid;
+         } //else
+          // gid= hgid= grp->gr_gid;
          /* Convert gid into Qualifier Record */
          for(i= 0; hgid != 0; i++)
            hgid= hgid >> 8;
@@ -1828,9 +1828,9 @@ int aaip_decode_attrs(struct aaip_state **handle,
    if(aaip->list_mem_used + new_mem >= memory_limit)
      return(3);
    aaip->list_mem_used+= new_mem;
-   aaip->list_names= calloc(sizeof(char *), aaip->list_size);
-   aaip->list_value_lengths= calloc(sizeof(size_t), aaip->list_size);
-   aaip->list_values= calloc(sizeof(char *), aaip->list_size);
+   aaip->list_names= calloc(aaip->list_size, sizeof(char *));
+   aaip->list_value_lengths= calloc(aaip->list_size, sizeof(size_t));
+   aaip->list_values= calloc(aaip->list_size, sizeof(char *));
    if(aaip->list_names == NULL || aaip->list_value_lengths == NULL ||
       aaip->list_values == NULL)
      return(-1);
@@ -2110,8 +2110,8 @@ int aaip_decode_acl(unsigned char *data, size_t num_data, size_t *consumed,
  size_t w_size= 0, name_fill= 0, i;
  uid_t uid;
  gid_t gid;
- struct passwd *pwd;
- struct group *grp;
+ //struct passwd *pwd;
+ //struct group *grp;
 
  LIBISO_ALLOC_MEM(name, char, name_size);
  cnt= flag & 1;
@@ -2176,13 +2176,13 @@ int aaip_decode_acl(unsigned char *data, size_t num_data, size_t *consumed,
      uid= 0;
      for(i= 0; i < name_fill; i++)
        uid= (uid << 8) | ((unsigned char *) name)[i];
-     pwd= getpwuid(uid);
-     if(pwd == NULL)
+   //  pwd= NULL; //getpwuid(uid); //pvmk - don't care
+  //   if(pwd == NULL)
        sprintf(name, "%.f", (double) uid);
-     else if(strlen(pwd->pw_name) >= (size_t) name_size)
-       sprintf(name, "%.f", (double) uid);
-     else
-       strcpy(name, pwd->pw_name);
+    // else if(strlen(pwd->pw_name) >= (size_t) name_size)
+  //     sprintf(name, "%.f", (double) uid);
+  //   else
+     //  strcpy(name, pwd->pw_name);
      /* user:<username>:rwx */;
      ret= aaip_write_acl_line(&wpt, &w_size, "user", name, perm_text, cnt);
    } else if(type == Aaip_ACL_GROUP_N) {
@@ -2190,13 +2190,13 @@ int aaip_decode_acl(unsigned char *data, size_t num_data, size_t *consumed,
      gid= 0;
      for(i= 0; i < name_fill; i++)
        gid= (gid << 8) | ((unsigned char *) name)[i];
-     grp= getgrgid(gid);
-     if(grp == NULL)
+   //  grp= NULL; //getgrgid(gid);
+     //if(grp == NULL)
        sprintf(name, "%.f", (double) gid);
-     else if(strlen(grp->gr_name) >= (size_t) name_size)
-       sprintf(name, "%.f", (double) gid);
-     else
-       strcpy(name, grp->gr_name);
+     //else if(strlen(grp->gr_name) >= (size_t) name_size)
+//       sprintf(name, "%.f", (double) gid);
+     //else
+//       strcpy(name, grp->gr_name);
      /* user:<username>:rwx */;
      ret= aaip_write_acl_line(&wpt, &w_size, "group", name, perm_text, cnt);
    } else {

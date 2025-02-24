@@ -386,6 +386,9 @@ double burn_get_time(int flag)
 /* ts B40609 */
 off_t burn_sparse_file_addsize(off_t write_start, struct stat *stbuf)
 {
+	//pvmk - don't care about sparse files
+	return stbuf->st_size;
+	#if 0
 	off_t add_size;
 
 	add_size = stbuf->st_blocks * (off_t) 512;
@@ -401,5 +404,6 @@ off_t burn_sparse_file_addsize(off_t write_start, struct stat *stbuf)
 		}
 	}
 	return add_size;
+	#endif
 }
 

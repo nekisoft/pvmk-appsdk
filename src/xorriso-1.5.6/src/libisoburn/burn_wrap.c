@@ -31,7 +31,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>
-#include <regex.h>
+//#include <regex.h> //pvmk - don't care
 
 #ifndef Xorriso_standalonE
 
@@ -911,7 +911,7 @@ void isoburn_disc_write(struct burn_write_opts *opts, struct burn_disc *disc)
  struct isoburn *o;
  struct burn_drive *drive;
  char *reasons= NULL, *msg= NULL, *adr= NULL;
- struct stat stbuf;
+// struct stat stbuf;
  enum burn_write_types write_type;
 
  drive= burn_write_opts_get_drive(opts);
@@ -1013,6 +1013,7 @@ no_write_type:;
 				 ((off_t) Hardcoded_cd_rw_nwA) * (off_t) 2048);
 #endif
 
+#if 0 //pvmk - not needed
  if(o->truncate) {
    ret= burn_drive_get_drive_role(drive);
    if(ret == 2 || ret == 5) {
@@ -1026,6 +1027,7 @@ no_write_type:;
      }
    }
  }
+ #endif 
 
  burn_disc_write(opts, disc);
 ex:;
@@ -1942,6 +1944,8 @@ int isoburn_drive_set_msgs_submit(struct burn_drive *d,
 int isoburn_set_msc1(struct burn_drive *d, int adr_mode, char *adr_value,
                      int flag)
 {
+	return -1;
+	#if 0 //pvmk - don't care
  int ret, num_sessions= 0, num_tracks, adr_num, i, j, total_tracks;
  int lba, best_lba, size, re_valid= 0, track_count= 0;
  time_t start_time= 0, last_pacifier= 0, now;
@@ -2103,6 +2107,7 @@ ex:;
  if(msg != NULL)
    free(msg);
  return(ret);
+ #endif //0
 }
 
 

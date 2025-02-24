@@ -13,6 +13,8 @@
  * 
  */
 
+#if 0 //pvmk - don't care about this whole thing
+
 #define _GNU_SOURCE // for strdup in cygwin, kill
 
 #ifdef HAVE_CONFIG_H
@@ -26,7 +28,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/wait.h>
+//#include <sys/wait.h>
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -844,3 +846,7 @@ int iso_stream_get_external_filter(IsoStream *stream,
     return 1;
 }
 
+
+#endif //0
+
+void external_dummy(void) { }

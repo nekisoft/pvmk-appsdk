@@ -24,10 +24,10 @@
 #include <time.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <pwd.h>
-#include <grp.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
+//#include <pwd.h>
+//#include <grp.h>
+//#include <sys/resource.h>
+//#include <sys/wait.h>
 
 
 #include "xorriso.h"
@@ -2930,6 +2930,7 @@ int Xorriso_check_temp_mem_limit(struct XorrisO *xorriso, off_t mem, int flag)
 int Xorriso_wait_child_end(struct XorrisO *xorriso, pid_t child_pid,
                            int *status, int flag)
 {
+	#if 0
 	(void)xorriso;
 	(void)flag;
  int ret;
@@ -2948,7 +2949,7 @@ int Xorriso_wait_child_end(struct XorrisO *xorriso, pid_t child_pid,
  } while(1);
 
  /* >>> interpret *status */;
-
+#endif
  return(1);
 }
 
@@ -2990,6 +2991,11 @@ int Xorriso_execv(struct XorrisO *xorriso, char *cmd,
                   int *stdin_pipe, int *stdout_pipe, pid_t *forked_pid,
                   int *status, int flag)
 {
+
+return 0;
+	
+	#if 0
+	
  int ret, argc= 0, has_slash;
  char **argv= NULL, *pathlist= NULL, *cpt, *npt, *prog= NULL;
  pid_t child_pid;
@@ -3100,6 +3106,7 @@ ex:
  Sregex_string(&pathlist, NULL, 0);
  Xorriso_free_meM(prog);
  return(ret);
+ #endif
 }
 
 
@@ -3113,6 +3120,8 @@ int Xorriso_pipe_open(struct XorrisO *xorriso, char *purpose, char *cmd,
                       int in_argc, char **in_argv, char *env_path,
                       int *fd, pid_t *forked_pid, int flag)
 {
+	return 0;
+	#if 0
  int fp_pipe[2], *stdin_pipe= NULL, *stdout_pipe= NULL, status, ret;
 
  *fd= -1;
@@ -3137,6 +3146,7 @@ int Xorriso_pipe_open(struct XorrisO *xorriso, char *purpose, char *cmd,
  ret= Xorriso_execv(xorriso, cmd, in_argc, in_argv, env_path,
                     stdin_pipe, stdout_pipe, forked_pid, &status, flag & 11);
  return(ret);
+ #endif
 }
 
 

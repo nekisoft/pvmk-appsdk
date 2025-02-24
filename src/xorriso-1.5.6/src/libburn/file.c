@@ -376,7 +376,7 @@ int burn_fifo_source_shoveller(struct burn_source *source, int flag)
 	//pthread_t thread_handle_storage; //pvmk - no p threads
 
 	fs->thread_handle= NULL; //&thread_handle_storage;
-	*((pthread_t *) fs->thread_handle)= 0; // pthread_self(); //pvmk - no p threads
+	//*((pthread_t *) fs->thread_handle)= 0; // pthread_self(); //pvmk - no p threads
 	fs->thread_pid = getpid();
 	fs->thread_is_valid = 1;
 

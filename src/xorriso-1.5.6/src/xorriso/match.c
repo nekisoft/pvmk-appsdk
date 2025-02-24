@@ -29,6 +29,30 @@
 #include "xorrisoburn.h"
 
 
+
+
+//pvmk - horrible windows hacks
+#ifndef S_IFLNK
+#define lstat stat
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISUID
+#define S_ISUID 0
+#endif
+#ifndef S_ISGID
+#define S_ISGID 0
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#ifndef S_IFBLK
+#define S_ISBLK(x) 0
+#endif
+
+
 /* @param flag bit0= do not augment relative structured search by xorriso->wdi
                bit1= return 2 if bonked at start point by .. 
                      (caller then aborts or retries without bit0)

@@ -29,28 +29,31 @@ typedef void (*sighandler_t)(int);
 
 /* Signals to be caught */
 static int signal_list[]= {
- SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGABRT,
- SIGFPE, SIGSEGV, SIGPIPE, SIGALRM, SIGTERM,
- SIGUSR1, SIGUSR2, SIGXCPU, SIGTSTP, SIGTTIN,
- SIGTTOU,
- SIGBUS, /*SIGPOLL,*/ SIGPROF, SIGSYS, SIGTRAP,
- SIGVTALRM, SIGXCPU, SIGXFSZ, -1
+ //SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGABRT,
+ //SIGFPE, SIGSEGV, SIGPIPE, SIGALRM, SIGTERM,
+ //SIGUSR1, SIGUSR2, SIGXCPU, SIGTSTP, SIGTTIN,
+ //SIGTTOU,
+ //SIGBUS, /*SIGPOLL,*/ SIGPROF, SIGSYS, SIGTRAP,
+ //SIGVTALRM, SIGXCPU, SIGXFSZ, -1
+ -1
 };
 static char *signal_name_list[]= {
- "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGABRT",
- "SIGFPE", "SIGSEGV", "SIGPIPE", "SIGALRM", "SIGTERM",
- "SIGUSR1", "SIGUSR2", "SIGXCPU", "SIGTSTP", "SIGTTIN",
- "SIGTTOU",
- "SIGBUS", /*"SIGPOLL",*/ "SIGPROF", "SIGSYS", "SIGTRAP",
- "SIGVTALRM", "SIGXCPU", "SIGXFSZ", "@"
+ //"SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGABRT",
+ //"SIGFPE", "SIGSEGV", "SIGPIPE", "SIGALRM", "SIGTERM",
+ //"SIGUSR1", "SIGUSR2", "SIGXCPU", "SIGTSTP", "SIGTTIN",
+ //"SIGTTOU",
+ //"SIGBUS", /*"SIGPOLL",*/ "SIGPROF", "SIGSYS", "SIGTRAP",
+ //"SIGVTALRM", "SIGXCPU", "SIGXFSZ", "@"
+ "@"
 };
-static int signal_list_count= 23; //24;
+static int signal_list_count= 0;// 23; //24;
 
 /* Signals not to be caught */
 static int non_signal_list[]= {
-  SIGKILL, SIGCHLD, SIGSTOP, SIGURG, SIGWINCH, -1
+//  SIGKILL, SIGCHLD, SIGSTOP, SIGURG, SIGWINCH, -1
+-1
 };
-static int non_signal_list_count= 5;
+static int non_signal_list_count= 0;//5;
 
 
 /* Points to the globally activated signal handling manager */
@@ -116,7 +119,7 @@ static void libdax_sigmgr_central_handler(int signum)
 /*
  fprintf(stderr,"libdax_sigmgr: ABORT : %s\n", o->msg);
 */
- alarm(0);
+// alarm(0);
 // ret= libdax_api_handle_abort(o->api_chain, o->msg, 0);
    ret = 0;
  if(ret == -2)

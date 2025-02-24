@@ -1164,7 +1164,7 @@ int family_set_ino(Ecma119Image *img, Ecma119Node **nodes, size_t family_start,
             img_ino = 0;
 
 	/* Accept only if it is within the 32 bit range. */
-        if (((uint64_t) img_ino) > 0xffffffff)
+        if (((uint64_t) (uint64_t)img_ino+1) > (uint64_t)0xffffffff) //pvmk - pacify compiler limit check
             img_ino = 0;
 
     }
@@ -1192,7 +1192,7 @@ int match_hardlinks(Ecma119Image *img, Ecma119Node *dir, int flag)
     if (ret < 0)
         return ret;
     nodes_size = node_count;
-    nodes = (Ecma119Node **) calloc(sizeof(Ecma119Node *), nodes_size);
+    nodes = (Ecma119Node **) calloc(nodes_size, sizeof(Ecma119Node *));
     if (nodes == NULL)
         return ISO_OUT_OF_MEM;
     ret = make_node_array(img, dir, nodes, nodes_size, &node_count, 0);

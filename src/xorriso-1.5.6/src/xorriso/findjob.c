@@ -885,8 +885,8 @@ int Findjob_set_num_filter(struct FindjoB *o, int test_type,
 
  t= o->cursor->test;
  t->test_type= test_type;
- t->arg1= calloc(sizeof(int), 1);
- t->arg2= calloc(sizeof(int), 1);
+ t->arg1= calloc(1, sizeof(int));
+ t->arg2= calloc(1, sizeof(int));
  if(t->arg1 == NULL || t->arg2 == NULL)
    return(-1);
  *((int *) t->arg1)= num1;
@@ -907,8 +907,8 @@ int Findjob_set_size_filter(struct FindjoB *o, int test_type,
 
  t= o->cursor->test;
  t->test_type= test_type;
- t->arg1= calloc(sizeof(off_t), 1);
- t->arg2= calloc(sizeof(int), 1);
+ t->arg1= calloc(1, sizeof(off_t));
+ t->arg2= calloc(1, sizeof(int));
  if(t->arg1 == NULL || t->arg2 == NULL)
    return(-1);
  *((off_t *) t->arg1)= num1;
@@ -942,7 +942,7 @@ int Findjob_set_test_hidden(struct FindjoB *o, int mode, int flag)
 
  t= o->cursor->test;
  t->test_type= 17;
- t->arg1= calloc(sizeof(int), 1);
+ t->arg1= calloc(1, sizeof(int));
  if(t->arg1 == NULL)
    return(-1);
  *((int *) t->arg1)= mode;

@@ -39,6 +39,28 @@
 #include "disk_ops.h"
 
 
+//pvmk - horrible windows hacks
+#ifndef S_IFLNK
+#define lstat stat
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISUID
+#define S_ISUID 0
+#endif
+#ifndef S_ISGID
+#define S_ISGID 0
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#ifndef S_IFBLK
+#define S_ISBLK(x) 0
+#endif
+
+
 /* @param flag bit0= give directory x-permission where is r-permission
                bit1= do not transfer ACL or xattr
                bit2= record dev,inode (only if enabled by xorriso)
@@ -888,6 +910,7 @@ int Xorriso_graft_in(struct XorrisO *xorriso, void *boss_iter,
    if(ret!=-1) {
      if(S_ISDIR(stbuf.st_mode))
        is_dir= 1;
+   #ifdef S_IFLNK
      else if((stbuf.st_mode&S_IFMT)==S_IFLNK &&
              (xorriso->do_follow_links ||
               (xorriso->do_follow_param && !(flag&4)))) {
@@ -898,6 +921,7 @@ int Xorriso_graft_in(struct XorrisO *xorriso, void *boss_iter,
            is_dir= 1;
        }
      }
+	 #endif 
    }
    if(ret == -1) {
      Xorriso_process_msg_queues(xorriso,0);
@@ -995,8 +1019,8 @@ int Xorriso_graft_in(struct XorrisO *xorriso, void *boss_iter,
        dir= hdir;
        Xorriso_set_change_pending(xorriso, 0);
        iso_node_set_ctime((IsoNode *) dir, time(NULL));
-       iso_node_set_uid((IsoNode *) dir, geteuid());
-       iso_node_set_gid((IsoNode *) dir, getegid());
+       iso_node_set_uid((IsoNode *) dir, 1 /*geteuid()*/);
+       iso_node_set_gid((IsoNode *) dir, 1 /*getegid()*/);
 
        if(disk_path[0] && !done) {
          /* This not only copies disk directory properties
@@ -1260,6 +1284,7 @@ int Xorriso_cut_out(struct XorrisO *xorriso, char *disk_path,
    {ret= 0; goto ex;}
  }
 
+#ifdef S_IFLNK
  if((stbuf.st_mode&S_IFMT) == S_IFLNK) {
    if(!(xorriso->do_follow_links || (xorriso->do_follow_param && !(flag&1))))
      goto unsupported_type;
@@ -1272,6 +1297,7 @@ int Xorriso_cut_out(struct XorrisO *xorriso, char *disk_path,
      {ret= 0; goto ex;}
    }
  }
+ #endif 
 
  if(S_ISREG(stbuf.st_mode)) {
    src_size= stbuf.st_size;
@@ -3140,12 +3166,16 @@ return:
      } else if(S_ISREG(stbuf->st_mode)) {
        if(ft!='f' && ft!='-')
          value= 0;
+	 #ifdef S_IFLNK
      } else if(((stbuf->st_mode)&S_IFMT)==S_IFLNK) {
        if(ft!='l')
          value= 0;
+	 #endif
+	 #ifdef S_IFSOCK
      } else if(((stbuf->st_mode)&S_IFMT)==S_IFSOCK) {
        if(ft!='s')
          value= 0;
+	 #endif
      } else if((flag & 1) && ((stbuf->st_mode) & S_IFMT) == Xorriso_IFBOOT) {
        if(ft!='e' || node == NULL)
          value= 0;

@@ -13,7 +13,7 @@
 #ifndef Xorriso_pvt_misc_includeD
 #define Xorriso_pvt_misc_includeD yes
 
-#include <regex.h>
+#include "../libcshim/regex.h" //pvmk - using local one
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>

@@ -34,11 +34,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
-#include <langinfo.h>
+//#include <langinfo.h>
 #include <limits.h>
 #include <stdio.h>
 #include <ctype.h>
 
+//pvmk - nasty hack for windows
+#ifndef S_ISLNK
+#define S_ISLNK(x) 0
+#endif 
 
 /* Enable this and write the correct absolute path into the include statement
    below in order to test the pending contribution to syslinux:
@@ -2156,8 +2160,8 @@ invalid_zf:
 
     /* Fill last entries */
     atts.st_dev = fsdata->id;
-    atts.st_blksize = BLOCK_SIZE;
-    atts.st_blocks = DIV_UP(atts.st_size, BLOCK_SIZE);
+    //atts.st_blksize = BLOCK_SIZE;
+    //atts.st_blocks = DIV_UP(atts.st_size, BLOCK_SIZE);
 
     /* TODO #00014 : more sanity checks to ensure dir record info is valid */
     if (S_ISLNK(atts.st_mode) && (linkdest == NULL)) {
@@ -3470,6 +3474,7 @@ int image_builder_create_node(IsoNodeBuilder *builder, IsoImage *image,
             new->refcount = 0;
         }
         break;
+	#ifdef S_IFLNK
     case S_IFLNK:
         {
             /* source is a symbolic link */
@@ -3494,7 +3499,10 @@ int image_builder_create_node(IsoNodeBuilder *builder, IsoImage *image,
             new->refcount = 0;
         }
         break;
+	#endif
+	#ifdef S_IFSOCK
     case S_IFSOCK:
+	#endif
     case S_IFBLK:
     case S_IFCHR:
     case S_IFIFO:
@@ -3621,8 +3629,8 @@ int create_boot_img_filesrc(IsoImageFilesystem *fs, IsoImage *image, int idx,
 
     /* Fill last entries */
     atts.st_dev = fsdata->id;
-    atts.st_blksize = BLOCK_SIZE;
-    atts.st_blocks = DIV_UP(atts.st_size, BLOCK_SIZE);
+    //atts.st_blksize = BLOCK_SIZE;
+    //atts.st_blocks = DIV_UP(atts.st_size, BLOCK_SIZE);
 
     /* ok, we can now create the file source */
     ifsdata = calloc(1, sizeof(ImageFileSourceData));

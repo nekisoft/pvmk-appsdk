@@ -198,7 +198,7 @@ struct burn_drive
 	*/
 	int global_index;
 
-	pthread_mutex_t access_lock;
+	//p thread_mutex_t access_lock; //pvmk - no p threads
 
 	enum burn_disc_status status;
 	int erasable;
@@ -434,7 +434,7 @@ struct burn_drive
 	pid_t thread_pid;
 	int thread_pid_valid;
 	/* ts B00225 */
-	pthread_t thread_tid;
+	//p thread_t thread_tid; //pvmk - no p threads
 
 	/* ts B90513 */
 	unsigned int write_retry_count;

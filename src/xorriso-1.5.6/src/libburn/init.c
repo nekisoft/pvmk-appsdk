@@ -88,7 +88,7 @@ static char sg_initialize_msg[1024] = {""};
 /* Parameters for builtin abort handler */
 static char abort_message_prefix[81] = {"libburn : "};
 static pid_t abort_control_pid= 0;
-static pthread_t abort_control_thread;
+//static pthread_t abort_control_thread;
 volatile int burn_global_abort_level= 0;
 int burn_global_abort_signum= 0;
 void *burn_global_signal_handle = NULL;
@@ -365,13 +365,13 @@ char *burn_list_sev_texts(int flag)
 
 
 /* ts B00224 */
-char *burn_util_thread_id(pid_t pid, pthread_t tid, char text[80])
+char *burn_util_thread_id(pid_t pid, /*pthread_t*/ int tid, char text[80])
 {
 	int i, l;
 
 	sprintf(text, "[%lu,", (unsigned long int) getpid());
 	l= strlen(text);
-	for(i= 0; i < ((int) sizeof(pthread_t)) && 2 * i < 80 - l - 3; i++)
+	for(i= 0; i < ((int) sizeof(/*pthread_t*/ int)) && 2 * i < 80 - l - 3; i++)
 		sprintf(text + l + 2 * i,
 			 "%2.2X", ((unsigned char *) &tid)[i]);
 
@@ -542,7 +542,7 @@ void burn_set_signal_handling(void *handle, burn_abort_handler_t handler,
 			sizeof(abort_message_prefix)-1);
 	abort_message_prefix[sizeof(abort_message_prefix)-1] = 0;
 	abort_control_pid = getpid();
-	abort_control_thread = 0; //pthread_self();
+	//abort_control_thread = 0; //pthread_self();
 	burn_builtin_signal_action = (mode >> 4) & 15;
 	if((mode & 11) != 0)
 		burn_builtin_signal_action = 0;
@@ -571,9 +571,9 @@ int burn_init_catch_on_abort(int flag)
 {
 	if (burn_builtin_triggered_action != 2)
 		return 0;
-	if (abort_control_pid != getpid() ||
-		abort_control_thread != /*pthread_self()*/ 0)
-		return 1;
+	//if (abort_control_pid != getpid() ||
+	//	abort_control_thread != /*pthread_self()*/ 0)
+	//	return 1;
 	burn_abort(4440, burn_abort_pacifier, abort_message_prefix);
 	fprintf(stderr,
 	"\n%sABORT : Program done. Even if you do not see a shell prompt.\n\n",

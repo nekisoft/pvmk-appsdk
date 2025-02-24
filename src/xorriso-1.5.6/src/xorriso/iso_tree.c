@@ -24,8 +24,8 @@
 #include <time.h>
 #include <errno.h>
 
-#include <pwd.h>
-#include <grp.h>
+//#include <pwd.h>
+//#include <grp.h>
 
 
 #include "xorriso.h"
@@ -38,6 +38,27 @@
 #include "iso_manip.h"
 #include "sort_cmp.h"
 
+
+//pvmk - horrible windows hacks
+#ifndef S_IFLNK
+#define lstat stat
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISUID
+#define S_ISUID 0
+#endif
+#ifndef S_ISGID
+#define S_ISGID 0
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#ifndef S_IFBLK
+#define S_ISBLK(x) 0
+#endif
 
 /* @param eff_path  returns resulting effective path.
                     Must provide at least SfileadrL bytes of storage.
@@ -89,13 +110,14 @@ int Xorriso_normalize_img_path(struct XorrisO *xorriso, char *wd,
    if(Sfile_str(path, img_path, 0)<=0)
      {ret= -1; goto ex;}
 
+/*
  if(path[0]!='/') {
    sprintf(xorriso->info_text,
         "Internal error: Unresolvable relative addressing in iso_rr_path '%s'",
         img_path);
    Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, errno, "FATAL", 0);
    {ret= -1; goto ex;}
- } else if(path[1]==0) {
+ } else*/ if(path[1]==0) {
    if(flag&8)
      strcpy(eff_path, "/");
    {ret= 2; goto ex;} /* root directory */
@@ -277,8 +299,10 @@ int Xorriso_fake_stbuf(struct XorrisO *xorriso, char *path, struct stat *stbuf,
    stbuf->st_mode|= S_IFDIR;
  else if(LIBISO_ISREG(*node))
    stbuf->st_mode|= S_IFREG;
+#ifdef S_IFLNK
  else if(LIBISO_ISLNK(*node))
    stbuf->st_mode|= S_IFLNK;
+#endif
  else if(LIBISO_ISCHR(*node)) {
    stbuf->st_mode|= S_IFCHR;
    Xorriso_node_get_dev(xorriso, *node, path, &dev_number, 0);
@@ -296,8 +320,10 @@ int Xorriso_fake_stbuf(struct XorrisO *xorriso, char *path, struct stat *stbuf,
    stbuf->st_rdev= dev_number;
  } else if(LIBISO_ISFIFO(*node))
    stbuf->st_mode|= S_IFIFO;
+#ifdef S_IFSOCK
  else if(LIBISO_ISSOCK(*node))
    stbuf->st_mode|= S_IFSOCK;
+#endif
  else if(LIBISO_ISBOOT(*node))
    stbuf->st_mode|= Xorriso_IFBOOT;
 
@@ -326,10 +352,11 @@ int Xorriso_fake_stbuf(struct XorrisO *xorriso, char *path, struct stat *stbuf,
  } else
    stbuf->st_size= 0;
 
- stbuf->st_blksize= 2048;
- stbuf->st_blocks= stbuf->st_size / (off_t) 2048;
- if(stbuf->st_blocks * (off_t) 2048 != stbuf->st_size)
-   stbuf->st_blocks++; 
+
+ //stbuf->st_blksize= 2048;
+ //stbuf->st_blocks= stbuf->st_size / (off_t) 2048;
+ //if(stbuf->st_blocks * (off_t) 2048 != stbuf->st_size)
+ //  stbuf->st_blocks++; 
 
  stbuf->st_atime= iso_node_get_atime(*node);
  stbuf->st_mtime= iso_node_get_mtime(*node);
@@ -670,8 +697,8 @@ int Xorriso_getfacl(struct XorrisO *xorriso, void *in_node, char *path,
  char *text= NULL, *d_text= NULL, *cpt, *npt;
  uid_t uid;
  gid_t gid;
- struct passwd *pwd;
- struct group *grp;
+ //struct passwd *pwd;
+ //struct group *grp;
 
  what= (flag >> 2) & 3;
  if(acl_text != NULL)
@@ -714,18 +741,18 @@ int Xorriso_getfacl(struct XorrisO *xorriso, void *in_node, char *path,
    if(ret <= 0)
      goto ex;
    uid= iso_node_get_uid(node);
-   pwd= getpwuid(uid);
-   if(pwd == NULL)
+  // pwd= NULL; //getpwuid(uid);
+   //if(pwd == NULL)
      sprintf(xorriso->result_line, "# owner: %.f\n", (double) uid);
-   else
-     sprintf(xorriso->result_line, "# owner: %s\n", pwd->pw_name);
+   //else
+    // sprintf(xorriso->result_line, "# owner: %s\n", pwd->pw_name);
    Xorriso_result(xorriso, 0);
    gid= iso_node_get_gid(node);
-   grp= getgrgid(gid);
-   if(grp == NULL)
+  // grp= NULL; //getgrgid(gid);
+  // if(grp == NULL)
      sprintf(xorriso->result_line, "# group: %.f\n", (double) gid);
-   else
-     sprintf(xorriso->result_line, "# group: %s\n", grp->gr_name);
+ //  else
+  //   sprintf(xorriso->result_line, "# group: %s\n", grp->gr_name);
    Xorriso_result(xorriso, 0);
  }
 
@@ -2456,7 +2483,7 @@ int Xorriso_show_stream(struct XorrisO *xorriso, void *in_node,
              "[%u,%lu,%lu]", fs_id, (unsigned long) dev_id,
                              (unsigned long) ino_id);
    }
-   ret= iso_stream_get_external_filter(stream, &cmd, 0);
+   ret= -1; //iso_stream_get_external_filter(stream, &cmd, 0);
    if(ret < 0) {
      Xorriso_process_msg_queues(xorriso,0);
      Xorriso_report_iso_error(xorriso, "", ret,

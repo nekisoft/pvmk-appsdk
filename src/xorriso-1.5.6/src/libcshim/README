@@ -1,0 +1,4 @@
+README for libcshim in xorriso in PVMK appsdk
+Bryan E. Topp <betopp@betopp.com> 2025
+
+This is the "fnmatch" and "regex" code from picolibc. It is needed to compile xorriso on Windows.

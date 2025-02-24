@@ -121,6 +121,26 @@ int Xorriso_new(struct XorrisO ** xorriso,char *progname, int flag)
  m->progname[sizeof(m->progname)-1]= 0;
  if(getcwd(m->initial_wdx,sizeof(m->initial_wdx)-1)==NULL)
    m->initial_wdx[0]= 0;
+
+//windows hack
+for(char *ss = m->initial_wdx; *ss != 0; ss++)
+{
+	if(*ss == '\\')
+		*ss = '/';
+}
+if(m->initial_wdx[1] == ':')
+{
+	char *ss = m->initial_wdx;
+	while(1)
+	{
+		ss[0] = ss[2];
+		if(ss[0] == '\0')
+			break;
+		ss++;
+	}
+}
+	
+
  m->no_rc= 0;
  m->argument_emulation= 0;
 

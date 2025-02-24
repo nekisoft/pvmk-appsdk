@@ -30,7 +30,8 @@
 #include <limits.h>
 #include <iconv.h>
 #include <locale.h>
-#include <langinfo.h>
+#include <time.h>
+//#include <langinfo.h>
 
 #include <unistd.h>
 
@@ -188,7 +189,8 @@ char *iso_get_local_charset(int flag)
 {
    if(libisofs_local_charset[0])
      return libisofs_local_charset;
-   return nl_langinfo(CODESET);
+   //return nl_langinfo(CODESET);
+   return "ASCII";
 }
 
 int strconv(const char *str, const char *icharset, const char *ocharset,
@@ -1586,7 +1588,7 @@ void iso_datetime_7(unsigned char *buf, time_t t, int always_gmt)
 
     memset(&tm, 0, sizeof(tm));
     tm.tm_isdst = -1;  /* some OSes change tm_isdst only if it is -1 */
-    localtime_r(&t, &tm);
+    memcpy(&tm, localtime(&t), sizeof(tm)); //pvmk - windows lacks localtime_r
 
 #ifdef HAVE_TM_GMTOFF
     tzoffset = tm.tm_gmtoff / 60 / 15;
@@ -1604,7 +1606,7 @@ void iso_datetime_7(unsigned char *buf, time_t t, int always_gmt)
 
     if (tzoffset > 52 || tzoffset < -48 || always_gmt) {
         /* absurd timezone offset, represent time in GMT */
-        gmtime_r(&t, &tm);
+        memcpy(&tm, gmtime(&t), sizeof(tm)); //gmtime_r(&t, &tm); //pvmk - windows lacks gmtime_r
         tzoffset = 0;
     }
 
@@ -1652,9 +1654,11 @@ void iso_datetime_17(unsigned char *buf, time_t t, int always_gmt)
 
     memset(&tm, 0, sizeof(tm));
     tm.tm_isdst = -1;  /* some OSes change tm_isdst only if it is -1 */
-    localtime_r(&t, &tm);
+    //localtime_r(&t, &tm);
 
-    localtime_r(&t, &tm);
+    //localtime_r(&t, &tm);
+	
+	memcpy(&tm, localtime(&t), sizeof(tm)); //pvmk - windows lacks localtime_r
 
 #ifdef HAVE_TM_GMTOFF
     tzoffset = tm.tm_gmtoff / 60 / 15;
@@ -1672,7 +1676,7 @@ void iso_datetime_17(unsigned char *buf, time_t t, int always_gmt)
 
     if (tzoffset > 52 || tzoffset < -48 || always_gmt) {
         /* absurd timezone offset, represent time in GMT */
-        gmtime_r(&t, &tm);
+        memcpy(&tm, gmtime(&t), sizeof(tm)); //gmtime_r(&t, &tm); //pvmk - windows lacks gmtime_r
         tzoffset = 0;
     }
 
@@ -1837,7 +1841,7 @@ time_t iso_datetime_read_7(const uint8_t *buf)
     tm.tm_sec = buf[5];
     tm.tm_isdst = 0;
 
-    return timegm(&tm) - ((int8_t)buf[6]) * 60 * 15;
+    return /*timegm*/ mktime(&tm) - ((int8_t)buf[6]) * 60 * 15;
 }
 
 time_t iso_datetime_read_17(const uint8_t *buf)
@@ -1854,7 +1858,7 @@ time_t iso_datetime_read_17(const uint8_t *buf)
     tm.tm_mon -= 1;
     tm.tm_isdst = 0;
 
-    return timegm(&tm) - ((int8_t)buf[16]) * 60 * 15;
+    return /*timegm*/ mktime(&tm) - ((int8_t)buf[16]) * 60 * 15;
 }
 
 /**

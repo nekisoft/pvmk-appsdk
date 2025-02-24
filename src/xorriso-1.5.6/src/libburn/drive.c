@@ -382,7 +382,7 @@ static int burn_drive__is_rdwr(char *fname, int *stat_ret,
 	}
 
 	if (is_rdwr && fd >= 0) {
-		getfl_ret = fcntl(fd, F_GETFL);
+		getfl_ret = O_RDWR; //fcntl(fd, F_GETFL); //pvmk - assume so because Windows doesn't tell us
 
 /*
 fprintf(stderr, "LIBBURN_DEBUG: burn_drive__is_rdwr: getfl_ret = %lX , O_RDWR = %lX , & = %lX , O_RDONLY = %lX\n", (unsigned long) getfl_ret, (unsigned long) O_RDWR, (unsigned long) (getfl_ret & O_RDWR), (unsigned long) O_RDONLY);
@@ -557,7 +557,7 @@ struct burn_drive *burn_drive_register(struct burn_drive *d)
 	d->busy = BURN_DRIVE_IDLE;
 	d->thread_pid = 0;
 	d->thread_pid_valid = 0;
-	memset(&(d->thread_tid), 0, sizeof(d->thread_tid));
+	//memset(&(d->thread_tid), 0, sizeof(d->thread_tid)); //pvmk - no p threads
 	d->medium_state_changed = 0;
 	d->set_streaming_exact_bit = 0;
 	d->set_streaming_err = 0;
@@ -1158,7 +1158,7 @@ enum burn_drive_status burn_drive_get_status(struct burn_drive *d,
 		burn_global_abort_level++;
 	if (burn_builtin_triggered_action < 2 && burn_global_abort_level > 5) {
 		if (burn_global_signal_handler == NULL)
-			kill(getpid(), burn_global_abort_signum);
+			abort(); //kill(getpid(), burn_global_abort_signum); //pvmk - more portable
 		else
 			(*burn_global_signal_handler)
 				(burn_global_signal_handle,
@@ -2059,6 +2059,9 @@ int burn_drive_is_enumerable_adr(char *adr)
 int burn_drive_resolve_link(char *path, char adr[], int *recursion_count,
 				int flag)
 {
+	return 0;
+	#if 0 //pvmk - not needed as we do not use real drives
+	
 	int ret, link_target_size = 4096;
 	char *link_target = NULL, *msg = NULL, *link_adr = NULL, *adrpt;
 	struct stat stbuf;
@@ -2125,6 +2128,7 @@ ex:;
 	BURN_FREE_MEM(msg);
 	BURN_FREE_MEM(link_adr);
 	return ret;
+	#endif //0
 }
 
 /* ts A60922 - A61014 ticket 33 */
@@ -2293,7 +2297,7 @@ int burn_drive_find_scsi_equiv(char *path, char adr[])
 int burn_drive_convert_fs_adr_sub(char *path, char adr[], int *rec_count)
 {
 	int ret;
-	struct stat stbuf;
+	struct stat stbuf = {0};
 
 	burn_drive_adr_debug_msg("burn_drive_convert_fs_adr( %s )", path);
 	if (strncmp(path, "stdio:", 6) == 0 ||
@@ -2307,10 +2311,13 @@ int burn_drive_convert_fs_adr_sub(char *path, char adr[], int *rec_count)
 		return 1;
 	}
 
+	#if 0 //pvmk - not needed as we do not use real drives
 	if(lstat(path, &stbuf) == -1) {
 		burn_drive_adr_debug_msg("lstat( %s ) returns -1", path);
 		return 0;
 	}
+	#endif 
+	#if 0 //pvmk - not needed as we do not use real drives
 	if((stbuf.st_mode & S_IFMT) == S_IFLNK) {
 		ret = burn_drive_resolve_link(path, adr, rec_count, 0);
 		if(ret > 0)
@@ -2321,6 +2328,8 @@ int burn_drive_convert_fs_adr_sub(char *path, char adr[], int *rec_count)
 			return 0;
 		}
 	}
+	#endif 
+	
 	if((stbuf.st_mode&S_IFMT) == S_IFBLK ||
 	   (stbuf.st_mode&S_IFMT) == S_IFCHR) {
 		ret = burn_drive_find_devno(stbuf.st_rdev, adr);
@@ -2350,6 +2359,9 @@ int burn_drive_convert_fs_adr(char *path, char adr[])
 int burn_lookup_device_link(char *dev_adr, char link_adr[],
 			char *dir_adr, char **ranks, int rank_count, int flag)
 {
+	return 0;
+	#if 0 //pvmk - not needed as we do not use real drives
+	
 	DIR *dirpt= NULL;
 	struct dirent *entry;
 	struct stat link_stbuf;
@@ -2425,6 +2437,7 @@ ex:;
 	BURN_FREE_MEM(adr);
 	BURN_FREE_MEM(sys_adr);
 	return(ret);
+	#endif //0
 }
 
 

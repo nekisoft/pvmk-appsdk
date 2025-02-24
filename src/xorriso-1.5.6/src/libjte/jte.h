@@ -9,6 +9,8 @@
  *
  * GNU GPL v2
  */
+ 
+ #if 0 //pvmk - don't care
 
 #ifndef _JTE_JTE_H_
 #define _JTE_JTE_H_
@@ -18,7 +20,7 @@ struct libjte_env;
 
 #include <stdio.h>
 #include <unistd.h>
-#include <regex.h>
+//#include <regex.h>
 #include "checksum.h"
 
 typedef int BOOL;
@@ -207,3 +209,6 @@ int libjte_add_msg_entry(struct libjte_env *o, char *message, int flag);
 
 #endif
 /*_JTE_JTE_H_*/
+
+
+#endif 

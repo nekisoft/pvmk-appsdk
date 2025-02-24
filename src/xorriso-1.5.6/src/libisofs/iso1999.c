@@ -116,7 +116,7 @@ int create_node(Ecma119Image *t, IsoNode *iso, Iso1999Node **node)
         }
         n->info.dir->children = NULL;
         if (dir->nchildren > 0) {
-            n->info.dir->children = calloc(sizeof(void*), dir->nchildren);
+            n->info.dir->children = calloc(dir->nchildren, sizeof(void*));
             if (n->info.dir->children == NULL) {
                 free(n->info.dir);
                 free(n);

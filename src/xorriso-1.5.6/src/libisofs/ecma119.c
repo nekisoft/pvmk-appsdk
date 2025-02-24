@@ -41,7 +41,7 @@
 #include <time.h>
 #include <string.h>
 #include <locale.h>
-#include <langinfo.h>
+//#include <langinfo.h> //pvmk - windows lacks
 #include <stdio.h>
 
 #ifdef Xorriso_standalonE
@@ -2651,7 +2651,7 @@ int ecma119_image_new(IsoImage *src, IsoWriteOpts *in_opts, Ecma119Image **img)
     target->j_part_root = NULL;
     target->j_part_l_path_table_pos = 0;
     target->j_part_m_path_table_pos = 0;
-    target->input_charset = strdup(iso_get_local_charset(0));
+    target->input_charset = strdup("ASCII"); //iso_get_local_charset(0));
     if (target->input_charset == NULL) {
         ret = ISO_OUT_OF_MEM;
         goto target_cleanup;

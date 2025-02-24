@@ -97,7 +97,7 @@ int iso_ring_buffer_new(size_t size, IsoRingBuffer **rbuf)
     }
     
     buffer->cap = (size > 32 ? size : 32) * BLOCK_SIZE;
-    fprintf(stderr, "xorriso-pvmk: making big buffer of %lu bytes for singlethreaded operation\n", buffer->cap);
+    fprintf(stderr, "xorriso-pvmk: making big buffer of %lu bytes for singlethreaded operation\n", (long unsigned)(buffer->cap));
     
     buffer->buf = malloc(buffer->cap);
     if (buffer->buf == NULL) {

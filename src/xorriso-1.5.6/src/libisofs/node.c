@@ -1539,6 +1539,9 @@ int iso_node_new_file(char *name, IsoStream *stream, IsoFile **file)
 
 int iso_node_new_symlink(char *name, char *dest, IsoSymlink **link)
 {
+	#ifndef S_IFLNK
+		return ISO_WRONG_ARG_VALUE;
+	#else
     IsoSymlink *new;
     int ret;
 
@@ -1570,7 +1573,12 @@ int iso_node_new_symlink(char *name, char *dest, IsoSymlink **link)
     new->st_ino = 0;
     *link = new;
     return ISO_SUCCESS;
+	#endif
 }
+
+#ifndef S_ISLNK
+#define S_ISLNK(x) 0
+#endif
 
 int iso_node_new_special(char *name, mode_t mode, dev_t dev,
                          IsoSpecial **special)

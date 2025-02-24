@@ -111,6 +111,11 @@ int lfs_lstat(IsoFileSource *src, struct stat *info)
     if (path == NULL)
         return ISO_OUT_OF_MEM;
 
+	//pvmk - windows hack
+	#ifndef S_ISLNK
+	#define lstat stat
+	#endif
+
     if (lstat(path, info) != 0) {
         int err;
 
@@ -422,6 +427,9 @@ int lfs_readdir(IsoFileSource *src, IsoFileSource **child)
 static
 int lfs_readlink(IsoFileSource *src, char *buf, size_t bufsiz)
 {
+	#ifndef S_ISLNK
+		return ISO_FILE_IS_NOT_SYMLINK;
+	#else
     int size, ret;
     char *path;
 
@@ -470,6 +478,7 @@ int lfs_readlink(IsoFileSource *src, char *buf, size_t bufsiz)
     }
     buf[size] = '\0';
     return ret;
+	#endif
 }
 
 static

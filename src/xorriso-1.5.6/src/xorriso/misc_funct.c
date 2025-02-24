@@ -21,11 +21,34 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
-#include <sys/utsname.h>
+//#include <sys/utsname.h>
 
 
 #include "sfile.h"
 #include "misc_funct.h"
+
+
+
+//pvmk - horrible windows hacks
+#ifndef S_IFLNK
+#define lstat stat
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISUID
+#define S_ISUID 0
+#endif
+#ifndef S_ISGID
+#define S_ISGID 0
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#ifndef S_IFBLK
+#define S_ISBLK(x) 0
+#endif
 
 
 /* --------------------------------- misc --------------------------------- */
@@ -689,7 +712,8 @@ char *Ftimetxt(time_t t, char timetext[40], int flag)
  int form;
 
  form= (flag>>1)&7;
- tmpt= localtime_r(&t, &tms);
+ //tmpt= localtime_r(&t, &tms);
+ memcpy(&tms, localtime(&t), sizeof(tms)); tmpt = &tms; //pvmk - windows lacks localtime_r
  rpt= timetext;
  rpt[0]= 0;
  if(tmpt==0)
@@ -769,6 +793,7 @@ single_letters:;
 
 int Wait_for_input(int fd, int microsec, int flag)
 {
+	/*
  struct timeval wt;
  fd_set rds,wts,exs;
  int ready;
@@ -787,6 +812,7 @@ int Wait_for_input(int fd, int microsec, int flag)
    return(-1);
  if(FD_ISSET(fd,&rds))
    return(1);
+*/
  return(0);
 }
 
@@ -794,17 +820,20 @@ int Wait_for_input(int fd, int microsec, int flag)
 int System_uname(char **sysname, char **release, char **version,
                  char **machine, int flag)
 {
+
  int ret;
- static struct utsname uts;
+// static struct utsname uts;
  static int initialized= 0;
  
  if(initialized == 0) {
-   ret= uname(&uts);
+//   ret= uname(&uts);
+ret = -1;
    if(ret != 0)
      initialized = -1;
  }
- if(initialized == -1)
+// if(initialized == -1)
    return(0);
+#if 0
  if(sysname != NULL)
    *sysname= uts.sysname;
  if(release != NULL)
@@ -814,6 +843,7 @@ int System_uname(char **sysname, char **release, char **version,
  if(machine != NULL)
    *machine= uts.machine;
  return(1);
+ #endif
 }
 
 /* ------------------------------------------------------------------------ */

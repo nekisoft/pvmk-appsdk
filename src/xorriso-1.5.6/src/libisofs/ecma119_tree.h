@@ -66,7 +66,7 @@ struct ecma119_node
 
     uint32_t ino;
 
-    nlink_t nlink;
+    /*nlink_t*/ int  nlink; //pvmk - don't care about nlink_t type, windows lacks
 
     /**< file, symlink, special, directory or placeholder */
     enum ecma119_node_type type;

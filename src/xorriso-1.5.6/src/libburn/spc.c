@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
+//#include <sys/ioctl.h> //pvmk - not on windows
 #include <string.h>
 
 /* ts A61008 */

@@ -134,6 +134,13 @@ int iso_file_source_get_aa_string(IsoFileSource *src,
     return src->class->get_aa_string(src, aa_string, flag);
 }
 
+//pvmk - hack for windows when links are not available
+#ifndef S_ISLNK
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
 
 /* @flag  bit0= Open and close src
           bit1= Try iso_file_source_lseek(, 0) (=SEEK_SET) with wanted_size

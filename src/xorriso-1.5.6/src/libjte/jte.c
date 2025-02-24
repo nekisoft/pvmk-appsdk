@@ -18,6 +18,8 @@
  *
  * GNU GPL v2+
  */
+ 
+ #if 0 //pvmk - don't care
 
 #define _GNU_SOURCE // for strdup in cygwin
 
@@ -1501,3 +1503,8 @@ no_mem:;
     return 1;
 }
 
+
+
+#endif //0
+
+void jte_dummy(void) { }

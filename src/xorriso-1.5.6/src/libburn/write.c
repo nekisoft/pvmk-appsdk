@@ -2741,7 +2741,7 @@ int burn_stdio_sync_cache(int fd, struct burn_drive *d, int flag)
 			libdax_msgs_submit(libdax_messenger, -1, 0x00000002,
 				LIBDAX_MSGS_SEV_DEBUG, LIBDAX_MSGS_PRIO_ZERO,
 				"syncing cache (stdio fsync)", 0, 0);
-		ret = fsync(fd);
+		ret = 0; //fsync(fd); //pvmk - don't care
 	} else {
 		ret = 0;
 	}
@@ -3266,7 +3266,7 @@ int burn_random_access_write(struct burn_drive *d, off_t byte_address,
 				char *data, off_t data_count, int flag)
 {
 	int alignment = 0, start, upto, chunksize, err, fd = -1, ret;
-	int do_close = 0, getfl_ret;
+	int do_close = 0; //, getfl_ret;
 	char msg[81], *rpt;
 	struct buffer *buf = NULL, *buffer_mem = d->buffer;
 
@@ -3342,12 +3342,12 @@ int burn_random_access_write(struct burn_drive *d, off_t byte_address,
 	if (d->drive_role != 1) {
 		if (d->stdio_fd >= 0) {
 			/* Avoid to have a read-only fd open */
-			getfl_ret = fcntl(d->stdio_fd, F_GETFL);
+			/*getfl_ret = fcntl(d->stdio_fd, F_GETFL);
 			if (((O_RDWR | O_WRONLY | O_RDONLY) & getfl_ret) ==
 			    O_RDONLY) {
 				close(d->stdio_fd);
 				d->stdio_fd = -1;
-			}
+			}*/ //pvmk - don't care
 		}
 		if (d->stdio_fd >= 0) {
 			/* Avoid to have two fds open */

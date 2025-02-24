@@ -1006,7 +1006,7 @@ int Permstack_pop(struct PermiteM **o, struct PermiteM *stopper,
      }
    }
    if(!(flag&1)) {
-     ret= chown(m->disk_path, m->stbuf.st_uid, m->stbuf.st_gid);
+     ret= -1; //chown(m->disk_path, m->stbuf.st_uid, m->stbuf.st_gid);
                                                /* don't complain if it fails */
      if(!(flag&2)) {
        utime_buffer.actime= m->stbuf.st_atime;

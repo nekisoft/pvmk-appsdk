@@ -27,6 +27,7 @@ typedef void (*sighandler_t)(int);
 
 #include "cleanup.h"
 
+#if 0
 
 #ifndef Cleanup_has_no_libburn_os_H
 
@@ -107,7 +108,7 @@ static int Cleanup_handler_exit(int exit_value, int signum, int flag)
    return(0);
  }
  cleanup_exiting= 1;
- alarm(0);
+// alarm(0);
  if(!cleanup_perform_app_handler_first)
    if(cleanup_app_handler!=NULL) {
      ret= (*cleanup_app_handler)(cleanup_app_handle,signum,0); 
@@ -142,6 +143,7 @@ static char *Cleanup_signo_to_name(int signo)
  return("");
 }
 
+#endif //0 - pvmk
 
 int Cleanup_set_handlers(void *handle, Cleanup_app_handler_T handler, int flag)
 /*
@@ -152,6 +154,7 @@ int Cleanup_set_handlers(void *handle, Cleanup_app_handler_T handler, int flag)
  bit8= set SIGPIPE to SIGIGN
 */
 {
+	#if 0 //PVMK - no need as we don't touch real drives
  int i,j,max_sig= -1,min_sig= 0x7fffffff;
  char *sig_name;
  sighandler_t sig_handler;
@@ -199,6 +202,7 @@ int Cleanup_set_handlers(void *handle, Cleanup_app_handler_T handler, int flag)
        signal(i,sig_handler);
    }
  }
+ #endif //PVMK
  return(1);
 }
 

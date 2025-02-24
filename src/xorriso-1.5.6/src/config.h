@@ -8,6 +8,17 @@
 #define LIBISO_MSGS_SINGLE_THREADED 1
 #define _GNU_SOURCE // for strdup in cygwin
 
+//Nasty hack for MSW which doesn't define uid_t or gid_t
+#ifndef _UID_T_DECLARED
+typedef int uid_t;
+#define _UID_T_DECLARED int
+#endif
+#ifndef _GID_T_DECLARED
+typedef int gid_t;
+#define _GID_T_DECLARED int
+#endif
+
+
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
@@ -190,13 +201,13 @@
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
-#undef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
 
 /* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
-#undef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE 1
 
 /* Define for large files, on AIX-style hosts. */
-#undef _LARGE_FILES
+#define _LARGE_FILES 1
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

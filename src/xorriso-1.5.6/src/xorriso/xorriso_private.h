@@ -35,7 +35,6 @@
 #endif
 
 
-
 /** The source code release timestamp */
 #include "xorriso_timestamp.h"
 #ifndef Xorriso_timestamP
@@ -736,14 +735,14 @@ struct XorrisO { /* the global context of xorriso */
 
  int lib_msg_queue_lock_ini;
  int result_msglists_lock_ini;
- pthread_mutex_t lib_msg_queue_lock;
- pthread_mutex_t result_msglists_lock;
+ //pthread_mutex_t lib_msg_queue_lock;
+ //pthread_mutex_t result_msglists_lock;
 
  int write_to_channel_lock_ini;
- pthread_mutex_t write_to_channel_lock;
+ //pthread_mutex_t write_to_channel_lock;
 
  int msg_watcher_lock_ini;
- pthread_mutex_t msg_watcher_lock;
+ //pthread_mutex_t msg_watcher_lock;
  int msg_watcher_state; /* 0= inactive
                            1= registered
                            2= started
@@ -756,7 +755,7 @@ struct XorrisO { /* the global context of xorriso */
  int msgw_stack_handle;
  int msgw_msg_pending; /* 0=no, 1=fetching(i.e. maybe) , 2=yes */
  int msgw_fetch_lock_ini;
- pthread_mutex_t msgw_fetch_lock;
+ //pthread_mutex_t msgw_fetch_lock;
 
  struct Xorriso_msg_sievE *msg_sieve;
  int msg_sieve_disabled;
@@ -775,7 +774,7 @@ struct XorrisO { /* the global context of xorriso */
  int problem_status; /* Severity rank number. 0= no abort condition present */
  char problem_status_text[20];
  int problem_status_lock_ini;
- pthread_mutex_t problem_status_lock;
+// pthread_mutex_t problem_status_lock;
 
  char errfile_log[SfileadrL]; /* for -errfile_log */
  int errfile_mode; /* bit0= marked */

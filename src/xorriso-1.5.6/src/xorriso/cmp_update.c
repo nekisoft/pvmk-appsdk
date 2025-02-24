@@ -24,8 +24,8 @@
 #include <time.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <pwd.h>
-#include <grp.h>
+//#include <pwd.h>
+//#include <grp.h>
 
 /* O_BINARY is needed for Cygwin but undefined elsewhere */
 #ifndef O_BINARY
@@ -346,10 +346,14 @@ int Xorriso_compare_2_files(struct XorrisO *xorriso, char *disk_adr,
    }
  }
  if(!missing) {
+#ifdef S_IFLNK
    if(flag&(1<<28))
      ret= stat(disk_adr, &s1);
    else
      ret= lstat(disk_adr, &s1);
+#else
+	ret= stat(disk_adr, &s1);
+#endif
    if(ret==-1) {
      strcpy(respt, "? ");
      Text_shellsafe(disk_adr, respt, 1);
@@ -421,6 +425,7 @@ int Xorriso_compare_2_files(struct XorrisO *xorriso, char *disk_adr,
      if(!(flag&(1u<<31)))
        Xorriso_result(xorriso,0);
      (*result)|= 8;
+	 #ifdef S_IFLNK
      if((s1.st_mode&S_IFMT) == S_IFLNK) {
        /* check whether link target type matches */
        ret= stat(disk_adr, &stbuf);
@@ -428,6 +433,7 @@ int Xorriso_compare_2_files(struct XorrisO *xorriso, char *disk_adr,
          if(S_ISDIR(stbuf.st_mode) && S_ISDIR(s2.st_mode))
            (*result)|= (1<<16);
      }
+	 #endif
    }
  }
 
@@ -891,7 +897,13 @@ overwrite:;
                                  &split_parts, &split_count, &stbuf, 0);
      if(ret<=0)
        {ret= -1; goto ex;}  /* (should not happen) */
-     ret= lstat(disk_path, &stbuf);
+   
+		#ifdef S_IFLNK
+		ret= lstat(disk_path, &stbuf);
+		#else
+		ret= stat(disk_path, &stbuf);
+		#endif
+	 
      if(ret==-1)
        goto delete;
      disk_size= stbuf.st_size;

@@ -873,8 +873,8 @@ int isoburn_ropt_new(struct isoburn_read_opts **new_o, int flag)
  o->noino= 1;
  o->nomd5= 1;
  o->preferjoliet= 0;
- o->uid= geteuid();
- o->gid= getegid();
+ o->uid= 1;// geteuid(); //pvmk - don't care
+ o->gid= 1; //getegid(); //pvmk - don't care
  o->mode= 0444;
  o->dirmode= 0555;
  o->input_charset= NULL;

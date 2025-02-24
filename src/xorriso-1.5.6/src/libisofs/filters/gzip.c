@@ -29,7 +29,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/wait.h>
+
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
@@ -37,6 +37,7 @@
 
 #ifdef Libisofs_with_zliB
 #include <zlib.h>
+#include <sys/wait.h>
 #else
 /* If zlib is not available then this code is a dummy */
 #endif

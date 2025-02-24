@@ -24,7 +24,7 @@
 #include <time.h>
 #include <errno.h>
 
-#include <sys/wait.h>
+//#include <sys/wait.h>
 
 #include "xorriso.h"
 #include "xorriso_private.h"
@@ -1031,6 +1031,10 @@ int Xorriso_set_change_pending(struct XorrisO *xorriso, int flag)
 int Xorriso_mount(struct XorrisO *xorriso, char *dev, int adr_mode,
                   char *adr_value, char *cmd, int flag)
 {
+	return 0;
+	#if 0 //pvmk - nope
+	
+	
  int ret, lba, track, session, params_flag= 0, is_safe= 0, is_extra_drive= 0;
  int give_up= 0, mount_chardev= 0, status, aquire_flag= 0;
  char volid[33], *devadr, *mount_command= NULL, *adr_data= NULL, *adr_pt;
@@ -1222,6 +1226,7 @@ ex:;
  Xorriso_free_meM(adr_data);
  Xorriso_free_meM(libburn_adr);
  return(ret);
+ #endif
 }
 
 

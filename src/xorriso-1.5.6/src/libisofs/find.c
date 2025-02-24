@@ -16,7 +16,9 @@
 #include "libisofs.h"
 #include "node.h"
 
-#include <fnmatch.h>
+//#include <fnmatch.h>
+#include "../libcshim/fnmatch.h" //pvmk - use builtin one
+
 #include <string.h>
 
 struct iso_find_condition

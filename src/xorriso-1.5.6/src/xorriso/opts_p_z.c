@@ -360,7 +360,7 @@ int Xorriso_option_print_size(struct XorrisO *xorriso, int flag)
        fd= 1;
      ret= write(fd, xorriso->result_line, strlen(xorriso->result_line));
      /* (result of write intentionally ignored) */
-     fsync(fd);
+//     fsync(fd); //pvmk - don't care
    }
  } else {
    sprintf(xorriso->result_line,"Image size   : %ds\n", ret);
@@ -1840,7 +1840,11 @@ int Xorriso_option_update(struct XorrisO *xorriso, char *disk_path,
      do_register= 1;
      if(!(flag & 8)) {
        /* If directory with -update : do not register di_*_paths */
+	   #ifdef S_IFLNK
        ret= lstat(eff_origin, &stbuf);
+	   #else
+		ret= stat(eff_origin, &stbuf);   
+	   #endif
        if(ret != -1)
          if(S_ISDIR(stbuf.st_mode))
            do_register= 0;
@@ -1870,7 +1874,11 @@ int Xorriso_option_update(struct XorrisO *xorriso, char *disk_path,
      ret= 1;
    }
    if(ret>0) {
+	   #ifdef S_IFLNK
      ret= lstat(eff_origin, &stbuf);
+	 #else
+	ret= stat(eff_origin, &stbuf);	 
+	 #endif
      if(ret != -1) {
        argv[0]= eff_origin;
        argv[1]= "-exec";

@@ -33,7 +33,8 @@
 #include <time.h>
 #include <limits.h>
 #include <stdio.h>
-#include <fnmatch.h>
+//#include <fnmatch.h> //pvmk - using builtin one
+#include "../libcshim/fnmatch.h"
 
 
 /**
@@ -243,6 +244,11 @@ int iso_image_add_new_symlink(IsoImage *image, IsoDir *parent,
  *         ISO_OUT_OF_MEM
  * 
  */
+ 
+ #ifndef S_ISLNK
+ #define S_ISLNK(x) 0
+ #endif
+ 
 int iso_tree_add_new_special(IsoDir *parent, const char *name, mode_t mode,
                              dev_t dev, IsoSpecial **special)
 {
@@ -806,8 +812,10 @@ int check_special(IsoImage *image, mode_t mode)
             return image->ignore_special & 0x08 ? 1 : 0;
         case S_IFCHR:
             return image->ignore_special & 0x04 ? 1 : 0;
+		#ifdef S_IFSOCK
         case S_IFSOCK:
             return image->ignore_special & 0x02 ? 1 : 0;
+		#endif
         case S_IFIFO:
             return image->ignore_special & 0x01 ? 1 : 0;
         default:

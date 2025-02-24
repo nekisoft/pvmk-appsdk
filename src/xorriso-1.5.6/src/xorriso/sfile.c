@@ -21,11 +21,33 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
-#include <pwd.h>
-#include <grp.h>
+//#include <pwd.h>
+//#include <grp.h>
 
 
 #include "sfile.h"
+
+
+//pvmk - horrible windows hacks
+#ifndef S_IFLNK
+#define lstat stat
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISUID
+#define S_ISUID 0
+#endif
+#ifndef S_ISGID
+#define S_ISGID 0
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#ifndef S_IFBLK
+#define S_ISBLK(x) 0
+#endif
 
 
 /* @param flag bit0= do not clip off carriage return at line end
@@ -273,15 +295,19 @@ int Sfile_type(char *filename, int flag)
  }
  if(S_ISDIR(stbuf.st_mode))
    {ret= 2; goto ex;}
+#ifdef S_IFLNK
  if((stbuf.st_mode&S_IFMT)==S_IFLNK)
    {ret= 3; goto ex;}
+#endif
  if(S_ISFIFO(stbuf.st_mode))
    {ret= 4; goto ex;}
  if(S_ISBLK(stbuf.st_mode))
    {ret= 6; goto ex;}
+#ifdef S_IFSOCK
  if(flag&8)
    if((stbuf.st_mode&S_IFMT)==S_IFSOCK)
      {ret= 7; goto ex;}
+ #endif
  if(flag&8)
    if(S_ISCHR(stbuf.st_mode))
      {ret= 8; goto ex;}

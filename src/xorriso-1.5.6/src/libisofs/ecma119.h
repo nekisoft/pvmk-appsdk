@@ -788,9 +788,9 @@ struct ecma119_image
     IsoRingBuffer *buffer;
 
     /* writer thread descriptor */
-    pthread_t wthread;
+    /*p thread_t*/ int wthread; //pvmk - no p threads
     int wthread_is_running;
-    pthread_attr_t th_attr;
+    //p thread_attr_t th_attr; //pvmk - no p threads
 
     /* Effective partition table parameter: 1 to 63, 0= disabled/default */
     int partition_secs_per_head;

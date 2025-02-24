@@ -1447,7 +1447,7 @@ int Xorriso_genisofs(struct XorrisO *xorriso, char *whom,
        fd= 1;
      ret= write(fd, xorriso->result_line, strlen(xorriso->result_line));
      /* (result of write intentionally ignored) */
-     fsync(fd);
+   //  fsync(fd); //pvmk - don't care
      Xorriso_option_version(xorriso, 0);
 
    } else if(strcmp(argpt, "-o")==0 || strcmp(argpt, "-output")==0) {

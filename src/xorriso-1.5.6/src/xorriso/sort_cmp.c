@@ -350,7 +350,7 @@ int Xorriso_sorted_node_array(struct XorrisO *xorriso,
  if(ret<=0)
    return(ret);
 
- *node_array= calloc(sizeof(IsoNode *), (*nodec)+1);
+ *node_array= calloc((*nodec)+1, sizeof(IsoNode *));
  if(*node_array==NULL) {
    sprintf(xorriso->info_text,
            "Cannot allocate memory for %d directory entries", *nodec); 
@@ -613,10 +613,16 @@ int Xorriso_hardlink_update(struct XorrisO *xorriso, int *compare_result,
 
  /* Handle eventual hardlink joining : */
 
+#ifdef S_IFLNK
  if(follow_links)
    ret= stat(disk_path, &stbuf);
  else
    ret= lstat(disk_path, &stbuf);
+#else
+	(void)follow_links;
+	ret= stat(disk_path, &stbuf);
+#endif
+
  if(ret==-1)
    {ret= 0; goto ex;}
 

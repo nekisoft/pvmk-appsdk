@@ -555,7 +555,7 @@ static void *write_disc_worker_func(struct w_list *w)
 #endif /* Libburn_protect_write_threaD */
 
 	d->thread_pid = getpid();
-	d->thread_tid = 0; //p thread_self(); //pvmk - no p threads
+	//d->thread_tid = 0; //p thread_self(); //pvmk - no p threads
 	d->thread_pid_valid= 1;
 	burn_disc_write_sync(w->u.write.opts, w->u.write.disc);
 	d->thread_pid_valid= 0;

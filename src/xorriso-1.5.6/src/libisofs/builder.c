@@ -116,7 +116,7 @@ int default_create_node(IsoNodeBuilder *builder, IsoImage *image,
     unsigned char *aa_string = NULL;
     char *a_text = NULL, *d_text = NULL;
     char *dest = NULL;
-    IsoSymlink *link;
+    IsoSymlink *link; (void)link;
 
     if (builder == NULL || src == NULL || node == NULL) {
         {ret = ISO_NULL_POINTER; goto ex;}
@@ -179,7 +179,8 @@ int default_create_node(IsoNodeBuilder *builder, IsoImage *image,
             new = (IsoNode*)dir;
         }
         break;
-    case S_IFLNK:
+    #ifdef S_IFLNK
+	case S_IFLNK:
         {
             /* source is a symbolic link */
             LIBISO_ALLOC_MEM(dest, char, LIBISOFS_NODE_PATH_MAX);
@@ -198,7 +199,10 @@ int default_create_node(IsoNodeBuilder *builder, IsoImage *image,
             }
         }
         break;
+	#endif //link support
+	#ifdef S_IFSOCK
     case S_IFSOCK:
+	#endif //sock support
     case S_IFBLK:
     case S_IFCHR:
     case S_IFIFO:

@@ -160,7 +160,7 @@ int create_node(Ecma119Image *t, IsoNode *iso, JolietNode **node)
         }
         joliet->info.dir->children = NULL;
         if (dir->nchildren > 0) {
-            joliet->info.dir->children = calloc(sizeof(void*), dir->nchildren);
+            joliet->info.dir->children = calloc(dir->nchildren, sizeof(void*));
             if (joliet->info.dir->children == NULL) {
                 free(joliet->info.dir);
                 free(joliet);

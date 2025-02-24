@@ -34,7 +34,7 @@
 
 /* for -charset */
 #include <iconv.h>
-#include <langinfo.h>
+//#include <langinfo.h>
 
 #ifdef Xorriso_standalonE
 
@@ -486,9 +486,9 @@ int Xorriso_set_local_charset(struct XorrisO *xorriso, char *name, int flag)
  char *nl_charset;
  iconv_t iconv_ret= (iconv_t) -1;
 
- nl_charset= nl_langinfo(CODESET);
- if(name == NULL)
-   name= nl_charset;
+ //nl_charset= nl_langinfo(CODESET);
+ //if(name == NULL)
+ //  name= nl_charset;
  if(name == NULL)
    goto cannot;
 

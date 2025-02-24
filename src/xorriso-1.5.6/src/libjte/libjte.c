@@ -9,6 +9,8 @@
  *
  */
  
+ #if 0
+ 
  #define _GNU_SOURCE // for strdup in cygwin
 
 #ifdef HAVE_CONFIG_H
@@ -612,3 +614,8 @@ int libjte_clear_msg_list(struct libjte_env *o, int flag)
     return 1;
 }
 
+
+
+#endif //0
+
+void libjte_dummy(void) { }

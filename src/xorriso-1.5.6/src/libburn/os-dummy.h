@@ -14,16 +14,18 @@
     a graceful abort of libburn. (See man 7 signal.)
 */
 /* Once as system defined macros */
-#define BURN_OS_SIGNAL_MACRO_LIST \
- SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGABRT, \
- SIGFPE, SIGSEGV, SIGPIPE, SIGALRM, SIGTERM, \
- SIGUSR1, SIGUSR2, SIGXCPU
+#define BURN_OS_SIGNAL_MACRO_LIST 0 //pvmk - empty
+
+ //SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGABRT, 
+ //SIGFPE, SIGSEGV, SIGPIPE, SIGALRM, SIGTERM, 
+ //SIGUSR1, SIGUSR2, SIGXCPU
 
 /* Once as text 1:1 list of strings for messages and interpreters */
-#define BURN_OS_SIGNAL_NAME_LIST \
- "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGABRT", \
- "SIGFPE", "SIGSEGV", "SIGPIPE", "SIGALRM", "SIGTERM", \
- "SIGUSR1", "SIGUSR2", "SIGXCPU"
+#define BURN_OS_SIGNAL_NAME_LIST "" //pvmk - empty
+
+ //"SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGABRT", 
+ //"SIGFPE", "SIGSEGV", "SIGPIPE", "SIGALRM", "SIGTERM", 
+ //"SIGUSR1", "SIGUSR2", "SIGXCPU"
 
 /* The number of above list items */
 #define BURN_OS_SIGNAL_COUNT 13
@@ -53,13 +55,13 @@
 
 /** The combined list of all signals which shall not be caught.
  */
-#define BURN_OS_NON_SIGNAL_MACRO_LIST \
-SIGKILL, SIGCHLD, SIGSTOP, SIGTSTP, SIGCONT, SIGTTIN, SIGTTOU \
-BURN_OS_SIG_WINCH BURN_OS_SIG_URG
+#define BURN_OS_NON_SIGNAL_MACRO_LIST 0 //pvmk - empty
+//SIGKILL, SIGCHLD, SIGSTOP, SIGTSTP, SIGCONT, SIGTTIN, SIGTTOU 
+//BURN_OS_SIG_WINCH BURN_OS_SIG_URG
 
 /* The number of above list items */
-#define BURN_OS_NON_SIGNAL_COUNT \
-( 7 + BURN_OS_SIG_WINCH_CNT + BURN_OS_SIG_URG_CNT )
+#define BURN_OS_NON_SIGNAL_COUNT 0 //pvmk - empty
+//( 7 + BURN_OS_SIG_WINCH_CNT + BURN_OS_SIG_URG_CNT )
 
 
 /* The maximum size for a (SCSI) i/o transaction */

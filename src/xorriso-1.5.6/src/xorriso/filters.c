@@ -60,12 +60,12 @@ int Xorriso_extf_new(struct XorrisO *xorriso, struct Xorriso_extF **filter,
  struct Xorriso_extF *o= NULL;
  IsoExternalFilterCommand *cmd;
 
- *filter= o= calloc(sizeof(struct Xorriso_extF), 1);
+ *filter= o= calloc(1, sizeof(struct Xorriso_extF));
  if(o == NULL)
    goto failure;
  o->flag= flag;
  o->cmd= NULL;
- o->cmd= cmd= calloc(sizeof(IsoExternalFilterCommand), 1);
+ o->cmd= cmd= calloc(1, sizeof(IsoExternalFilterCommand));
  if(cmd == NULL)
    goto failure;
  cmd->version= 0;
@@ -83,7 +83,7 @@ int Xorriso_extf_new(struct XorrisO *xorriso, struct Xorriso_extF **filter,
  cmd->path= strdup(path);
  if(cmd->path == NULL)
    goto failure;
- cmd->argv= calloc(sizeof(char *), argc + 2);
+ cmd->argv= calloc(argc + 2, sizeof(char *));
  if(cmd->argv == NULL)
    goto failure;
  for(i= 0; i < argc + 2; i++)
@@ -355,7 +355,7 @@ int Xorriso_set_filter(struct XorrisO *xorriso, void *in_node,
          suffix= ".gz";
          strip_suffix= 0;
        } else {
-         ret= iso_stream_get_external_filter(stream, &cmd, 0);
+         ret= 0; //iso_stream_get_external_filter(stream, &cmd, 0);
          if(ret > 0) {
            suffix= cmd->suffix;
            strip_suffix= !(cmd->behavior & 8);
@@ -417,7 +417,7 @@ int Xorriso_set_filter(struct XorrisO *xorriso, void *in_node,
    /* This is a final safety precaution before iso_file_add_external_filter()
       performs fork() and executes the alleged filter program.
    */
-   if(getuid() != geteuid()) {
+   if(1 /*getuid() != geteuid()*/ ) { //pvmk - yeah whatever
      sprintf(xorriso->info_text,
           "-set_filter: UID and EUID differ. Will not run external programs.");
      Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, 0, "FATAL", 0);
@@ -483,7 +483,7 @@ int Xorriso_external_filter_banned(struct XorrisO *xorriso, char *purpose,
 #ifndef Xorriso_allow_extf_suiD
  /* To be controlled by: configure --enable-external-filters-setuid */
 
- if(getuid() != geteuid()) {
+ if(1 /*getuid() != geteuid()*/ ) { //pvmk - yeah whatever
    sprintf(xorriso->info_text,
           "-set_filter: UID and EUID differ. Will not run external programs.");
    Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, 0, "FATAL", 0);

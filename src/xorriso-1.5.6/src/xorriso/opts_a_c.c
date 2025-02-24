@@ -26,7 +26,7 @@
 
 /* for -charset */
 #include <iconv.h>
-#include <langinfo.h>
+//#include <langinfo.h>
 #include <locale.h>
 
 

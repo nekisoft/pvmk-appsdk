@@ -24,12 +24,34 @@
 #include <time.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <pwd.h>
-#include <grp.h>
+//#include <pwd.h>
+//#include <grp.h>
 
 /* O_BINARY is needed for Cygwin but undefined elsewhere */
 #ifndef O_BINARY
 #define O_BINARY 0
+#endif
+
+
+//pvmk - horrible windows hacks
+#ifndef S_IFLNK
+#define lstat stat
+#define S_ISLNK(x) 0
+#endif
+#ifndef S_ISUID
+#define S_ISUID 0
+#endif
+#ifndef S_ISGID
+#define S_ISGID 0
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 0
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#ifndef S_IFBLK
+#define S_ISBLK(x) 0
 #endif
 
 
@@ -38,13 +60,18 @@
 #include "xorrisoburn.h"
 
 
-
 /* @param flag bit0= simple readlink(): no normalization, no multi-hop
                bit1= this is potentially a recursion
 */
 int Xorriso_resolve_link(struct XorrisO *xorriso, char *link_path,
                          char result_path[SfileadrL], int flag)
 {
+	
+	#ifndef S_IFLNK
+	  strcpy(result_path, link_path);
+	return 1;
+	#else
+	
  ssize_t l;
  struct stat stbuf;
  int link_count= 0, ret, show_errno= 0;
@@ -126,8 +153,10 @@ handle_abort:;
      lpt= result_path;
      goto handle_error;
    }
-   if(!S_ISLNK(stbuf.st_mode))
- break;
+   #ifdef S_IFLNK
+	if(!S_ISLNK(stbuf.st_mode))
+	break;
+	#endif
    
    lpt= result_path;
    link_count++;
@@ -148,6 +177,8 @@ ex:;
  if(xorriso->resolve_link_rec_count > 0)
    xorriso->resolve_link_rec_count--;
  return(ret);
+ 
+ #endif //S_IFLNK defined
 }
 
 
@@ -164,13 +195,13 @@ int Xorriso_convert_uidstring(struct XorrisO *xorriso, char *uid_string,
    *uid= num;
    return(1);
  }
- pwd= getpwnam(uid_string);
+ pwd= NULL; //getpwnam(uid_string);
  if(pwd==NULL) {
    sprintf(xorriso->info_text, "-uid: Not a known user: '%s'", uid_string);
    Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, 0, "SORRY", 0);
    return(0);
  }
- *uid= pwd->pw_uid;
+ //*uid= pwd->pw_uid;
  return(1);
 }
 
@@ -188,15 +219,15 @@ int Xorriso_convert_gidstring(struct XorrisO *xorriso, char *gid_string,
    *gid= num;
    return(1);
  }
- grp= getgrnam(gid_string);
+ grp= NULL; //getgrnam(gid_string);
  if(grp==NULL) {
    sprintf(xorriso->info_text, "-gid: Not a known group: '%s'", gid_string);
    Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, 0, "SORRY", 0);
    return(0);
  }
- *gid= grp->gr_gid;
+ //*gid= grp->gr_gid;
  return(1);
-}
+ }
  
 
 int Xorriso_convert_modstring(struct XorrisO *xorriso, char *cmd, char *mode,
@@ -259,13 +290,19 @@ int Xorriso_convert_modstring(struct XorrisO *xorriso, char *cmd, char *mode,
          if(who_val&1)
            mode_val|= S_IXOTH;
        } else if(*vpt=='s') {
+		   #ifdef S_ISUID
          if(who_val&4)
            mode_val|= S_ISUID;
+			#endif
+			#ifdef S_ISGID
          if(who_val&2)
            mode_val|= S_ISGID;
+		#endif
        } else if(*vpt=='t') {
+		   #ifdef S_ISVTX
          if(who_val&1)
            mode_val|= S_ISVTX;
+	   #endif
        } else
          goto unrecognizable;
      }
@@ -273,12 +310,18 @@ int Xorriso_convert_modstring(struct XorrisO *xorriso, char *cmd, char *mode,
        (*mode_or)|= mode_val;
      } else if(*opt=='=') {
        mask= 0;
+	   #ifdef S_ISVTX
        if(who_val&1)
          mask|= S_IRWXO|S_ISVTX;
+	 #endif
+	 #ifdef S_ISGID
        if(who_val&2)
          mask|= S_IRWXG|S_ISGID;
+	 #endif
+	 #ifdef S_ISUID
        if(who_val&4)
          mask|= S_IRWXU|S_ISUID;
+	 #endif
        (*mode_and)&= ~(mask);
        (*mode_or)= ((*mode_or) & ~mask) | mode_val;
      } else if(*opt=='-') {
@@ -383,10 +426,16 @@ int Xorriso_show_dux_subs(struct XorrisO *xorriso,
  Xorriso_alloc_meM(path, char, SfileadrL);
  Xorriso_alloc_meM(show_path, char, SfileadrL);
  Xorriso_alloc_meM(name, char, SfileadrL);
-
+#ifdef S_IFLNK
  if(lstat(abs_path, &stbuf)==-1)
    {ret= 2; goto ex;}
+#else
+if(stat(abs_path, &stbuf)==-1)
+   {ret= 2; goto ex;}	
+	#endif
  dir_dev= stbuf.st_dev;
+ 
+ #ifdef S_IFLNK
  if(S_ISLNK(stbuf.st_mode)) {
    if(!(xorriso->do_follow_links || (xorriso->do_follow_param && !(flag&2))))
      {ret= 2; goto ex;}
@@ -396,6 +445,8 @@ int Xorriso_show_dux_subs(struct XorrisO *xorriso,
       !(xorriso->do_follow_mount || (xorriso->do_follow_param && !(flag&2))))
      {ret= 2; goto ex;}
  }
+ #endif
+ 
  ret= Dirseq_new(&dirseq, abs_path, 1);
  if(ret<0) {
    sprintf(xorriso->info_text, "Cannot obtain disk directory iterator");
@@ -425,11 +476,18 @@ much_too_long:;
      {ret= -1; goto ex;}
    }
    no_dive= 0;
-
+#ifdef S_IFLNK
    ret= lstat(path, &stbuf);
+   #else
+	ret= stat(path, &stbuf);   
+   #endif
    if(ret==-1)
  continue;
+#ifdef S_IFLNK
    is_link= S_ISLNK(stbuf.st_mode);
+   #else
+	   is_link = 0;
+   #endif
    if(is_link && xorriso->do_follow_links) {
      ret= Xorriso_hop_link(xorriso, path, &own_link_stack, &stbuf, 1);
      if(ret<0)
@@ -495,7 +553,12 @@ no_sort_possible:;
        if(Sfile_add_to_path(path, name, 0)<=0)
          goto much_too_long;
 
+#ifdef S_IFLNK
        ret= lstat(path,&stbuf);
+	   #else
+		ret= stat(path,&stbuf);   
+	   #endif
+	   
        if(ret==-1)
      continue;
        is_link= S_ISLNK(stbuf.st_mode);
@@ -1611,7 +1674,7 @@ int Xorriso_make_tmp_path(struct XorrisO *xorriso, char *orig_path,
    Xorriso_msgs_submit(xorriso, 0, xorriso->info_text, errno, "FAILURE", 0);
    return(0);
  }
- fchmod(*fd, S_IRUSR|S_IWUSR);
+ //fchmod(*fd, S_IRUSR|S_IWUSR); //pvmk - not needed
  return(1);
 }
 
@@ -1654,8 +1717,8 @@ int Xorriso_auto_chmod(struct XorrisO *xorriso, char *disk_path, int flag)
  }
  if((stbuf.st_mode & desired) == desired)
    {ret= 0; goto ex;}
- if(stbuf.st_uid!=geteuid())
-   {ret= -2; goto ex;}
+ //if(stbuf.st_uid!=geteuid())
+   //{ret= -2; goto ex;} //pvmk - not needed
 
  mode= (stbuf.st_mode | desired) & 07777;
  ret= chmod(path_pt, mode);
@@ -1766,14 +1829,18 @@ int Xorriso_restore_make_hl(struct XorrisO *xorriso,
  int ret;
  struct PermiteM *perm_stack_mem;
 
- ret= link(old_path, new_path);
+ //ret= link(old_path, new_path);
+ ret = -1;
+ errno = ENOSYS; //pvmk - why would we ever
  if(ret == 0)
    return(1);
  if(errno == EACCES && (flag & 1)) {
    perm_stack_mem= xorriso->perm_stack;
    ret= Xorriso_make_accessible(xorriso, new_path, 0);
    if(ret > 0) {
-      ret= link(old_path, new_path);
+      ret= -1; //link(old_path, new_path);
+	  errno = ENOSYS;
+	  
       if(ret == 0) {
         Permstack_pop(&(xorriso->perm_stack), perm_stack_mem, xorriso, 0);
         return(1);
