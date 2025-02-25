@@ -451,9 +451,9 @@ R_GetColumn2
 //
 void R_InitTextures (void)
 {
-    maptexture_t*	mtexture;
+    volatile maptexture_t*	mtexture; //very stupid GCC behavior - don't combine adjacent halfword accesses, as they can be misaligned
     texture_t*		texture;
-    mappatch_t*		mpatch;
+    volatile mappatch_t*		mpatch;
     texpatch_t*		patch;
 
     int			i;
@@ -560,7 +560,7 @@ void R_InitTextures (void)
 	if (offset > maxoff)
 	    I_Error ("R_InitTextures: bad texture directory");
 	
-	mtexture = (maptexture_t *) ( (byte *)maptex + offset);
+	mtexture = (volatile maptexture_t *) ( (byte *)maptex + offset);
 
 	texture = textures[i] =
 	    Z_Malloc (sizeof(texture_t)
@@ -571,7 +571,7 @@ void R_InitTextures (void)
 	texture->height = SHORT(mtexture->height);
 	texture->patchcount = SHORT(mtexture->patchcount);
 
-	memcpy (texture->name, mtexture->name, sizeof(texture->name));
+	memcpy (texture->name, (char*)mtexture->name, sizeof(texture->name));
 	mpatch = &mtexture->patches[0];
 	patch = &texture->patches[0];
 
