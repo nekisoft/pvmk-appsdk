@@ -1757,12 +1757,12 @@ findmust(
 				scan += OPND(s);
 				s = *scan;
 				/* assert() interferes w debug printouts */
-				if ((int)OP(s) != O_QUEST && (int)OP(s) != O_CH &&
-							(int)OP(s) != OOR2) {
+				if (OP(s) != O_QUEST && OP(s) != O_CH &&
+							OP(s) != OOR2) {
 					g->iflags |= BAD;
 					return;
 				}
-			} while ((int)OP(s) != O_QUEST && (int)OP(s) != O_CH);
+			} while (OP(s) != O_QUEST && OP(s) != O_CH);
 			/* fallthrough */
 		case OBOW:		/* things that break a sequence */
 		case OEOW:
@@ -1894,7 +1894,7 @@ altoffset(
 	largest = 0;
 	try = 0;
 	s = *scan++;
-	while ((int)OP(s) != O_QUEST && (int)OP(s) != O_CH) {
+	while (OP(s) != O_QUEST && OP(s) != O_CH) {
 		switch (OP(s)) {
 		case OOR1:
 			if (try > largest)
@@ -1910,10 +1910,10 @@ altoffset(
 			do {
 				scan += OPND(s);
 				s = *scan;
-				if ((int)OP(s) != O_QUEST && (int)OP(s) != O_CH &&
-							(int)OP(s) != OOR2)
+				if (OP(s) != O_QUEST && OP(s) != O_CH &&
+							OP(s) != OOR2)
 					return -1;
-			} while ((int)OP(s) != O_QUEST && (int)OP(s) != O_CH);
+			} while (OP(s) != O_QUEST && OP(s) != O_CH);
 			/* We must skip to the next position, or we'll
 			 * leave altoffset() too early.
 			 */

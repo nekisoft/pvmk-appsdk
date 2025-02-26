@@ -385,7 +385,7 @@ dissect(
 			es += OPND(m->g->strip[es]);
 			break;
 		case OCH_:
-			while ((int)OP(m->g->strip[es]) != O_CH)
+			while (OP(m->g->strip[es]) != O_CH)
 				es += OPND(m->g->strip[es]);
 			break;
 		}
@@ -499,7 +499,7 @@ dissect(
 				assert(OP(m->g->strip[esub]) == OOR2);
 				ssub = esub + 1;
 				esub += OPND(m->g->strip[esub]);
-				if ((int)OP(m->g->strip[esub]) == OOR2)
+				if (OP(m->g->strip[esub]) == OOR2)
 					esub--;
 				else
 					assert(OP(m->g->strip[esub]) == O_CH);
@@ -629,7 +629,7 @@ backref(
 			do {
 				assert(OP(s) == OOR2);
 				ss += OPND(s);
-			} while ((int)OP(s = m->g->strip[ss]) != O_CH);
+			} while (OP(s = m->g->strip[ss]) != O_CH);
 			/* note that the ss++ gets us past the O_CH */
 			break;
 		default:	/* have to make a choice */
@@ -660,7 +660,7 @@ backref(
 		ssp = m->offp + m->pmatch[i].rm_so;
 		if (memcmp(sp, ssp, len) != 0)
 			return(NULL);
-		while ((int)m->g->strip[ss] != SOP(O_BACK, i))
+		while (m->g->strip[ss] != SOP(O_BACK, i))
 			ss++;
 		return(backref(m, sp+len, stop, ss+1, stopst, lev));
 		break;
@@ -696,13 +696,13 @@ backref(
 			if (dp != NULL)
 				return(dp);
 			/* that one missed, try next one */
-			if ((int)OP(m->g->strip[esub]) == O_CH)
+			if (OP(m->g->strip[esub]) == O_CH)
 				return(NULL);	/* there is none */
 			esub++;
 			assert(OP(m->g->strip[esub]) == OOR2);
 			ssub = esub + 1;
 			esub += OPND(m->g->strip[esub]);
-			if ((int)OP(m->g->strip[esub]) == OOR2)
+			if (OP(m->g->strip[esub]) == OOR2)
 				esub--;
 			else
 				assert(OP(m->g->strip[esub]) == O_CH);
@@ -1025,7 +1025,7 @@ step(
 		case OOR1:		/* done a branch, find the O_CH */
 			if (ISSTATEIN(aft, here)) {
 				for (look = 1;
-						(int)OP(s = g->strip[pc+look]) != O_CH;
+						OP(s = g->strip[pc+look]) != O_CH;
 						look += OPND(s))
 					assert(OP(s) == OOR2);
 				FWD(aft, aft, look);
@@ -1033,7 +1033,7 @@ step(
 			break;
 		case OOR2:		/* propagate OCH_'s marking */
 			FWD(aft, aft, 1);
-			if ((int)OP(g->strip[pc+OPND(s)]) != O_CH) {
+			if (OP(g->strip[pc+OPND(s)]) != O_CH) {
 				assert(OP(g->strip[pc+OPND(s)]) == OOR2);
 				FWD(aft, aft, OPND(s));
 			}
