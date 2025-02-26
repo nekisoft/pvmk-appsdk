@@ -1,6 +1,10 @@
 #Makefile for freestanding-C example for Neki32
 #Bryan E. Topp <betopp@betopp.com> 2024
 
+#Toolchain location
+PVMKSDK=../..
+MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
+
 #Options passed to GCC - freestanding mode, no system libraries/headers
 GCCOPTS += -ffreestanding -nostdlib -nostdinc
 
@@ -12,9 +16,6 @@ GCCOPTS += -Isrc
 
 #Options passed to GCC - debug info
 GCCOPTS += -g
-
-#Program for making ISO images - use xorriso if available
-MKISOFS:=$(if $(shell which xorriso),xorriso -as mkisofs,mkisofs)
 
 #Make output ISO using mkisofs
 img/game.iso: bin/boot.nne isoroot/BOOT.NNE

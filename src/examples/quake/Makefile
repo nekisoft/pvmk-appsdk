@@ -5,6 +5,7 @@
 PVMKSDK=../..
 CC     =$(PVMKSDK)/bin/pvmk-cc
 OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy
+MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
 
 #Directories used locally
 SRCDIR=./src
@@ -53,9 +54,6 @@ CFLAGS += -DBUILDVERSION=\"$(BUILDVERSION)\"
 CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 CFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
-
-#Program for making ISO images - use xorriso if available
-MKISOFS:=$(if $(shell which xorriso),xorriso -as mkisofs,mkisofs)
 
 #Name of ISO image to build
 GAMEIMG=$(IMGDIR)/game.iso

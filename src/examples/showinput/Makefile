@@ -5,6 +5,7 @@
 SDKROOT=../../
 CC=$(SDKROOT)/bin/pvmk-cc
 OBJCOPY=$(SDKROOT)/bin/pvmk-objcopy
+MKISOFS=$(SDKROOT)/bin/pvmk-xorriso -as mkisofs
 
 #Options to pass to compiler
 GCCOPTS += -std=c99 -Wall -Werror -Wextra -pedantic -g -O1
@@ -14,9 +15,6 @@ CSRC:=$(shell find src -name *.c)
 
 #Object files
 COBJ:=$(patsubst src/%.c, obj/%.o, $(CSRC))
-
-#Program for making ISO images - use xorriso if available
-MKISOFS:=$(if $(shell which xorriso),xorriso -as mkisofs,mkisofs)
 
 #Make output ISO using mkisofs
 img/game.iso: bin/boot.nne isoroot/BOOT.NNE

@@ -5,15 +5,13 @@
 SDKROOT=../../
 CC=$(SDKROOT)/bin/pvmk-cc
 OBJCOPY=$(SDKROOT)/bin/pvmk-objcopy
+MKISOFS=$(SDKROOT)/bin/pvmk-xorriso -as mkisofs
 
 #Source files
 CSRC:=$(shell find src -name *.c)
 
 #Object files
 COBJ:=$(patsubst src/%.c, obj/%.o, $(CSRC))
-
-#Program for making ISO images - use xorriso if available
-MKISOFS:=$(if $(shell which xorriso),xorriso -as mkisofs,mkisofs)
 
 #Make output ISO using mkisofs
 img/game.iso: bin/boot.nne isoroot/BOOT.NNE isoroot/IMAGE.BIN
