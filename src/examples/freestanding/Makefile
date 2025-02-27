@@ -22,9 +22,9 @@ img/game.iso: bin/boot.nne isoroot/BOOT.NNE
 	mkdir -p $(@D)
 	$(MKISOFS) -follow-links -eltorito-platform 0x92 -no-emul-boot -eltorito-boot BOOT.NNE -o $@ isoroot
 	
-#Including binary as built into the ISO, as a symlink
+#Including binary as built into the ISO
 isoroot/BOOT.NNE : bin/boot.nne
-	echo ""
+	cp $< $@
 
 #Make output ISO image from the compiled ELF, stripping the ELF format
 bin/boot.nne: bin/boot.elf
