@@ -8,6 +8,7 @@ cd "${0%/*}"
 mkdir out
 mkdir obj
 
+./src/make_build.sh
 ./src/wrappers_build.sh
 ./src/picolibc_build.sh
 ./src/libsc_build.sh

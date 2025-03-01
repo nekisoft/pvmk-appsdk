@@ -1,0 +1,5 @@
+README for GNU make 4.4.1 hackup
+Bryan E. Topp <betopp@betopp.com> 2025
+
+This is a hacked-up version of GNU Make 4.4.1, used in the PVMK application SDK. It is used primarily on non-GNU systems to make sure the examples have a "make" utility to use.
+
