@@ -5,8 +5,8 @@
 
 set -x
 
-mkdir -p obj/make
-pushd obj/make
+mkdir -p obj/oksh
+pushd obj/oksh
 
 SRCDIR="../../src/oksh-7.6/src"
 

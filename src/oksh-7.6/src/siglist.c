@@ -30,6 +30,8 @@
 
 #include "pconfig.h"
 
+#if 0 //not needed?
+
 #ifndef HAVE_SIGLIST
 
 #include <signal.h>
@@ -71,3 +73,5 @@ const char *const sys_siglist[NSIG] = {
 };
 
 #endif /* !HAVE_SIGLIST */
+
+#endif //0
