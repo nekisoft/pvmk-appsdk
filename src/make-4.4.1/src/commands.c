@@ -23,7 +23,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 #include "commands.h"
 #ifdef WINDOWS32
 #include <windows.h>
-#include "w32err.h"
+#include "w32/include/w32err.h"
 #endif
 
 #if VMS

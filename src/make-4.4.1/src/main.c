@@ -34,9 +34,9 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 #ifdef WINDOWS32
 # include <windows.h>
 # include <io.h>
-# include "pathstuff.h"
-# include "sub_proc.h"
-# include "w32err.h"
+# include "w32/include/pathstuff.h"
+# include "w32/include/sub_proc.h"
+# include "w32/include/w32err.h"
 #endif
 #ifdef __EMX__
 # include <sys/types.h>

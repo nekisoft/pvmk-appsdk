@@ -18,7 +18,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 #include "filedef.h"
 #include "variable.h"
 #ifdef WINDOWS32
-#include "pathstuff.h"
+#include "w32/include/pathstuff.h"
 #endif
 
 

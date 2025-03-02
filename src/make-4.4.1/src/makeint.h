@@ -17,7 +17,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 /* We use <config.h> instead of "config.h" so that a compilation
    using -I. -I$srcdir will use ./config.h rather than $srcdir/config.h
    (which it would do because makeint.h was found in $srcdir).  */
-#include <config.h>
+#include "config.h"
 
 /* Some versions of GCC (e.g., 10.x) set the warn_unused_result attribute on
    __builtin_alloca.  This causes alloca(0) to fail and is not easily worked
@@ -286,7 +286,7 @@ char *strerror (int errnum);
 # include <strings.h>  /* Needed for strcasecmp / strncasecmp.  */
 #endif
 
-#if defined _MSC_VER || defined __MINGW32__
+#if defined _MSC_VER || defined __MINGW32__ || defined __MINGW64__
 # define MK_PRI64_PREFIX "I64"
 #else
 # define MK_PRI64_PREFIX "ll"
@@ -493,7 +493,7 @@ extern int unixy_shell;
 extern struct rlimit stack_limit;
 #endif
 
-#include <glob.h>
+#include "glob.h"
 
 #define NILF ((floc *)0)
 
@@ -687,12 +687,15 @@ long int lseek ();
 # endif
 
 # ifdef  HAVE_GETCWD
+/*
 #  if !defined(VMS) && !defined(__DECC)
 char *getcwd (void);
 #  endif
 # else
 char *getwd (void);
 #  define getcwd(buf, len)       getwd (buf)
+*/
+#include <unistd.h>
 # endif
 
 #endif  /* Not GNU C library or POSIX.  */
@@ -719,7 +722,9 @@ char *getwd (void);
 #define OUTPUT_SYNC_RECURSE 3
 
 /* Non-GNU systems may not declare this in unistd.h.  */
+#ifndef environ
 extern char **environ;
+#endif
 
 extern const floc *reading_file;
 extern const floc **expanding_var;

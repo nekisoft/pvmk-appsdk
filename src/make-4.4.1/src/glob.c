@@ -76,7 +76,7 @@ USA.  */
 #endif
 
 #if !defined __GNU_LIBRARY__ && !defined STDC_HEADERS
-extern int errno;
+//extern int errno;
 #endif
 #ifndef __set_errno
 # define __set_errno(val) errno = (val)

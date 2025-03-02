@@ -31,7 +31,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #ifdef WINDOWS32
 #include <windows.h>
-#include "sub_proc.h"
+#include "w32/include/sub_proc.h"
 #else  /* !WINDOWS32 */
 #ifndef _AMIGA
 #ifndef VMS

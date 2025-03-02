@@ -28,6 +28,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 #include "dep.h"
 #include "shuffle.h"
 
+
 /* Default shell to use.  */
 #ifdef WINDOWS32
 # include <windows.h>
@@ -110,9 +111,9 @@ static void vmsWaitForChildren (int *);
 # include <windows.h>
 # include <io.h>
 # include <process.h>
-# include "sub_proc.h"
-# include "w32err.h"
-# include "pathstuff.h"
+# include "w32/include/sub_proc.h"
+# include "w32/include/w32err.h"
+# include "w32/include/pathstuff.h"
 # define WAIT_NOHANG 1
 #endif /* WINDOWS32 */
 
@@ -124,10 +125,15 @@ static void vmsWaitForChildren (int *);
 # include <fcntl.h>
 #endif
 
-#if defined (HAVE_SYS_WAIT_H) || defined (HAVE_UNION_WAIT)
-# include <sys/wait.h>
-#endif
+#ifdef __MINGW32__
+	
 
+#else
+		#if defined (HAVE_SYS_WAIT_H) || defined (HAVE_UNION_WAIT)
+		# include <sys/wait.h>
+		#endif
+#endif
+	
 #ifdef HAVE_WAITPID
 # define WAIT_NOHANG(status)    waitpid (-1, (status), WNOHANG)
 #else   /* Don't have waitpid.  */
@@ -140,8 +146,8 @@ extern int wait3 ();
 #endif /* Have waitpid.  */
 
 #ifdef USE_POSIX_SPAWN
-# include <spawn.h>
-# include "findprog.h"
+//# include <spawn.h>
+# include "../lib/findprog.h"
 #endif
 
 #if !defined (wait) && !defined (POSIX)
@@ -215,7 +221,7 @@ static const char *
 pid2str (pid_t pid)
 {
   static char pidstring[100];
-#if defined(WINDOWS32) && (__GNUC__ > 3 || _MSC_VER > 1300)
+#if 0 && defined(WINDOWS32) && (__GNUC__ > 3 || _MSC_VER > 1300)
   /* %Id is only needed for 64-builds, which were not supported by
       older versions of Windows compilers.  */
   sprintf (pidstring, "%Id", pid);

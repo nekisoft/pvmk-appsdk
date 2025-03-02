@@ -27,7 +27,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 #include "os.h"
 #include "rule.h"
 #ifdef WINDOWS32
-#include "pathstuff.h"
+#include "w32/include/pathstuff.h"
 #endif
 #include "hash.h"
 

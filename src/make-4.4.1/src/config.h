@@ -185,7 +185,10 @@
 
 /* Define to 1 if you have the declaration of `sys_siglist', and to 0 if you
    don't. */
-#define HAVE_DECL_SYS_SIGLIST 1
+#undef HAVE_DECL_SYS_SIGLIST
+#ifndef __MINGW32__
+	#define HAVE_DECL_SYS_SIGLIST 1
+#endif
 
 /* Define to 1 if you have the declaration of `_sys_siglist', and to 0 if you
    don't. */
@@ -417,7 +420,7 @@
 #undef HAVE_STRNICMP
 
 /* Define to 1 if you have the `strsignal' function. */
-#undef HAVE_STRSIGNAL
+#undef HAVE_STRSIGNAL 
 
 /* Define to 1 if you have the `strtoll' function. */
 #define HAVE_STRTOLL 1
@@ -548,7 +551,7 @@
 #define PACKAGE_VERSION "4.4.1-pvmk"
 
 /* Define to the character that separates directories in PATH. */
-#undef PATH_SEPARATOR_CHAR
+#define PATH_SEPARATOR_CHAR ':'
 
 /* Define to the name of the SCCS 'get' command. */
 #define SCCS_GET "SCCS_GET"
@@ -570,7 +573,7 @@
 /* Define to 1 if all of the C90 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
    backward compatibility; new code need not use it. */
-#undef STDC_HEADERS
+#define STDC_HEADERS 1
 
 /* Define if struct stat contains a nanoseconds field */
 #undef ST_MTIM_NSEC
@@ -685,6 +688,10 @@
 
 /* Build for the WINDOWS32 API. */
 #undef WINDOWS32
+#ifdef __MINGW32__
+	//Use Make's windows-port features if we're building on MinGW for Windows
+	#define WINDOWS32 1
+#endif
 
 /* Define if using the dmalloc debugging malloc package */
 #undef WITH_DMALLOC

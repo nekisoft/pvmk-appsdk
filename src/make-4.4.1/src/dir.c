@@ -50,6 +50,11 @@ const char *vmsify (const char *name, int type);
 # define NAMLEN(d) _D_NAMLEN(d)
 #endif
 
+
+#ifdef WINDOWS32
+#include <windows.h>
+#endif
+
 #if (defined (POSIX) || defined (VMS) || defined (WINDOWS32)) && !defined (__GNU_LIBRARY__)
 /* Posix does not require that the d_ino field be present, and some
    systems do not provide it. */
@@ -111,7 +116,7 @@ dosify (const char *filename)
 #endif /* __MSDOS__ */
 
 #ifdef WINDOWS32
-#include "pathstuff.h"
+#include "w32/include/pathstuff.h"
 #endif
 
 #ifdef _AMIGA
@@ -522,6 +527,10 @@ find_directory (const char *name)
   /* See if the directory exists.  */
 #if defined(WINDOWS32)
   {
+	  #ifndef MAX_PATH 
+	  #define MAX_PATH 4096
+	  #endif
+	  
     char tem[MAX_PATH+1], *tstart, *tend;
     size_t len = strlen (name);
 

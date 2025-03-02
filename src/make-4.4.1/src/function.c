@@ -1635,7 +1635,7 @@ shell_completed (int exit_code, int exit_sig)
 
 #include <windows.h>
 #include <io.h>
-#include "sub_proc.h"
+#include "w32/include/sub_proc.h"
 
 
 int

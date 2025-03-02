@@ -331,7 +331,7 @@ ar_scan (const char *archive, ar_member_func_t function, const void *varg)
 #endif
 
 #ifndef WINDOWS32
-# if !defined (__ANDROID__) && !defined (__BEOS__) && !defined(MK_OS_ZOS)
+# if 0 &&  !defined (__ANDROID__) && !defined (__BEOS__) && !defined(MK_OS_ZOS)
 #  include <ar.h>
 # else
    /* These platforms don't have <ar.h> but have archives in the same format
@@ -376,7 +376,7 @@ struct ar_hdr
 # define   AR_HDR_SIZE  (sizeof (struct ar_hdr))
 #endif
 
-#include "../lib/intprops.h"
+#include "intprops.h"
 
 #include "output.h"
 

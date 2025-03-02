@@ -37,7 +37,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.  */
 #ifdef WINDOWS32
 # include <windows.h>
 # include <io.h>
-# include "sub_proc.h"
+# include "w32/include/sub_proc.h"
 #endif /* WINDOWS32 */
 
 struct output *output_context = NULL;

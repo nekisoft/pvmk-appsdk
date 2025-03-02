@@ -16,7 +16,13 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 
-#include <config.h>
+#include "config.h"
+
+//pvmk hack
+#ifdef WINDOWS32
+#define _WIN32 1
+#define eaccess access
+#endif
 
 /* Specification.  */
 #include "findprog.h"
@@ -30,7 +36,7 @@
 #include "filename.h"
 #include "concat-filename.h"
 
-#if (defined _WIN32 && !defined __CYGWIN__) || defined __EMX__ || defined __DJGPP__
+#if defined(WINDOWS32) || (defined _WIN32 && !defined __CYGWIN__) || defined __EMX__ || defined __DJGPP__
   /* Native Windows, OS/2, DOS */
 # define NATIVE_SLASH '\\'
 #else
@@ -39,7 +45,7 @@
 #endif
 
 /* Separator in PATH like lists of pathnames.  */
-#if (defined _WIN32 && !defined __CYGWIN__) || defined __EMX__ || defined __DJGPP__
+#if defined(WINDOWS32) || (defined _WIN32 && !defined __CYGWIN__) || defined __EMX__ || defined __DJGPP__
   /* Native Windows, OS/2, DOS */
 # define PATH_SEPARATOR ';'
 #else

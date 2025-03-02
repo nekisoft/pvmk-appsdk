@@ -14,7 +14,11 @@ A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
+
 #include "makeint.h"
+
+
+#ifndef WINDOWS32
 
 #include <stdio.h>
 
@@ -894,3 +898,5 @@ os_anontmp ()
 
   return fd;
 }
+
+#endif //defined WINDOWS32

@@ -65,14 +65,18 @@ make_toui (const char *str, const char **error)
 char *
 make_lltoa (long long val, char *buf)
 {
-  sprintf (buf, "%" MK_PRI64_PREFIX "d", val);
+  //sprintf (buf, "%" MK_PRI64_PREFIX "d", val);
+  //sprintf (buf, "%" PRId64, val);
+  sprintf (buf, "%lld", val);
   return buf;
 }
 
 char *
 make_ulltoa (unsigned long long val, char *buf)
 {
-  sprintf (buf, "%" MK_PRI64_PREFIX "u", val);
+  //sprintf (buf, "%" MK_PRI64_PREFIX "u", val);
+  //sprintf (buf, "%" PRIu64, val);
+  sprintf (buf, "%llu", val);
   return buf;
 }
 
