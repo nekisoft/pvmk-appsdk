@@ -22,6 +22,10 @@
 /*
  * global data
  */
+ 
+#ifndef environ
+extern char **environ;
+#endif
 
 static void	reclaim(void);
 static void	remove_temps(struct temp *tp);

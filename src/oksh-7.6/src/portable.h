@@ -250,7 +250,7 @@ int	oksh_issetugid(void);
 extern const char *const sys_siglist[NSIG];
 #endif /* !HAVE_SIGLIST */
 #ifndef HAVE_SIGNAME
-extern const char *const sys_signame[NSIG];
+//extern const char *const sys_signame[NSIG];
 #endif /* !HAVE_SIGNAME */
 #endif /* !HAVE_SIGLIST || !HAVE_SIGNAME */
 
