@@ -180,7 +180,6 @@ void PvmkTimerSim(void)
 		in_button[bt_east]     = (input.buttons & _SC_BTNBIT_RIGHT) ? 1 : 0;
 		in_button[bt_south]    = (input.buttons & _SC_BTNBIT_DOWN)  ? 1 : 0;
 		in_button[bt_west]     = (input.buttons & _SC_BTNBIT_LEFT)  ? 1 : 0;
-		in_button[bt_invleft]  = (input.buttons & _SC_BTNBIT_X)     ? 1 : 0;
 		in_button[bt_invright] = (input.buttons & _SC_BTNBIT_Z)     ? 1 : 0;
 		in_button[bt_useitem]  = (input.buttons & _SC_BTNBIT_Y)     ? 1 : 0;
 		
@@ -210,6 +209,7 @@ void PvmkTimerSim(void)
 		keyboard[SC_RIGHTARROW] = (input.buttons & _SC_BTNBIT_RIGHT) ? 1 : 0;
 		keyboard[SC_UPARROW]    = (input.buttons & _SC_BTNBIT_UP)    ? 1 : 0;
 		keyboard[SC_DOWNARROW]  = (input.buttons & _SC_BTNBIT_DOWN)  ? 1 : 0;
+		keyboard[SC_1]          = (input.buttons & _SC_BTNBIT_X)     ? 1 : 0;
 		
 		//Set aside buttons for edge-detection next time
 		PvmkLastButtons = input.buttons;

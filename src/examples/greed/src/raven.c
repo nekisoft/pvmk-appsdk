@@ -2193,6 +2193,7 @@ void ControlMovement(void)
     }
 
     /* change weapon */
+    /*
     if (keyboard[SC_1] && !changingweapons && player.currentweapon != 0 && !netmsgstatus)
     {
         changingweapons = true;
@@ -2226,6 +2227,26 @@ void ControlMovement(void)
         changingweapons = true;
         weaponlowering  = true;
         newweapon       = 4;
+    }
+    */
+    
+    
+    //pvmk - weapon cycling
+    if (keyboard[SC_1] && !changingweapons && !netmsgstatus)
+    {
+        changingweapons = true;
+        weaponlowering  = true;
+        newweapon       = player.currentweapon;
+	    
+	    for(int attempt = 0; attempt < 10; attempt++)
+	    {
+		    newweapon++;
+		    if(newweapon > 4)
+			    newweapon = 0;
+		    
+		    if(player.weapons[newweapon] != -1)
+			    break;
+	    }
     }
 
     if (in_button[bt_jump] && timecount > keyboardDelay && fallrate == 0 && !netmsgstatus)
@@ -4239,6 +4260,9 @@ void PlayLoop(void)
     {
 	    PvmkTimerSim();
 	    PvmkPresent();
+	    
+	    //pvmk
+	    autorun = 1;
 	    
         if (fliplayed)
         {
