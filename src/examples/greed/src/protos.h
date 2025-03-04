@@ -676,7 +676,9 @@ typedef struct
 } pevent_t;
 
 extern int         netmode, playernum, netpaused, netwarpjammer, netwarpjamtime;
-extern greedcom_t* greedcom;
+//extern greedcom_t* greedcom; //pvmk - static allocation
+extern greedcom_t greedcom[1]; //pvmk - static allocation
+
 extern scaleobj_t* playersprites[MAXPLAYERS];
 extern pevent_t    playerdata[MAXPLAYERS];
 extern char        netnames[MAXPLAYERS][13];

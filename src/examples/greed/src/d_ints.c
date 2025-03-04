@@ -173,7 +173,29 @@ void PvmkTimerSim(void)
 			continue;
 		
 		//Update player control variables
+		in_button[bt_fire]     = (input.buttons & _SC_BTNBIT_A)     ? 1 : 0;
+		in_button[bt_jump]     = (input.buttons & _SC_BTNBIT_B)     ? 1 : 0;
+		in_button[bt_use]      = (input.buttons & _SC_BTNBIT_C)     ? 1 : 0;
+		in_button[bt_north]    = (input.buttons & _SC_BTNBIT_UP)    ? 1 : 0;
+		in_button[bt_east]     = (input.buttons & _SC_BTNBIT_RIGHT) ? 1 : 0;
+		in_button[bt_south]    = (input.buttons & _SC_BTNBIT_DOWN)  ? 1 : 0;
+		in_button[bt_west]     = (input.buttons & _SC_BTNBIT_LEFT)  ? 1 : 0;
+		in_button[bt_invleft]  = (input.buttons & _SC_BTNBIT_X)     ? 1 : 0;
+		in_button[bt_invright] = (input.buttons & _SC_BTNBIT_Z)     ? 1 : 0;
+		in_button[bt_useitem]  = (input.buttons & _SC_BTNBIT_Y)     ? 1 : 0;
 		
+
+/*
+#define bt_straf 5
+#define bt_run 7
+#define bt_asscam 10
+#define bt_lookup 11
+#define bt_lookdown 12
+#define bt_centerview 13
+#define bt_slideleft 14
+#define bt_slideright 15
+*/
+
 		
 		//Hacks for keyboard input in different scenarios
 		if( (input.buttons & ~PvmkLastButtons) & _SC_BTNBIT_MODE)
@@ -182,6 +204,14 @@ void PvmkTimerSim(void)
 			newascii = 1;
 			lastascii = 27;
 		}
+		keyboard[SC_ESCAPE]     = (input.buttons & _SC_BTNBIT_MODE)  ? 1 : 0;
+		keyboard[SC_ENTER]      = (input.buttons & _SC_BTNBIT_START) ? 1 : 0;
+		keyboard[SC_LEFTARROW]  = (input.buttons & _SC_BTNBIT_LEFT)  ? 1 : 0;
+		keyboard[SC_RIGHTARROW] = (input.buttons & _SC_BTNBIT_RIGHT) ? 1 : 0;
+		keyboard[SC_UPARROW]    = (input.buttons & _SC_BTNBIT_UP)    ? 1 : 0;
+		keyboard[SC_DOWNARROW]  = (input.buttons & _SC_BTNBIT_DOWN)  ? 1 : 0;
+		
+		//Set aside buttons for edge-detection next time
 		PvmkLastButtons = input.buttons;
 	}
 	

@@ -234,8 +234,9 @@ extern byte     mapslopes[MAPROWS * MAPCOLS];
 extern byte     mapeffects[MAPROWS * MAPCOLS];
 extern byte     mapflags[MAPROWS * MAPCOLS];
 extern int      reallight[MAPROWS * MAPCOLS];
-extern int windowHeight, windowWidth, viewLocation, windowSize, windowLeft, windowTop, scrollmin,
+extern int windowHeight, windowWidth, /*viewLocation,*/ windowSize, windowLeft, windowTop, scrollmin,
     scrollmax;
+    extern intptr_t viewLocation; //pvmk - used as pointer
 extern fixed_t mapcache_height[MAX_VIEW_HEIGHT + MAXSCROLL2];
 extern int     frameon, framevalid[MAPROWS * MAPCOLS];
 extern fixed_t CENTERY, CENTERX, SCALE, ISCALE;

@@ -26,7 +26,7 @@
 /**** VARIABLES ****/
 
 int     mr_y, mr_x1, mr_x2;  // used by mapplane to calculate texture end
-int     mr_shadow;           // special lighting effect
+intptr_t     mr_shadow;           // special lighting effect - (pvmk - used as pointer sometimes!)
 int     mr_light;
 fixed_t mr_deltaheight;
 int     flatpic;
@@ -320,18 +320,19 @@ void RenderTileEnds(void)
     flatpic   = floorpic[mapspot];
     mr_shadow = mapeffects[mapspot];
 
+	//pvmk - fuck me, they were casting pointers to int -betopp
     if (mr_shadow == 1)
-        mr_shadow = (int) (colormaps + (wallglow << 8));
+        mr_shadow = (intptr_t) (colormaps + (wallglow << 8));
     else if (mr_shadow == 2)
-        mr_shadow = (int) (colormaps + (wallflicker1 << 8));
+        mr_shadow = (intptr_t) (colormaps + (wallflicker1 << 8));
     else if (mr_shadow == 3)
-        mr_shadow = (int) (colormaps + (wallflicker2 << 8));
+        mr_shadow = (intptr_t) (colormaps + (wallflicker2 << 8));
     else if (mr_shadow == 4)
-        mr_shadow = (int) (colormaps + (wallflicker3 << 8));
+        mr_shadow = (intptr_t) (colormaps + (wallflicker3 << 8));
     else if (mr_shadow >= 5 && mr_shadow <= 8)
     {
         if (wallcycle == mr_shadow - 5)
-            mr_shadow = (int) colormaps;
+            mr_shadow = (intptr_t) colormaps;
         else
             mr_shadow = 0;
     }

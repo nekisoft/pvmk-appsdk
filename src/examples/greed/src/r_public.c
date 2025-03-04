@@ -34,7 +34,7 @@ int     windowWidth  = INIT_VIEW_WIDTH;
 int     windowLeft   = 0;
 int     windowTop    = 0;
 int     windowSize   = INIT_VIEW_HEIGHT * INIT_VIEW_WIDTH;
-int     viewLocation = 0; //0xA0000; //pvmk
+intptr_t     viewLocation = 0; //0xA0000; //pvmk - switch to intptr_t
 fixed_t CENTERX      = INIT_VIEW_WIDTH / 2;
 fixed_t CENTERY      = INIT_VIEW_HEIGHT / 2;
 fixed_t SCALE;
@@ -207,7 +207,7 @@ void RF_Startup(void)
     lightlump    = CA_GetNamedNum("lights");
     numcolormaps = infotable[lightlump].size / 256;
     colormaps    = malloc((size_t) 256 * (numcolormaps + 1));
-    colormaps    = (byte*) (((int) colormaps + 255) & ~0xff);
+    colormaps    = (byte*) (((intptr_t) colormaps + 255) & ~0xff); //was casting pointer to int, brilliant! -betopp
     CA_ReadLump(lightlump, colormaps);
     RF_SetLights((fixed_t) MAXZ);
     RF_ClearWorld();

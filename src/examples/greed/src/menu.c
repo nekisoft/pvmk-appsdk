@@ -946,6 +946,8 @@ void MenuAnimate(void)
     waittime = timecount;
     while (1)
     {
+	PvmkTimerSim(); PvmkPresent();
+	    
         if (timecount >= waittime)
         {
             ++frame;
@@ -1070,6 +1072,8 @@ void ShowMenu(int n)
     quitmenu = false;
     do
     {
+	    PvmkTimerSim(); PvmkPresent();
+	    
         MenuShowCursor(menucursor);
         CheckMouse();
         if (menuexecute)

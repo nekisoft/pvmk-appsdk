@@ -191,6 +191,12 @@ void FN_Print(char* s)
 /* Prints a string in the current window, with newlines
    going down a line and back to 0 */
 {
+	
+	//pvmk hack - don't write to the source string
+	static char tempbuf[4096] = {0};
+	snprintf(tempbuf, sizeof(tempbuf)-1, "%s", s);
+	s = tempbuf;
+	
     char     c, *se;
     unsigned h;
 
@@ -218,6 +224,11 @@ void FN_Print(char* s)
 void FN_PrintCentered(char* s)
 /* Prints a multi line string with each line centered */
 {
+	//pvmk hack - don't write to the source string
+	static char tempbuf[4096] = {0};
+	snprintf(tempbuf, sizeof(tempbuf)-1, "%s", s);
+	s = tempbuf;
+	
     char     c, *se;
     unsigned w, h;
 

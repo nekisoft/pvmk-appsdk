@@ -47,26 +47,32 @@ int         sp_count;     // the number of pixels to draw
 int32_t     sp_loopvalue;
 void ScalePost(void)
 {
-	byte *sp_dest_iter = sp_dest;
+	//byte *sp_dest_iter = sp_dest;
+	sp_dest -= SCREENWIDTH * sp_count;
 	for(int pp = 0; pp < sp_count; pp++)
 	{
-		*sp_dest_iter = sp_colormap[sp_source[sp_frac & sp_loopvalue]];
+		sp_dest += SCREENWIDTH;
+		
+		*sp_dest = sp_colormap[sp_source[(sp_frac & (sp_loopvalue-1)) >> FRACBITS]];
 		
 		sp_frac += sp_fracstep;
-		sp_dest_iter -= SCREENWIDTH;
+		
 	}
 }
 
 void ScaleMaskedPost(void)
 {
-	byte *sp_dest_iter = sp_dest;
+	//byte *sp_dest_iter = sp_dest;
+	sp_dest -= SCREENWIDTH * sp_count;
 	for(int pp = 0; pp < sp_count; pp++)
 	{
-		if(sp_source[sp_frac & sp_loopvalue])
-			*sp_dest_iter = sp_colormap[sp_source[sp_frac & sp_loopvalue]];
+		sp_dest += SCREENWIDTH;
+		
+		if(sp_source[(sp_frac & (sp_loopvalue-1)) >> FRACBITS])
+			*sp_dest = sp_colormap[sp_source[(sp_frac & (sp_loopvalue-1)) >> FRACBITS]];
 		
 		sp_frac += sp_fracstep;
-		sp_dest_iter -= SCREENWIDTH;
+		
 	}
 }
 
@@ -83,8 +89,8 @@ void MapRow(void)
 	byte *mr_dest_iter = mr_dest;
 	for(int pp = 0; pp < mr_count; pp++)
 	{
-		int xpx = (mr_xfrac >> 10) & 0x3F;
-		int ypx = (mr_yfrac >> 10) & 0x3F;
+		int xpx = ((unsigned int)mr_xfrac >> 16) & 0x3F;
+		int ypx = ((unsigned int)mr_yfrac >> 16) & 0x3F;
 		*mr_dest_iter = mr_colormap[mr_picture[ (ypx << 6) + xpx ]];
 		mr_dest_iter++;
 		mr_xfrac += mr_xstep;

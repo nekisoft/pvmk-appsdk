@@ -353,11 +353,17 @@ void LoadTextures(void)
             CA_CacheLump(walllump + i);
             UpdateWait();
         }
-    wallposts = malloc((size_t) (numwalls + 1) * 64 * 4);
+    wallposts = malloc((size_t) (numwalls + 1) * 64 * sizeof(wallposts[0])); //was "*4". AAAAAH -betopp
     UpdateWait();
     for (i = 0; i < numwalls - 1; i++)
     {
         wall = lumpmain[walllump + i + 1];
+	    
+	    //pvmk - skip any that we're not loading (textures[i] == 0 so we never called CA_CacheLump)
+	    //how the fuck did this work before?
+	    if(wall == NULL)
+		    continue;
+	    
         base = wall + 65 * 2;
         size = *wall * 4;
         for (x = 0; x < 64; x++)
@@ -832,7 +838,7 @@ void ChangeViewSize(byte MakeLarger)
         windowLeft   = viewLoc[currentViewSize * 2];
         windowTop    = viewLoc[currentViewSize * 2 + 1];
         windowSize   = windowHeight * windowWidth;
-        viewLocation = (int) screen + windowTop * 320 + windowLeft;
+        viewLocation = (intptr_t) screen + windowTop * 320 + windowLeft; //pvmk - use intptr_t
         SetViewSize(windowWidth, windowHeight);
         ResetScalePostWidth(windowWidth);
         InitWalls();

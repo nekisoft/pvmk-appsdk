@@ -392,11 +392,11 @@ void FlowView()
                         process_p->xmin = nextprocess_p->xmin;
                     else  // bad merge!
                         MS_Error("Bad tile event combination:\n"
-                                 " nextprocess_p=%d process_p=%d\n"
+                                 " nextprocess_p=%p process_p=%p\n" //pvmk - p format
                                  " nextprocess_p->xmin=%d  nextprocess_p->xmax=%d\n"
                                  " process_p->xmin=%d  process_p->xmax=%d\n",
-                                 (int) nextprocess_p,
-                                 (int) process_p,
+                                 (intptr_t) nextprocess_p, //pvmk - use intptr_t
+                                 (intptr_t) process_p, //pvmk - use intptr_t
                                  nextprocess_p->xmin,
                                  nextprocess_p->xmax,
                                  process_p->xmin,

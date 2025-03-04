@@ -241,7 +241,9 @@ bevent_t*     bevent;
 ipevent_t*    ipevent;
 eevent_t*     eevent;
 mevent_t*     mevent;
-greedcom_t*   greedcom;
+//greedcom_t*   greedcom; //pvmk - allocate static
+greedcom_t greedcom[1]; //pvmk - allocate static
+
 /*union REGPACK r;*/ int r;
 char          msg[60];
 scaleobj_t *  playersprites[MAXPLAYERS], *sprite_p, *sprite2_p, *temp_p;
@@ -300,7 +302,7 @@ void SpawnNewPlayer()
 void NetInit(void* addr)
 {
     printf("Multiplayer:\n");
-    greedcom = (greedcom_t*) addr;
+    //greedcom = (greedcom_t*) addr; //pvmk - nope
     if (greedcom->id != (int)GREEDCOM_ID)
         MS_Error("Invalid ComData Address! ID=0x%X", greedcom->id);
     printf("\tPlayers=%i\n", greedcom->numplayers);

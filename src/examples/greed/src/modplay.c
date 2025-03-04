@@ -120,7 +120,7 @@ void InitSound(void)
         SC.ckeys[12]    = scanbuttons[bt_invleft];
         SC.ckeys[13]    = scanbuttons[bt_invright];
         SC.inversepan   = false;
-        SC.screensize   = 0;
+        SC.screensize   = 4;
         SC.camdelay     = 35;
         SC.effecttracks = 4;
         SC.mouse        = 1;

@@ -791,7 +791,8 @@ void LoadData(void)
 {
     boolean netplay = false;
     int     parm;
-    longint netaddr;
+    //longint netaddr;
+	intptr_t netaddr; //pvmk - used as pointer
 
     if (MS_CheckParm("nointro"))
         nointro = true;

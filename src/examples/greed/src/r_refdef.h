@@ -85,7 +85,8 @@ typedef struct
     byte*     picture;
     void*     structure;  // either doorobj or scaleobj
     fixed_t   x2, y, yh;
-    int       light, shadow;
+    int       light;//, shadow; //pvmk - shadow is used as a pointer sometimes!
+	intptr_t shadow;
 } span_t;
 
 typedef struct
@@ -149,10 +150,10 @@ extern int         doorxl, doorxh;
 extern byte*       sp_dest;      // the bottom most pixel to be drawn (in vie
 extern byte*       sp_source;    // the first pixel in the vertical post (may
 extern byte*       sp_colormap;  // pointer to a 256 byte color number to pal
-extern long        sp_frac;      // fixed point location past sp_source
-extern long        sp_fracstep;  // fixed point step value
+extern int32_t        sp_frac;      // fixed point location past sp_source
+extern int32_t        sp_fracstep;  // fixed point step value
 extern int         sp_count;     // the number of pixels to draw
-extern long        sp_loopvalue;
+extern int32_t        sp_loopvalue;
 extern byte*       mr_dest;      // the left most pixel to be drawn (in viewb
 extern byte*       mr_picture;   // pointer to a raw 64*64 pixel picture
 extern byte*       mr_colormap;  // pointer to a 256 byte color number to pal
@@ -161,7 +162,7 @@ extern int         mr_yfrac;     // starting texture coordinate
 extern int         mr_xstep;     // fixed point step value
 extern int         mr_ystep;     // fixed point step value
 extern int         mr_count;     // the number of pixels to draw
-extern int         mr_shadow;
+extern intptr_t         mr_shadow; //pvmk - this is used as a pointer sometimes -betopp
 extern unsigned    spantags[MAXSPANS];
 extern unsigned *  starttaglist_p, *endtaglist_p;
 extern span_t      spans[MAXSPANS], *spans_p;

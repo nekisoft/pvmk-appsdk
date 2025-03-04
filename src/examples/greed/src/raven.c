@@ -3336,7 +3336,7 @@ void RearView(void)
     windowLeft   = 0;
     windowTop    = 0;
     windowSize   = 4096;
-    viewLocation = (int) screen;
+    viewLocation = (intptr_t) screen; //pvmk - use intptr_t
     scrollmin1   = player.scrollmin;
     scrollmax1   = player.scrollmax;
     SetViewSize(windowWidth, windowHeight);
@@ -4237,6 +4237,9 @@ void PlayLoop(void)
 
     while (!quitgame)
     {
+	    PvmkTimerSim();
+	    PvmkPresent();
+	    
         if (fliplayed)
         {
             if (deadrestart)
@@ -4452,6 +4455,13 @@ void PlayLoop(void)
             startover(2);
         if (resizeScreen)
             ChangeViewSize(biggerScreen);
+	
+	//pvmk - check this again here
+	while (currentViewSize < SC.screensize)
+		ChangeViewSize(true);
+	while (currentViewSize > SC.screensize)
+		ChangeViewSize(false);
+	
         if (netmode)
             NetGetData();
         if (scrollview)
