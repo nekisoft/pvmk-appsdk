@@ -302,6 +302,7 @@ void SpawnNewPlayer()
 void NetInit(void* addr)
 {
     printf("Multiplayer:\n");
+	(void)addr;
     //greedcom = (greedcom_t*) addr; //pvmk - nope
     if (greedcom->id != (int)GREEDCOM_ID)
         MS_Error("Invalid ComData Address! ID=0x%X", greedcom->id);
