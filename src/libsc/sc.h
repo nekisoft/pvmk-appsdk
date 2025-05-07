@@ -123,58 +123,7 @@ SYSCALL_DECL int _sc_env_load(void *buf, int len)
 SYSCALL_DECL int _sc_print(const char *buf_ptr)
 	#define _SC_PRINT_N 0xB0
 	{ return _SC(_SC_PRINT_N, buf_ptr, 0, 0, 0, 0); }
-	
-//Signal numbers defined in the kernel
-#define _SC_SIGZERO 0
-#define _SC_SIGHUP 1
-#define _SC_SIGINT 2
-#define _SC_SIGQUIT 3
-#define _SC_SIGILL 4
-#define _SC_SIGTRAP 5
-#define _SC_SIGABRT 6
-#define _SC_SIGEMT 7
-#define _SC_SIGFPE 8
-#define _SC_SIGKILL 9
-#define _SC_SIGBUS 10
-#define _SC_SIGSEGV 11
-#define _SC_SIGSYS 12
-#define _SC_SIGPIPE 13
-#define _SC_SIGALRM 14
-#define _SC_SIGTERM 15
-#define _SC_SIGURG 16
-#define _SC_SIGSTOP 17
-#define _SC_SIGTSTP 18
-#define _SC_SIGCONT 19
-#define _SC_SIGCHLD 20
-#define _SC_SIGTTIN 21
-#define _SC_SIGTTOU 22
-#define _SC_SIGXCPU 23
-#define _SC_SIGXFSZ 24
-#define _SC_SIGVTALRM 25
-#define _SC_SIGPROF 26
-#define _SC_SIGWINCH 27
-#define _SC_SIGINFO 28
-#define _SC_SIGUSR1 29
-#define _SC_SIGUSR2 30
 
-//Ways to alter the signal mask of a thread.
-#define _SC_SIGMASK_BLOCK 0
-#define _SC_SIGMASK_UNBLOCK 1
-#define _SC_SIGMASK_SETMASK 2
-
-// _sc_sig_mask //
-//Alters the signal mask of the calling thread.
-//Returns the OLD mask.
-SYSCALL_DECL int _sc_sig_mask(int how, int bits)
-	#define _SC_SIG_MASK_N 0x20
-	{ return _SC(_SC_SIG_MASK_N, how, bits, 0, 0, 0); }
-
-// _sc_sig_return //
-//Returns from a signal handler.
-SYSCALL_DECL _NORETURN void _sc_sig_return(void)
-	#define  _SC_SIG_RETURN_N 0x22
-	{ _SC(_SC_SIG_RETURN_N, 0, 0, 0, 0, 0); _DONTRETURN; }
-	
 //Graphics modes that are used with _sc_gfx_flip.
 #define _SC_GFX_MODE_TEXT          0 //No framebuffer supplied; kernel text mode only
 #define _SC_GFX_MODE_VGA_16BPP     1 //640x480@60Hz RGB565, 1280 bytes per line
@@ -200,7 +149,7 @@ SYSCALL_DECL int _sc_gfx_flip(int mode, const void *buffer)
 
 // _sc_snd_play //
 //Enqueues audio samples for output.
-//Returns 0 on success, or a negative error number.
+//Returns the number of bytes now enqueued on success, or a negative error number.
 //Returns -EAGAIN if there wasn't enough space for the chunk - audio buffer is already full.
 //The "maxbuf" parameter limits how many bytes will be buffered by the system before -EAGAIN is returned.
 //Does not consume partial chunks - the chunk is either enqueued entirely or rejected.

@@ -148,11 +148,12 @@ System-calls can be made using a \Instr{udf 0x92} instruction.
 The call number is placed in \Reg{r0}, while parameters are placed in \Reg{r1} through \Reg{r5}.
 Return values are left in \Reg{r0} after the call is performed.
 System-calls are nonblocking and can be retried until completion or interleaved with other operations.
+System-calls must be made from ARM mode, not Thumb mode.
 
-Exceptions are delivered to the game process as a signal.
-Signals are initially blocked. An exception causing a blocked signal will terminate the process.
-A signal can be unblocked and handled instead.
-In this case, it causes the process to restart to address \MemAddr{4096} with the signal number in \Reg{r0}. A system-call is used to return from the signal.
+Processor exceptions caused by game code are fatal. A valid game program should not cause exceptions.
+Behind the scenes, exceptions are delivered to the game process as a signal.
+However, game processes are not allowed to handle these signals themselves.
+The system will stop for debugging or terminate the process, as appropriate.
 
 \subsubsection{Hardware features}
 
@@ -276,18 +277,9 @@ The kernel of Neki32, ``PVMK'', provides virtualized handling of processor excep
 This means that an illegal memory access or invalid opcode is caught by the operating system.
 When this happens, a signal is made pending on the process which caused it.
 
-By default, all signals are masked, and will not be handled.
-Of course, this means that no action can be taken by the process to correct the situation.
-So the process is killed and the game crashes, when an exception causes a masked signal to become pending.
-
-At its option, a game can unmask signals, and handle them instead.
-When a signal is pending and unmasked, it is handled by the process.
-The process resets due to the signal at \MemAddr{0x1000}, the same as its initial entry point.
-However, the signal number is stored in \Reg{r0}, rather than 0.
-All signals are masked when this happens, and the signal taken is no longer pending.
-
-The interrupted context, from before the signal, is saved by the kernel.
-It can be resumed by using the \VarName{{\Undie}sc{\Undie}sig{\Undie}return} system call.
+In a game process, all signals are masked, and will not be handled.
+When an exception causes a masked signal to become pending, the program cannot continue.
+If a debugger is attached, the system will stop for debugging. Otherwise, the process is killed and the game crashes.
 
 \section{Nonvolatile memory system (NVMs)}
 
@@ -568,53 +560,6 @@ Each program starts with the audio-visual and input peripherals ready to use.
 
 \subsection{Process setup}
 
-\SysCall{sig{\Undie}mask}{0x20}
-{
-	Alters the signal mask of the calling thread.
-	Returns the \emph{old} mask.
-	The following signal numbers are used by the kernel:
-	
-	\begin{tabular}{l l l}
-	Signal Name & Number & Description \\
-	\Const{{\Undie}SC{\Undie}SIGILL}  &4  & Illegal operation, i.e. bad opcode\\
-	\Const{{\Undie}SC{\Undie}SIGTRAP} &5  & Debug trap requested\\
-	\Const{{\Undie}SC{\Undie}SIGKILL} &9  & Killed (cannot be blocked)\\
-	\Const{{\Undie}SC{\Undie}SIGBUS}  &10 & Bus fault, i.e. misaligned access\\
-	\Const{{\Undie}SC{\Undie}SIGSEGV} &11 & Segmentation violation, i.e. out-of-bounds memory access\\
-	\Const{{\Undie}SC{\Undie}SIGCHLD} &20 & Child process changed state (not applicable to game processes)
-	\end{tabular}
-	\\
-	The signal mask can be altered in the following ways:
-	
-	\begin{tabular}{l l l}
-	Operation & Value & Description\\
-	\Const{{\Undie}SC{\Undie}SIGMASK{\Undie}BLOCK} & 0 & Blocks signals where the input bit is ``1".\\
-	\Const{{\Undie}SC{\Undie}SIGMASK{\Undie}UNBLOCK} & 1 & Unblocks signals where the input bit is ``1".\\
-	\Const{{\Undie}SC{\Undie}SIGMASK{\Undie}SETMASK} & 2 & Blocks signals if the input is ``1" and unblocks all others.
-	\end{tabular}
-}
-{
-	\SysParm{r1}{int}{how}{Which operation to perform on the signal mask.}
-	\SysParm{r2}{int}{bits}{The input bitmask for the given operation.}
-	\SysRetn{int}{The old signal mask, before the successful operation. Or a negative error number on failure.}
-}
-
-\SysCall{sig{\Undie}return}{0x22}
-{
-	Returns from a signal handler.
-	
-	The kernel saves the context that is interrupted when a signal is taken.
-	It then masks all signals and restarts the process to address \MemAddr{4096}.
-	This system-call returns to the interrupted context, including the old signal mask.
-	
-	As the kernel only saves a single context, signals are not reentrant.
-	You probably do not want to unmask signals from inside a running signal handler.
-}
-{
-	\SysParmNone
-	\SysRetnDead
-}
-
 \SysCall{env{\Undie}save}{0x08}
 {
 	Appends the given data to the kernel's argument/environment buffer for the calling process.
@@ -732,8 +677,6 @@ Number & Name\\
 \Const{0x07} &\VarName{{\Undie}sc{\Undie}exit}\\
 \Const{0x08} &\VarName{{\Undie}sc{\Undie}env{\Undie}save}\\
 \Const{0x09} &\VarName{{\Undie}sc{\Undie}env{\Undie}load}\\
-\Const{0x20} &\VarName{{\Undie}sc{\Undie}sig{\Undie}mask}\\
-\Const{0x22} &\VarName{{\Undie}sc{\Undie}sig{\Undie}return}\\
 \Const{0x30} &\VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}\\
 \Const{0x50} &\VarName{{\Undie}sc{\Undie}input}\\
 \Const{0x60} &\VarName{{\Undie}sc{\Undie}snd{\Undie}play}\\
@@ -756,7 +699,7 @@ The compiler wrappers help to invoke GCC or LLVM with the right options for buil
 You must have an appropriate GCC or LLVM compiler installed, of course. It needs to be able to target the ARMv5TE architecture.
 \subsubsection{C Runtime}
 The C Runtime is what initially starts running when the Neki32 kernel loads your program.
-It requests memory for all your variables, unmasks signals, and calls your main function.
+It initializes the environment and filesystem, and calls your main function.
 It also contains the linker configuration, so the linker can make an executable in the right format (a flat 0-based binary).
 \subsubsection{Picolibc}
 This is a port of PicoLibC to the Neki32. PicoLibC is a portable C Standard Library. It provides functions like printf and strcpy.
@@ -986,15 +929,6 @@ An enumeration of system-calls and potential failures follows.
 \BL This call can fail if the given buffer is too small for the environment stored. 
 \BL Note that subsequent calls do not continue reading from the buffer, instead starting again. 
 
-\subsubsection{\Const{0x20} \VarName{{\Undie}sc{\Undie}sig{\Undie}mask}}
-\BL This call can fail if the ``how" parameter is invalid. 
-\BL This call can cause a signal to be taken immediately when unmasked, if it was already pending. 
-
-\subsubsection{\Const{0x22} \VarName{{\Undie}sc{\Undie}sig{\Undie}return}}
-\BL This call only restores a single saved context. 
-\BL This call will certainly misbehave if called before a signal is handled, or called twice for one signal. 
-\BL Enabling signals again in a signal handler may cause the old saved context to be lost. 
-
 \subsubsection{\Const{0x30} \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}}
 \BL This call can fail if an invalid buffer pointer is given. 
 \BL This call can fail if an invalid mode value is given. 
@@ -1053,7 +987,7 @@ An enumeration of system-calls and potential failures follows.
 
 \subsection{Crashes}
 
-A processor exception will result in a crash if the corresponding signal is blocked.
+A processor exception will result in a signal, killing the game process.
 The following things can cause this:
 
 \BL Accessing an invalid memory location will cause \Const{SIGSEGV}.
