@@ -1,0 +1,11 @@
+README for testing directory of Neki32 simulator
+Bryan E. Topp <betopp@betopp.com> 2025
+
+These are files that assist in testing the simulator, but aren't necessary to run it.
+
+They include the private system call definitions (sc_private.h) that are used by the init process, and a copy of the init process as linked. 
+
+The init process is turned into a binary blob and included in the kernel on the real machine - this is what's used in the simulator to initialize PID1 when it starts. So, init.inc is all that's needed. The init.elf file has all the symbols intact tho.
+
+The instruction_traces directory contains a GDB script for dumping before-and-after register sets from the real machine, as it executes a series of instructions. Then, thse can be used with compare_interp.cpp (in the simulator source) to double-check the ARMv5E interpreter.
+
