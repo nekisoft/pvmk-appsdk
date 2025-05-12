@@ -275,7 +275,7 @@ The \Instr{udf 0x92} instruction, encoded as \Const{0xe7f009f2}, is used to trig
 
 The kernel of Neki32, ``PVMK'', provides virtualized handling of processor exceptions.
 This means that an illegal memory access or invalid opcode is caught by the operating system.
-When this happens, a signal is made pending on the process which caused it.
+When this happens, a signal is made pending on that process.
 
 In a game process, all signals are masked, and will not be handled.
 When an exception causes a masked signal to become pending, the program cannot continue.
