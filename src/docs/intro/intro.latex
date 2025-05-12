@@ -640,29 +640,16 @@ For example, a system-call which fails because there is not enough memory might 
 \Const{{\Undie}SC{\Undie}EIO}         &  5 & I/O error. \\
 \Const{{\Undie}SC{\Undie}ENXIO}       &  6 & No such device or address. \\
 \Const{{\Undie}SC{\Undie}E2BIG}       &  7 & Argument list too long. \\
-\Const{{\Undie}SC{\Undie}ENOEXEC}     &  8 & Executable file format error. \\
-\Const{{\Undie}SC{\Undie}EBADF}       &  9 & Bad file descriptor. \\
 \Const{{\Undie}SC{\Undie}ECHILD}      & 10 & No child processes. \\
 \Const{{\Undie}SC{\Undie}EAGAIN}      & 11 & Resource unavailable, try again. \\
 \Const{{\Undie}SC{\Undie}ENOMEM}      & 12 & Not enough space. \\
 \Const{{\Undie}SC{\Undie}EFAULT}      & 14 & Bad address. \\
-\Const{{\Undie}SC{\Undie}EBUSY}       & 16 & Device or resource busy. \\
-\Const{{\Undie}SC{\Undie}EEXIST}      & 17 & File exists. \\
-\Const{{\Undie}SC{\Undie}ENOTDIR}     & 20 & Not a directory or a symbolic link to a directory. \\
-\Const{{\Undie}SC{\Undie}EISDIR}      & 21 & Is a directory. \\
 \Const{{\Undie}SC{\Undie}EINVAL}      & 22 & Invalid argument. \\
-\Const{{\Undie}SC{\Undie}ENFILE}      & 23 & Too many files open in system. \\
-\Const{{\Undie}SC{\Undie}EMFILE}      & 24 & File descriptor value too large. \\
-\Const{{\Undie}SC{\Undie}ENOTTY}      & 25 & Inappropriate I/O control operation. \\
 \Const{{\Undie}SC{\Undie}EFBIG}       & 27 & File too large. \\
 \Const{{\Undie}SC{\Undie}ENOSPC}      & 28 & No space left on device. \\
-\Const{{\Undie}SC{\Undie}ESPIPE}      & 29 & Invalid seek. \\
-\Const{{\Undie}SC{\Undie}EPIPE}       & 32 & Broken pipe. \\
-\Const{{\Undie}SC{\Undie}EDEADLOCK}   & 35 & Resource deadlock would occur. \\
+\Const{{\Undie}SC{\Undie}EROFS}       & 30 & Read-only file system. \\
 \Const{{\Undie}SC{\Undie}ENAMETOOLONG}& 36 & Filename too long. \\
 \Const{{\Undie}SC{\Undie}ENOSYS}      & 38 & Functionality not supported. \\
-\Const{{\Undie}SC{\Undie}ENOTEMPTY}   & 39 & Directory not empty. \\
-\Const{{\Undie}SC{\Undie}ELOOP}       & 40 & Too many levels of symbolic links. \\
 \end{tabular}
 
 \subsection{System calls by number}
