@@ -50,44 +50,19 @@ static int _pvmk_sysret_errno(int sysret)
 		case -_SC_EPERM:        return EPERM;
 		case -_SC_ENOENT:       return ENOENT;
 		case -_SC_ESRCH:        return ESRCH;
-		case -_SC_EINTR:        return EINTR;
 		case -_SC_EIO:          return EIO;
 		case -_SC_ENXIO:        return ENXIO;
 		case -_SC_E2BIG:        return E2BIG;
-		case -_SC_ENOEXEC:      return ENOEXEC;
-		case -_SC_EBADF:        return EBADF;
 		case -_SC_ECHILD:       return ECHILD;
 		case -_SC_EAGAIN:       return EAGAIN;
 		case -_SC_ENOMEM:       return ENOMEM;
-		case -_SC_EACCES:       return EACCES;
 		case -_SC_EFAULT:       return EFAULT;
-		case -_SC_EBUSY:        return EBUSY;
-		case -_SC_EEXIST:       return EEXIST;
-		case -_SC_EXDEV:        return EXDEV;
-		case -_SC_ENODEV:       return ENODEV;
-		case -_SC_ENOTDIR:      return ENOTDIR;
-		case -_SC_EISDIR:       return EISDIR;
 		case -_SC_EINVAL:       return EINVAL;
-		case -_SC_ENFILE:       return ENFILE;
-		case -_SC_EMFILE:       return EMFILE;
-		case -_SC_ENOTTY:       return ENOTTY;
-		case -_SC_ETXTBSY:      return EBUSY; // ?
 		case -_SC_EFBIG:        return EFBIG;
 		case -_SC_ENOSPC:       return ENOSPC;
-		case -_SC_ESPIPE:       return ESPIPE;
 		case -_SC_EROFS:        return EROFS;
-		case -_SC_EMLINK:       return EMLINK;
-		case -_SC_EPIPE:        return EPIPE;
-		case -_SC_EDOM:         return EDOM;
-		case -_SC_ERANGE:       return ERANGE;
-		case -_SC_EDEADLK:      return EDEADLK;
 		case -_SC_ENAMETOOLONG: return ENAMETOOLONG;
-		case -_SC_ENOLCK:       return ENOLCK;
 		case -_SC_ENOSYS:       return ENOSYS;
-		case -_SC_ENOTEMPTY:    return ENOTEMPTY;
-		case -_SC_ELOOP:        return ELOOP;
-		case -_SC_ENOMSG:       return ENOMSG;
-		case -_SC_EIDRM:        return EIDRM;
 		default:                return ENOSYS;
 	}
 }

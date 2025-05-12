@@ -9,6 +9,14 @@
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 
+#ifndef _SC_ENOTDIR
+	#define _SC_ENOTDIR      20 //Not a directory or a symbolic link to a directory.
+#endif
+
+#ifndef _SC_EISDIR
+	#define _SC_EISDIR       21 //Is a directory.
+#endif
+
 //Looks for and initializes CD filesystem at beginning of block device
 void _cdfs_init(void);
 
