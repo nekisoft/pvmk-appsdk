@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdarg.h>
 #include <utime.h>
 #include <sys/times.h>
@@ -160,6 +161,17 @@ static char *argenv_buffer[4096 / sizeof(void*)];
 //Called from crt0 to call main
 void _pvmk_callmain(void)
 {
+	//Force references to be held to Picolibc stdin/stdout/stderr.
+	//Don't know why this is causing problems for us...
+	volatile const void * volatile a = NULL;
+	a = &stdin;
+	a = &stdout;
+	a = &stderr;
+	a = stdin;
+	a = stdout;
+	a = stderr;
+	(void)a;
+	
 	//Default arguments/environments if something goes wrong
 	int argc = 1;
 	char **argv = (char*[]){ "argv0",         NULL };
