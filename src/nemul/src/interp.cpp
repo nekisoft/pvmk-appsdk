@@ -193,7 +193,7 @@ static interp_result_t interp_load_b(const uint32_t *mem, uint32_t memsz, uint32
 	}
 }
 
-static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t reg_operand, uint32_t shifter_operand, bool writeflags)
+static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t reg_operand, uint32_t shifter_operand, bool writeflags, bool shifter_carry)
 {
 	TRACE("Data op %X: ", opcode);
 	bool carryflag = (*cpsr) & FLAG_C;
@@ -299,6 +299,7 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 		//Which opcodes count as addition/subtraction for flag purposes
 		static const bool addsubs[16] = {0,0,1,1,1,1,1,1,0,0,1,1,0,0,0,0};
 		static const bool subs[16]    = {0,0,1,1,0,0,1,1,0,0,1,0,0,0,0,0};
+		static const bool cshift[16]  = {1,1,0,0,0,0,0,0,1,1,0,0,1,1,1,1}; //operations storing shifter-carry
 		
 		if(result & 0xFFFFFFFFu)
 		{
@@ -339,6 +340,20 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 		else if(addsubs[opcode])
 		{
 			if((result & 0xFFFFFFFF00000000u))
+			{
+				TRACE(" %s", "C1");
+				*cpsr |= FLAG_C;
+			}
+			else
+			{
+				TRACE(" %s", "C0");
+				*cpsr &= ~FLAG_C;
+			}
+		}
+		else if(cshift[opcode])
+		{
+			//Some ops like MOV set carry as the carry-out of the shifter
+			if(shifter_carry)
 			{
 				TRACE(" %s", "C1");
 				*cpsr |= FLAG_C;
@@ -433,9 +448,6 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	const int cond   = (ir >> 28) & 0xF;
 	const int swino  = (ir >>  0) & 0xFFFFFF;
 	const int bl     = (ir >> 24) & 0x1;
-	
-	uint32_t imm8rotated = (uint32_t)imm8 >> (rotate*2);
-	imm8rotated |= (uint32_t)imm8 << (32 - (rotate*2));
 	
 	(void)rm; (void)shift; (void)shamt; (void)rd; (void)rn; (void)sdata;
 	(void)opcode; (void)rs; (void)imm8; (void)rotate; (void)sbo;
@@ -821,8 +833,18 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		else
 		{
 			//Data processing immediate
-			TRACE("Data processing immediate, rotated immediate = %8.8X\n", imm8rotated);
-			interp_dataproc(opcode, regs + rd, cpsr, regs[rn], imm8rotated, sdata);
+			uint32_t imm8rotated = (uint32_t)imm8 >> (rotate*2);
+			imm8rotated |= (uint32_t)imm8 << (32 - (rotate*2));
+			
+			//Seriously this is what it says on Page A5-6 of ARM DDI01001
+			int shifter_carry = 0;
+			if(rotate == 0)
+				shifter_carry = fc ? 1 : 0;
+			else
+				shifter_carry = (imm8rotated & 0x80000000u) ? 1 : 0;
+	
+			TRACE("Data processing immediate, rotated immediate = %8.8X, shifter-carry %d\n", imm8rotated, shifter_carry ? 1 : 0);
+			interp_dataproc(opcode, regs + rd, cpsr, regs[rn], imm8rotated, sdata, shifter_carry);
 			return INTERP_RESULT_OK;
 		}
 	}
@@ -847,6 +869,51 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			}
 			
 			return INTERP_RESULT_OK;
+		}
+		else if( (ir & 0x0FE000F0) == 0x00A00090 )
+		{
+			//UMLAL - Unsigned Multiply Accumulate Long (Quake loves this one)
+			int rdlo = rd;
+			int rdhi = rn;
+			TRACE("UMLAL {r%d,r%d} += r%d * r%d\n", rdhi, rdlo, rm, rs);
+			
+			uint64_t accum = 0;
+			accum = (accum << 32) | regs[rdhi];
+			accum = (accum << 32) | regs[rdlo];
+			
+			accum += (uint64_t)(regs[rm]) * (uint64_t)(regs[rs]);
+			
+			regs[rdhi] = (accum >> 32) & 0xFFFFFFFFu;
+			regs[rdlo] = (accum >>  0) & 0xFFFFFFFFu;
+			
+			if(sdata)
+			{
+				TRACE("%s", "Writing flags for UMLAL");
+				if(accum == 0)
+				{
+					TRACE(" %s", "Z1");
+					*cpsr |= FLAG_Z;
+				}
+				else
+				{
+					TRACE(" %s", "Z0");				
+					*cpsr &= ~FLAG_Z;
+				}
+				
+				if(regs[rdhi] & 0x80000000u)
+				{
+					TRACE(" %s", "N1");
+					*cpsr |= FLAG_N;
+				}
+				else
+				{
+					TRACE(" %s", "N0");				
+					*cpsr &= ~FLAG_N;
+				}
+				TRACE("%s", "\n");
+			}
+			return INTERP_RESULT_OK;
+			
 		}
 		else if( (ir & 0x0FE000F0) == 0x00200090 )
 		{
@@ -1202,54 +1269,206 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			{
 				//Data processing immediate shift / data processing register shift
 				//Instruction bit 4 determines whether immediate or register shift amount
-				int effective_shift = (ir & (1u << 4)) ? (regs[rs] & 0xFF) : shamt;
-				if(ir & (1u << 4))
+				int shift_by_reg = (ir & (1u << 4));
+				if(shift_by_reg)
 					TRACE("Data processing register shift, rs=%d\n", rs);
 				else
 					TRACE("Data processing immediate shift, shamt=%d\n", shamt);
-					
 				
-				TRACE("Shifting r%d (%8.8X) by %d ", rm, regs[rm], effective_shift);
-				uint32_t srcdata = regs[rm];
-				uint32_t shifted = 0;
-				switch(shift)
+				int to_shift = shift_by_reg ? (regs[rs] & 0xFF) : shamt;
+				
+				//You gotta be shitting me, this is actually how ARM defines it
+				uint32_t shifter_operand = 0;
+				bool shifter_carry_out = false;
+				if(shift == 0)
 				{
-					case 0:
-						TRACE("%s", "(LSL)");
-						shifted |= srcdata << effective_shift;
-						if(effective_shift >= 32)
-							shifted = 0;
-						
-						break;
-					case 1:
-						TRACE("%s", "(LSR)");
-						shifted |= srcdata >> effective_shift;
-						if(effective_shift >= 32)
-							shifted = 0;
-						
-						break;
-					case 2:
-						TRACE("%s", "(ASR)");
-						shifted |= srcdata >> effective_shift;
-						if(effective_shift >= 32)
-							shifted = (srcdata & 0x80000000) ? 0xFFFFFFFF : 0x00000000;
-						else if(srcdata & 0x80000000u)
-							shifted |= 0xFFFFFFFF << (32 - effective_shift);
-						
-						break;
-					case 3:
-						TRACE("%s", "(ROR)");
-						shifted |= srcdata >> effective_shift;
-						shifted |= srcdata << (32 - effective_shift);
-						break;
-					default:
-						TRACE("Bad shift operation %d\n", shift);
-						return INTERP_RESULT_FATAL;
+					if(!shift_by_reg)
+					{
+						TRACE("%s", "LSL imm");
+						if(to_shift == 0)
+						{
+							shifter_operand = regs[rm];
+							shifter_carry_out = fc;
+						}	
+						else
+						{
+							shifter_operand = regs[rm] << to_shift;
+							shifter_carry_out = regs[rm] & (1u << (32 - to_shift));
+						}
+					}
+					else
+					{
+						TRACE("%s", "LSL reg");
+						if(to_shift == 0)
+						{
+							shifter_operand = regs[rm];
+							shifter_carry_out = fc;
+						}
+						else if(to_shift < 32)
+						{
+							shifter_operand = regs[rm] << to_shift;
+							shifter_carry_out = regs[rm] & (1u << (32 - to_shift));
+						}
+						else if(to_shift == 32)
+						{
+							shifter_operand = 0;
+							shifter_carry_out = regs[rm] & 1;
+						}
+						else
+						{
+							shifter_operand = 0;
+							shifter_carry_out = 0;
+						}
+					}
+				}
+				else if(shift == 1)
+				{
+					if(!shift_by_reg)
+					{
+						TRACE("%s", "LSR imm");
+						if(to_shift == 0)
+						{
+							shifter_operand = 0;
+							shifter_carry_out = regs[rm] & (1u << 31);
+						}
+						else
+						{
+							shifter_operand = regs[rm] >> to_shift;
+							shifter_carry_out = regs[rm] & (1u << (to_shift - 1));
+						}
+					}
+					else
+					{
+						TRACE("%s", "LSR reg");
+						if(to_shift == 0)
+						{
+							shifter_operand = regs[rm];
+							shifter_carry_out = fc;
+						}
+						else if(to_shift < 32)
+						{
+							shifter_operand = regs[rm] >> to_shift;
+							shifter_carry_out = regs[rm] & (1u << (to_shift - 1));
+						}
+						else if(to_shift == 32)
+						{
+							shifter_operand = 0;
+							shifter_carry_out = regs[rm] & (1u << 31);
+						}
+						else
+						{
+							shifter_operand = 0;
+							shifter_carry_out = 0;
+						}
+					}
+				}
+				else if(shift == 2)
+				{
+					if(!shift_by_reg)
+					{
+						TRACE("%s", "ASR imm");
+						if(to_shift == 0)
+						{
+							if(!(regs[rm] & (1u << 31)))
+							{
+								shifter_operand = 0;
+								shifter_carry_out = 0;
+							}
+							else
+							{
+								shifter_operand = 0xFFFFFFFFu;
+								shifter_carry_out = 1;
+							}
+						}
+						else
+						{
+							shifter_operand = regs[rm] >> to_shift;
+							if(regs[rm] & (1u << 31))
+								shifter_operand |= (0xFFFFFFFFu) << (32 - to_shift);
+						}
+					}
+					else
+					{
+						TRACE("%s", "ASR reg");
+						if(to_shift == 0)
+						{
+							shifter_operand = regs[rm];
+							shifter_carry_out = fc;
+						}
+						else if(to_shift < 32)
+						{
+							shifter_operand = regs[rm] >> to_shift;
+							if(regs[rm] & (1u << 31))
+								shifter_operand |= (0xFFFFFFFFu) << (32 - to_shift);
+							
+							shifter_carry_out = regs[rm] & (1u << (to_shift - 1));
+						}
+						else if(to_shift >= 32)
+						{
+							if(!(regs[rm] & (1u << 31)))
+							{
+								shifter_operand = 0;
+								shifter_carry_out = 0;
+							}
+							else
+							{
+								shifter_operand = 0xFFFFFFFFu;
+								shifter_carry_out = 1;
+							}
+						}
+					}
+				}
+				else if(shift == 3)
+				{
+					if(!shift_by_reg)
+					{
+						TRACE("%s", "ROR imm");
+						if(to_shift == 0)
+						{
+							TRACE("%s", " with extend");
+							shifter_operand = fc ? 0x80000000u : 0;
+							shifter_operand |= regs[rm] >> 1;
+							shifter_carry_out = regs[rm] & 1;
+						}
+						else
+						{
+							shifter_operand = regs[rm] >> to_shift;
+							shifter_operand |= regs[rm] << (32 - to_shift);
+							shifter_carry_out = regs[rm] & (1u << (to_shift - 1));
+						}
+					}
+					else
+					{
+						TRACE("%s", "ROR reg");
+						if(to_shift == 0)
+						{
+							shifter_operand = regs[rm];
+							shifter_carry_out = fc;
+						}
+						else if( (to_shift&0x1F) == 0 )
+						{
+							shifter_operand = regs[rm];
+							shifter_carry_out = regs[rm] & (1u << 31);
+						}
+						else
+						{
+							shifter_operand = regs[rm] >> (to_shift & 0x1F);
+							shifter_operand |= regs[rm] << (32 - (to_shift & 0x1F));
+							shifter_carry_out = regs[rm] & (1u << ((to_shift & 0x1F)-1));
+						}
+					}
+				}
+				else
+				{
+					TRACE("Bad shift operation %d\n", shift);
+					return INTERP_RESULT_FATAL;
 				}
 				
-				TRACE(" gives %8.8X\n", shifted);
-				TRACE("Destination=r%d\n", rd);
-				interp_dataproc(opcode, regs + rd, cpsr, regs[rn], shifted, sdata);
+				TRACE(" r%d (%8.8X) by %d gives %8.8X with shifter-carry %d", 
+					rm, regs[rm], to_shift, shifter_operand, shifter_carry_out ? 1 : 0);
+				
+				TRACE("\nOp Destination=r%d\n", rd);
+				interp_dataproc(opcode, regs + rd, cpsr, regs[rn], shifter_operand, sdata, shifter_carry_out);
 				return INTERP_RESULT_OK;
 			}
 		}
