@@ -137,18 +137,21 @@ void process_step(void)
 		case INTERP_RESULT_AC:
 		{
 			//Alignment check
+			pptr->regs[15] -= 4;
 			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_AC);
 			break;
 		}
 		case INTERP_RESULT_ABT:
 		{
 			//Data abort
+			pptr->regs[15] -= 4;
 			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_ABT);
 			break;
 		}
 		case INTERP_RESULT_PF:
 		{
 			//Prefetch abort
+			pptr->regs[15] -= 4;
 			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_PF);
 			break;
 		}
