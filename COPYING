@@ -1,0 +1,8 @@
+COPYING for pvmk-appsdk
+
+Most of the code in this SDK, for use on the Neki32, is licensed CC0. You are generally free to use it however you like.
+
+Some code in the PicoLibC port may be under more restrictive licenses. 
+
+Some example code may be under restrictive or noncommercial licenses. For example, many examples of DOS game ports are noncommercial (In Pursuit of Greed) or copyleft (Doom, Quake).
+
