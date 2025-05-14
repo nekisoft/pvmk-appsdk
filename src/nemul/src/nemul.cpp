@@ -20,6 +20,7 @@ enum EmulCommands
 
 int tracing = 0;
 prefs_t EmulPrefs;
+int YelledAboutCrash = 0;
 
 class EmulTimer : public wxTimer
 {
@@ -60,6 +61,56 @@ void EmulTimer::Notify()
 			{
 				EmulVsyncs++;
 				ScreenPanel->Refresh();
+				
+				//Check if there's a debug-stopped program with no debugger attached
+				if(!rsp_present())
+				{
+					int nstopped = 0;
+					process_t *pptr = NULL;
+					for(int pp = 0; pp < PROCESS_MAX; pp++)
+					{
+						if(process_table[pp].dbgstop)
+						{
+							nstopped++;
+							pptr = &(process_table[pp]);
+						}
+					}
+					
+					if(nstopped && !YelledAboutCrash)
+					{
+						//Haven't told the user about the crashed program
+						static const char *reasons[PROCESS_DBGSTOP_MAX] = 
+						{
+							[PROCESS_DBGSTOP_CTRLC] = "Interrupted by User",
+							[PROCESS_DBGSTOP_SIGNAL] = "Signal Sent",
+							[PROCESS_DBGSTOP_BKPT] = "Breakpoint Hit",
+							[PROCESS_DBGSTOP_ABT] = "Data Abort",
+							[PROCESS_DBGSTOP_AC] = "Alignment Check",
+							[PROCESS_DBGSTOP_PF] = "Prefetch Abort", 
+							[PROCESS_DBGSTOP_FATAL] = "Neki32 Interpreter Bug", 
+						};
+						
+						wxString emsg = wxString::Format("PID %d stopped: %s at program location 0x%8.8X.",
+							pptr->pid, reasons[pptr->dbgstop], pptr->regs[15]);
+						
+						dynamic_cast<wxFrame*>(wxGetTopLevelParent(ScreenPanel))->SetStatusText(emsg);
+						
+						wxString emsg2 = wxString::Format(
+							"The process with PID %d has stopped due to a crash.\n\n"
+							"The cause is: %s, at program location 0x%8.8X.\n\n"
+							"Attach a debugger or restart the simulation to continue.",
+							pptr->pid, reasons[pptr->dbgstop], pptr->regs[15]);
+						
+						wxMessageBox(emsg2, "Simulated Crash", wxICON_STOP);
+						
+						YelledAboutCrash = 1;
+					}
+					else if(YelledAboutCrash && (nstopped == 0))
+					{
+						//Simulation has been reset
+						YelledAboutCrash = 0;
+					}
+				}
 			}
 		}
 	}
@@ -268,6 +319,8 @@ void EmulFrame::OnRestart(wxCommandEvent &event)
 {
 	(void)event;
 	ResetSim();
+	
+	SetStatusText("Restarted simulation.");
 }
 
 void EmulFrame::OnExit(wxCommandEvent &event)

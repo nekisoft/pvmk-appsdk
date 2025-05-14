@@ -467,7 +467,6 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	{
 		//This is the GDB breakpoint instruction
 		TRACE("%s", "Caught GDB breakpoint instruction\n");
-		regs[15] -= 4; //Run again next time from the same PC
 		return INTERP_RESULT_BKPT;
 	}
 	

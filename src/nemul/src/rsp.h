@@ -16,4 +16,7 @@ void rsp_poll(void);
 //Sets a process to debug-stopped and notifies the debugger
 void rsp_dbgstop(int pid, process_dbgstop_t reason);
 
+//Returns whether a debugger is connected
+bool rsp_present(void);
+
 #endif //RSP_H

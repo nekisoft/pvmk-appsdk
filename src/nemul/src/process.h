@@ -25,6 +25,7 @@ typedef enum process_dbgstop_e
 	PROCESS_DBGSTOP_ABT, //Data abort exception
 	PROCESS_DBGSTOP_AC, //Alignment check exception
 	PROCESS_DBGSTOP_PF, //Prefetch abort exception
+	PROCESS_DBGSTOP_FATAL, //Interpreter failure
 	PROCESS_DBGSTOP_MAX
 } process_dbgstop_t;
 

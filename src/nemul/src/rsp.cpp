@@ -1622,6 +1622,7 @@ void rsp_dbgstop(int pid, process_dbgstop_t reason)
 		[PROCESS_DBGSTOP_BKPT] = 5, //GDB SIGTRAP
 		[PROCESS_DBGSTOP_ABT] = 11, //GDB SIGSEGV
 		[PROCESS_DBGSTOP_PF] = 11, //GDB SIGSEGV
+		[PROCESS_DBGSTOP_FATAL] = 32, //GDB SIGPWR = power-failure
 	};
 	
 	int report_signal = 5;
@@ -1637,4 +1638,9 @@ void rsp_dbgstop(int pid, process_dbgstop_t reason)
 	rsp_putpkt_hex32(pptr->pid);
 	rsp_putpkt_str(";");
 	rsp_putpkt_end();
+}
+
+bool rsp_present(void)
+{
+	return (rsp_client_sock >= 0);
 }
