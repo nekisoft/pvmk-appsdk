@@ -920,6 +920,50 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			return INTERP_RESULT_OK;
 			
 		}
+		else if( (ir & 0x0FE000F0) == 0x00E00090 )
+		{
+			//SMLAL - Signed Multiply Accumulate Long
+			int rdlo = rd;
+			int rdhi = rn;
+			TRACE("SMLAL {r%d,r%d} += r%d * r%d\n", rdhi, rdlo, rm, rs);
+			
+			uint64_t accum = 0;
+			accum = (accum << 32) | regs[rdhi];
+			accum = (accum << 32) | regs[rdlo];
+			
+			accum += (int64_t)((int32_t)(regs[rm])) * (int64_t)((int32_t)(regs[rs]));
+			
+			regs[rdhi] = (accum >> 32) & 0xFFFFFFFFu;
+			regs[rdlo] = (accum >>  0) & 0xFFFFFFFFu;
+			
+			if(sdata)
+			{
+				TRACE("%s", "Writing flags for SMLAL");
+				if(accum == 0)
+				{
+					TRACE(" %s", "Z1");
+					*cpsr |= FLAG_Z;
+				}
+				else
+				{
+					TRACE(" %s", "Z0");				
+					*cpsr &= ~FLAG_Z;
+				}
+				
+				if(regs[rdhi] & 0x80000000u)
+				{
+					TRACE(" %s", "N1");
+					*cpsr |= FLAG_N;
+				}
+				else
+				{
+					TRACE(" %s", "N0");				
+					*cpsr &= ~FLAG_N;
+				}
+				TRACE("%s", "\n");
+			}
+			return INTERP_RESULT_OK;
+		}
 		else if( (ir & 0x0FE000F0) == 0x00200090 )
 		{
 			//MLA - Multiply accumulate
