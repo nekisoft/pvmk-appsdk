@@ -8,8 +8,11 @@
 //the Free Software Foundation, either version 3 of the License, or
 //(at your option) any later version.
 
-#include "sysc.h"
+#define FILE_TRACE_CAT TRACE_CAT_SYSC
 #include "trace.h"
+
+
+#include "sysc.h"
 #include "prefs.h"
 #include <unistd.h>
 #include <stdlib.h>
@@ -104,19 +107,19 @@ void sysc_pushpads(const uint16_t *pads)
 
 void pvmk_sc_none(void)
 {
-	TRACE("%s\n", "pvmk_sc_none");
+	TDEBUG("%s\n", "pvmk_sc_none");
 }
 
 void pvmk_sc_pause(void)
 {
-	TRACE("%s\n", "pvmk_sc_pause");
+	TDEBUG("%s\n", "pvmk_sc_pause");
 	sysc_pptr->paused = true;
 	return;
 }
 
 int pvmk_sc_getticks(void)
 {
-	TRACE("%s\n", "pvmk_sc_getticks");
+	TDEBUG("%s\n", "pvmk_sc_getticks");
 	
 	extern uint32_t EmulTimerTicks;
 	return EmulTimerTicks & 0x7FFFFFFFu;
@@ -124,24 +127,24 @@ int pvmk_sc_getticks(void)
 
 int pvmk_sc_fork(void)
 {
-	TRACE("%s\n", "pvmk_sc_fork");
+	TDEBUG("%s\n", "pvmk_sc_fork");
 	return process_fork(sysc_pptr->pid);
 }
 
 int pvmk_sc_wait(uint32_t idtype, uint32_t id, uint32_t options, uint32_t buf, uint32_t len)
 {
-	TRACE("%s %u %u %X %8.8X %u\n", "pvmk_sc_wait", idtype, id, options, buf, len);
+	TDEBUG("%s %u %u %X %8.8X %u\n", "pvmk_sc_wait", idtype, id, options, buf, len);
 	return 0;
 }
 
 void pvmk_sc_exit(uint32_t code, uint32_t sig)
 {
-	TRACE("%s %u %u\n", "pvmk_sc_exit", code, sig);
+	TDEBUG("%s %u %u\n", "pvmk_sc_exit", code, sig);
 }
 
 int pvmk_sc_gfx_flip(uint32_t mode, uint32_t buffer)
 {
-	TRACE("%s %u %8.8X\n", "pvmk_sc_gfx_flip", mode, buffer);
+	TDEBUG("%s %u %8.8X\n", "pvmk_sc_gfx_flip", mode, buffer);
 	
 	//Validate mode parameter
 	if(mode >= sizeof(sysc_fb_sizes)/sizeof(sysc_fb_sizes[0]))
@@ -179,19 +182,19 @@ int pvmk_sc_gfx_flip(uint32_t mode, uint32_t buffer)
 
 int pvmk_sc_mem_sbrk(uint32_t req)
 {
-	TRACE("%s %u\n", "pvmk_sc_mem_sbrk", req);
+	TDEBUG("%s %u\n", "pvmk_sc_mem_sbrk", req);
 	
 	//Compute new size, cap like real system
 	uint32_t will_be = sysc_pptr->size + req;
 	if(will_be < sysc_pptr->size)
 	{
-		TRACE("%s", "Overflow in process size; cannot make process smaller.\n");
+		TERROR("%s", "Overflow in process size; cannot make process smaller.\n");
 		return -PVMK_EINVAL;
 	}
 	
 	if(will_be > 24*1024*1024)
 	{
-		TRACE("%s", "Requested more memory than 24MBytes.\n");
+		TWARNING("%s", "Requested more memory than 24MBytes.\n");
 		return -PVMK_ENOMEM;
 	}
 	
@@ -200,7 +203,7 @@ int pvmk_sc_mem_sbrk(uint32_t req)
 	if(result == NULL)
 	{
 		//Host didn't have enough memory for it
-		TRACE("%s", "Host is out of memory!\n");
+		TERROR("%s", "Host is out of memory!\n");
 		return -PVMK_ENOMEM;
 	}
 	
@@ -211,13 +214,13 @@ int pvmk_sc_mem_sbrk(uint32_t req)
 	uint32_t retval = sysc_pptr->size;
 	sysc_pptr->mem = (uint32_t*)result;
 	sysc_pptr->size = will_be;
-	TRACE("Resized process %d from %8.8X to %8.8X\n", sysc_pptr->pid, retval, sysc_pptr->size);
+	TDEBUG("Resized process %d from %8.8X to %8.8X\n", sysc_pptr->pid, retval, sysc_pptr->size);
 	return retval;
 }
 
 int pvmk_sc_input(uint32_t buf, uint32_t each, uint32_t total)
 {
-	TRACE("%s %8.8X %u %u\n", "pvmk_sc_input", buf, each, total);
+	TDEBUG("%s %8.8X %u %u\n", "pvmk_sc_input", buf, each, total);
 	
 	if( (buf < 4096) || ((buf+total) > sysc_pptr->size) )
 	{
@@ -256,28 +259,28 @@ int pvmk_sc_input(uint32_t buf, uint32_t each, uint32_t total)
 
 int pvmk_sc_snd_play(uint32_t mode, uint32_t chunk, uint32_t chunkbytes, uint32_t maxbuf)
 {
-	TRACE("%s %u %8.8X %u %u\n", "pvmk_sc_snd_play", mode, chunk, chunkbytes, maxbuf);
+	TDEBUG("%s %u %8.8X %u %u\n", "pvmk_sc_snd_play", mode, chunk, chunkbytes, maxbuf);
 	
 	return -PVMK_ENOSYS;
 }
 
 int pvmk_sc_nvm_save(uint32_t buf, uint32_t len)
 {
-	TRACE("%s %8.8X %u\n", "pvmk_sc_nvm_save", buf, len);
+	TDEBUG("%s %8.8X %u\n", "pvmk_sc_nvm_save", buf, len);
 	
 	return -PVMK_ENOSYS;
 }
 
 int pvmk_sc_nvm_load(uint32_t buf, uint32_t len)
 {
-	TRACE("%s %8.8X %u\n", "pvmk_sc_nvm_load", buf, len);
+	TDEBUG("%s %8.8X %u\n", "pvmk_sc_nvm_load", buf, len);
 	
 	return -PVMK_ENOSYS;
 }
 
 int pvmk_sc_env_save(uint32_t buf, uint32_t len)
 {
-	TRACE("%s %8.8X %u\n", "pvmk_sc_env_save", buf, len);
+	TDEBUG("%s %8.8X %u\n", "pvmk_sc_env_save", buf, len);
 	
 	if(buf == 0 && len == 0)
 	{
@@ -305,7 +308,7 @@ int pvmk_sc_env_save(uint32_t buf, uint32_t len)
 
 int pvmk_sc_env_load(uint32_t buf, uint32_t len)
 {
-	TRACE("%s %8.8X %u\n", "pvmk_sc_env_load", buf, len);
+	TDEBUG("%s %8.8X %u\n", "pvmk_sc_env_load", buf, len);
 	
 	if(len > (unsigned)sysc_pptr->env_len)
 		len = sysc_pptr->env_len;
@@ -319,19 +322,19 @@ int pvmk_sc_env_load(uint32_t buf, uint32_t len)
 
 int pvmk_sc_sig_mask(uint32_t mask, uint32_t how)
 {
-	TRACE("%s %8.8X %u\n", "pvmk_sc_sig_mask", mask, how);
+	TDEBUG("%s %8.8X %u\n", "pvmk_sc_sig_mask", mask, how);
 	
 	return -PVMK_ENOSYS;
 }
 
 void pvmk_sc_sig_return(void)
 {
-	TRACE("%s\n", "pvmk_sc_sig_return");
+	TDEBUG("%s\n", "pvmk_sc_sig_return");
 }
 
 int pvmk_sc_disk_read2k(uint32_t sector_num, uint32_t buf, uint32_t nsectors)
 {
-	TRACE("%s %u %8.8X %u\n", "pvmk_sc_disk_read2k", sector_num, buf, nsectors);
+	TDEBUG("%s %u %8.8X %u\n", "pvmk_sc_disk_read2k", sector_num, buf, nsectors);
 	
 	if(sysc_diskfd < 0)
 		return -PVMK_ENXIO;
@@ -356,7 +359,7 @@ int pvmk_sc_disk_read2k(uint32_t sector_num, uint32_t buf, uint32_t nsectors)
 
 int pvmk_sc_disk_write2k(uint32_t sector_num, uint32_t buf, uint32_t nsectors)
 {
-	TRACE("%s %u %8.8X %u\n", "pvmk_sc_disk_write2k", sector_num, buf, nsectors);
+	TDEBUG("%s %u %8.8X %u\n", "pvmk_sc_disk_write2k", sector_num, buf, nsectors);
 	
 	if(sysc_diskfd < 0)
 		return -PVMK_ENXIO;
@@ -381,7 +384,7 @@ int pvmk_sc_disk_write2k(uint32_t sector_num, uint32_t buf, uint32_t nsectors)
 
 int pvmk_sc_mexec_append(uint32_t buf, uint32_t len)
 {
-	TRACE("%s %8.8X %u\n", "pvmk_sc_mexec_append", buf, len);
+	TDEBUG("%s %8.8X %u\n", "pvmk_sc_mexec_append", buf, len);
 
 	//Check for "reset" parameters
 	if(buf == 0 && len == 0)
@@ -453,7 +456,7 @@ int pvmk_sc_mexec_append(uint32_t buf, uint32_t len)
 
 void pvmk_sc_mexec_apply(void)
 {
-	TRACE("%s\n", "pvmk_sc_mexec_apply");
+	TDEBUG("%s\n", "pvmk_sc_mexec_apply");
 	
 	//Mask all signals
 	//sysc_pptr->
@@ -473,7 +476,7 @@ void pvmk_sc_mexec_apply(void)
 	
 	if(sysc_pptr->mem == NULL)
 	{
-		TRACE("Process %d killed itself by mexec'ing with no pending image\n", sysc_pptr->pid);
+		TWARNING("Process %d killed itself by mexec'ing with no pending image\n", sysc_pptr->pid);
 		sysc_pptr->state = PROCESS_STATE_DEAD;
 	}
 	
@@ -486,7 +489,7 @@ void pvmk_sc_mexec_apply(void)
 
 int pvmk_sc_print(uint32_t buf_ptr)
 {
-	TRACE("%s %8.8X\n", "pvmk_sc_print", buf_ptr);
+	TDEBUG("%s %8.8X\n", "pvmk_sc_print", buf_ptr);
 	
 	//Print characters until we reach a NUL terminator or run afoul of memory bounds
 	int printed = 0;
@@ -494,7 +497,7 @@ int pvmk_sc_print(uint32_t buf_ptr)
 	{
 		if(buf_ptr < 0x1000 || buf_ptr >= sysc_pptr->size)
 		{
-			TRACE("Bad address %8.8X in _sc_print\n", buf_ptr);
+			TERROR("Bad address %8.8X in _sc_print\n", buf_ptr);
 			return (printed > 0) ? printed : -PVMK_EFAULT;
 		}
 		
@@ -505,7 +508,8 @@ int pvmk_sc_print(uint32_t buf_ptr)
 			break;
 		}
 		
-		TRACE("%c", to_print);
+		//Todo - collect this for a text-mode buffer like the real machine does
+		printf("%c", to_print);
 		buf_ptr++;
 	}		
 	return printed;
@@ -513,11 +517,11 @@ int pvmk_sc_print(uint32_t buf_ptr)
 
 void sysc(process_t *pptr)
 {
-	TRACE("Handling system-call %X from process %d\n", pptr->regs[0], pptr->pid);
+	TDEBUG("Handling system-call %X from process %d\n", pptr->regs[0], pptr->pid);
 	uint32_t *regs = pptr->regs;
 	for(int pp = 1; pp < 6; pp++)
 	{
-		TRACE("\tParm %d: %8.8X\n", pp, regs[pp]);
+		TDEBUG("\tParm %d: %8.8X\n", pp, regs[pp]);
 	}
 	
 	sysc_pptr = pptr;
@@ -545,10 +549,10 @@ void sysc(process_t *pptr)
 		case 0xA1: result = pvmk_sc_mexec_append(regs[1], regs[2]); break;
 		case 0xA2: /* nr */ pvmk_sc_mexec_apply(); break;
 		case 0xB0: result = pvmk_sc_print(regs[1]); break;
-		default:   result = -PVMK_ENOSYS; TRACE("Bad syscall 0x%X\n", regs[0]); break;
+		default:   result = -PVMK_ENOSYS; TWARNING("Bad syscall 0x%X\n", regs[0]); break;
 	}
 	
-	TRACE("Returning r0=%8.8X from syscall\n", result);
+	TDEBUG("Returning r0=%8.8X from syscall\n", result);
 	regs[0] = result;
 	return;
 }

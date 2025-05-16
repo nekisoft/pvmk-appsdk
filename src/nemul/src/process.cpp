@@ -8,9 +8,11 @@
 //the Free Software Foundation, either version 3 of the License, or
 //(at your option) any later version.
 
+#define FILE_TRACE_CAT TRACE_CAT_PROCESS
+#include "trace.h"
+
 #include "process.h"
 #include "interp.h"
-#include "trace.h"
 #include "sysc.h"
 #include "rsp.h"
 
@@ -26,7 +28,7 @@ process_t process_table[PROCESS_MAX];
 
 void process_reset(void)
 {
-	TRACE("%s", "Resetting process table...\n");
+	TINFO("%s", "Resetting process table...\n");
 	
 	//Free all the dynamically allocated parts of the process table
 	//This is just the user memory for the moment
@@ -34,14 +36,14 @@ void process_reset(void)
 	{
 		if(process_table[pp].mem != NULL)
 		{
-			TRACE("Freeing memory from process %d\n", process_table[pp].pid);
+			TDEBUG("Freeing memory from process %d\n", process_table[pp].pid);
 			free(process_table[pp].mem); process_table[pp].mem = NULL;
 		}
 	}
 	
 	//Clear the process table
 	memset(process_table, 0, sizeof(process_table));
-	TRACE("%s", "Process table reset.\n");
+	TINFO("%s", "Process table reset.\n");
 	
 	//Make the initial process
 	process_table[1].pid = 1;
@@ -50,7 +52,7 @@ void process_reset(void)
 	process_table[1].mem = (uint32_t*)calloc(1, sizeof(init));
 	if(process_table[1].mem == NULL)
 	{
-		TRACE("Failed to allocate %lu bytes for initial process\n", sizeof(init));
+		TFATAL("Failed to allocate %lu bytes for initial process\n", sizeof(init));
 		exit(-1);
 	}
 	
@@ -60,12 +62,12 @@ void process_reset(void)
 	
 	process_table[1].state = PROCESS_STATE_ALIVE;
 	
-	TRACE("PID1 set up, %lu bytes in init process.\n", sizeof(init));
+	TDEBUG("PID1 set up, %lu bytes in init process.\n", sizeof(init));
 }
 
 void process_step(void)
 {
-	TRACE("%s", "=== PROCESS STEP ===\n");
+	TDEBUG("%s", "=== PROCESS STEP ===\n");
 	
 	//Pick a process to run
 	process_t *pptr = NULL;
@@ -87,11 +89,11 @@ void process_step(void)
 	
 	if(pptr == NULL)
 	{
-		TRACE("%s", "No runnable processes.\n");
+		TDEBUG("%s", "No runnable processes.\n");
 		return;
 	}
 	
-	TRACE("Scheduled process %d\n", pptr->pid);
+	TDEBUG("Scheduled process %d\n", pptr->pid);
 	
 	//A process that was paused and then unpaused can be paused again
 	if(pptr->paused && pptr->unpaused)
@@ -166,7 +168,7 @@ void process_step(void)
 		}
 		default:
 		{
-			TRACE("%s", "Unhandled result from ARM code interpreter\n");
+			TFATAL("%s", "Unhandled result from ARM code interpreter\n");
 			exit(-1);
 		}
 	}
@@ -189,7 +191,7 @@ int process_fork(int parent)
 	if(parent_pptr == NULL)
 	{
 		//Didn't find the process requesting a fork...?
-		TRACE("%s", "bad call to process_fork, parent not found\n");
+		TFATAL("%s", "bad call to process_fork, parent not found\n");
 		exit(-1);
 	}
 	
@@ -207,7 +209,7 @@ int process_fork(int parent)
 	if(child_idx == -1)
 	{
 		//No free space for child
-		TRACE("%s", "No space for another process in process table.\n");
+		TWARNING("%s", "No space for another process in process table.\n");
 		return -PVMK_ENOSPC;
 	}
 	process_t *child_pptr = &(process_table[child_idx]);
@@ -224,7 +226,7 @@ int process_fork(int parent)
 	if(child_pptr->mem == NULL)
 	{
 		//No space for memory for this child
-		TRACE("%s", "No memory on the host for a copy of the process.\n");
+		TERROR("%s", "No memory on the host for a copy of the process.\n");
 		return -PVMK_ENOMEM;
 	}
 	child_pptr->size = parent_pptr->size;

@@ -8,8 +8,10 @@
 //the Free Software Foundation, either version 3 of the License, or
 //(at your option) any later version.
 
-#include "interp.h"
+#define FILE_TRACE_CAT TRACE_CAT_INTERP
 #include "trace.h"
+
+#include "interp.h"
 
 //ARM flag register contents
 #define FLAG_V (1u << 28)
@@ -23,13 +25,13 @@ static interp_result_t interp_store_d(uint32_t *mem, uint32_t memsz, uint32_t ad
 {
 	if(addr & 7)
 	{
-		TRACE("Misaligned doubleword store of %16.16lX to addr %8.8X\n", data, addr);
+		TWARNING("Misaligned doubleword store of %16.16lX to addr %8.8X\n", data, addr);
 		return INTERP_RESULT_AC;
 	}
 	
 	if(addr + 8 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds doubleword store to %8.8X\n", addr);
+		TWARNING("Out-of-bounds doubleword store to %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}
 	
@@ -42,13 +44,13 @@ static interp_result_t interp_store_w(uint32_t *mem, uint32_t memsz, uint32_t ad
 {
 	if(addr & 3)
 	{
-		TRACE("Misaligned word store of %8.8X to addr %8.8X\n", data, addr);
+		TWARNING("Misaligned word store of %8.8X to addr %8.8X\n", data, addr);
 		return INTERP_RESULT_AC;
 	}
 	
 	if(addr + 4 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds word store to %8.8X\n", addr);
+		TWARNING("Out-of-bounds word store to %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}
 	
@@ -60,13 +62,13 @@ static interp_result_t interp_store_h(uint32_t *mem, uint32_t memsz, uint32_t ad
 {
 	if(addr % 1)
 	{
-		TRACE("Misaligned halfword store of %4.4X to addr %8.8X\n", data, addr);
+		TWARNING("Misaligned halfword store of %4.4X to addr %8.8X\n", data, addr);
 		return INTERP_RESULT_AC;
 	}
 	
 	if(addr + 2 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds halfword store to %8.8X\n", addr);
+		TWARNING("Out-of-bounds halfword store to %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}
 	
@@ -91,7 +93,7 @@ static interp_result_t interp_store_b(uint32_t *mem, uint32_t memsz, uint32_t ad
 {
 	if(addr + 1 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds byte store to %8.8X\n", addr);
+		TWARNING("Out-of-bounds byte store to %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}
 	
@@ -122,13 +124,13 @@ static interp_result_t interp_load_d(const uint32_t *mem, uint32_t memsz, uint32
 {
 	if(addr & 7)
 	{
-		TRACE("Misaligned doubleword load from addr %8.8X\n", addr);
+		TWARNING("Misaligned doubleword load from addr %8.8X\n", addr);
 		return INTERP_RESULT_AC;
 	}
 	
 	if(addr + 8 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds doubleword load from %8.8X\n", addr);
+		TWARNING("Out-of-bounds doubleword load from %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}
 	
@@ -141,13 +143,13 @@ static interp_result_t interp_load_w(const uint32_t *mem, uint32_t memsz, uint32
 {
 	if(addr & 3)
 	{
-		TRACE("Misaligned word load from addr %8.8X\n", addr);
+		TWARNING("Misaligned word load from addr %8.8X\n", addr);
 		return INTERP_RESULT_AC;
 	}
 
 	if(addr + 4 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds word load from %8.8X\n", addr);
+		TWARNING("Out-of-bounds word load from %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}	
 	
@@ -159,13 +161,13 @@ static interp_result_t interp_load_h(const uint32_t *mem, uint32_t memsz, uint32
 {
 	if(addr & 1)
 	{
-		TRACE("Misaligned halfword load from addr %8.8X\n", addr);
+		TWARNING("Misaligned halfword load from addr %8.8X\n", addr);
 		return INTERP_RESULT_AC;
 	}	
 	
 	if(addr + 2 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds halfword load from %8.8X\n", addr);
+		TWARNING("Out-of-bounds halfword load from %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}	
 	
@@ -185,7 +187,7 @@ static interp_result_t interp_load_b(const uint32_t *mem, uint32_t memsz, uint32
 {
 	if(addr + 1 > memsz || addr < 0x1000)
 	{
-		TRACE("Out-of-bounds byte load from %8.8X\n", addr);
+		TWARNING("Out-of-bounds byte load from %8.8X\n", addr);
 		return INTERP_RESULT_ABT;
 	}	
 	
@@ -201,7 +203,7 @@ static interp_result_t interp_load_b(const uint32_t *mem, uint32_t memsz, uint32
 
 static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t reg_operand, uint32_t shifter_operand, bool writeflags, bool shifter_carry)
 {
-	TRACE("Data op %X: ", opcode);
+	TDEBUG("Data op %X: ", opcode);
 	bool carryflag = (*cpsr) & FLAG_C;
 	uint64_t result = 0;
 	
@@ -216,91 +218,91 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 	{
 		case  0: 
 			result = reg64 & shifter64; 
-			TRACE("%8.8X & %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
+			TDEBUG("%8.8X & %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case  1: 
 			result = reg64 ^ shifter64;
-			TRACE("%8.8X ^ %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
+			TDEBUG("%8.8X ^ %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case  2:
 			result = reg64 - shifter64;
 			result_s = reg_s - shifter_s;
-			TRACE("%8.8X - %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
+			TDEBUG("%8.8X - %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case  3:
 			result = shifter64 - reg64;
 			result_s = shifter_s - reg_s;
-			TRACE("%8.8X - %8.8X = %8.8X\n", shifter_operand, reg_operand, (uint32_t)result);
+			TDEBUG("%8.8X - %8.8X = %8.8X\n", shifter_operand, reg_operand, (uint32_t)result);
 		break;
 		case  4:
 			result = reg64 + shifter64;
 			result_s = reg_s + shifter_s;
-			TRACE("%8.8X + %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);		
+			TDEBUG("%8.8X + %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);		
 		break;
 		case  5:
 			result = reg64 + shifter64 + (carryflag?1:0);
 			result_s = reg_s + shifter_s + (carryflag?1:0);
-			TRACE("%8.8X + %8.8X + %d = %8.8X\n",
+			TDEBUG("%8.8X + %8.8X + %d = %8.8X\n",
 				reg_operand, shifter_operand, (carryflag?1:0), (uint32_t)result);
 		break;
 		case  6:
 			result = reg64 - shifter64 - (carryflag?0:1);
 			result_s = reg_s - shifter_s - (carryflag?0:1);
-			TRACE("%8.8X - %8.8X - %d = %8.8X\n",
+			TDEBUG("%8.8X - %8.8X - %d = %8.8X\n",
 				reg_operand, shifter_operand, (carryflag?0:1), (uint32_t)result);
 		break;
 		case  7:
 			result = shifter64 - reg64 - (carryflag?0:1);
 			result_s = shifter_s - reg_s - (carryflag?0:1);
-			TRACE("%8.8X - %8.8X - %d = %8.8X\n",
+			TDEBUG("%8.8X - %8.8X - %d = %8.8X\n",
 				shifter_operand, reg_operand, (carryflag?0:1), (uint32_t)result);
 		break;
 		case  8:
 			result = reg64 & shifter64;
-			TRACE("%8.8X & %8.8X = %8.8X (compare)\n",
+			TDEBUG("%8.8X & %8.8X = %8.8X (compare)\n",
 				reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case  9:
 			result = reg64 ^ shifter64;
-			TRACE("%8.8X ^ %8.8X = %8.8X (compare)\n",
+			TDEBUG("%8.8X ^ %8.8X = %8.8X (compare)\n",
 				reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case 10:
 			result = reg64 - shifter64;
 			result_s = reg_s - shifter_s;
-			TRACE("%8.8X - %8.8X = %8.8X (compare)\n",
+			TDEBUG("%8.8X - %8.8X = %8.8X (compare)\n",
 				reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case 11:
 			result = reg64 + shifter64;
 			result_s = reg_s + shifter_s;
-			TRACE("%8.8X + %8.8X = %8.8X (compare)\n",
+			TDEBUG("%8.8X + %8.8X = %8.8X (compare)\n",
 				reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case 12:
 			result = reg64 | shifter64;
-			TRACE("%8.8X | %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
+			TDEBUG("%8.8X | %8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case 13:
 			result = shifter64;
-			TRACE("%8.8X = %8.8X\n", shifter_operand, (uint32_t)result);
+			TDEBUG("%8.8X = %8.8X\n", shifter_operand, (uint32_t)result);
 		break;
 		case 14:
 			result = reg64 & ~shifter64;
-			TRACE("%8.8X & ~%8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
+			TDEBUG("%8.8X & ~%8.8X = %8.8X\n", reg_operand, shifter_operand, (uint32_t)result);
 		break;
 		case 15:
 			result = ~shifter64;
-			TRACE("~%8.8X = %8.8X\n", shifter_operand, (uint32_t)result);
+			TDEBUG("~%8.8X = %8.8X\n", shifter_operand, (uint32_t)result);
 		break;
 		default:
 			result = 0x2BADBEEF;
-			TRACE("Bad opcode %d in call to data processing\n", opcode);
+			TERROR("Bad opcode %d in call to data processing\n", opcode);
 	}
 	
 	if(writeflags)
 	{
-		TRACE("%s", "Flags set");
+		TDEBUG("%s", "Flags set");
 		
 		//Which opcodes count as addition/subtraction for flag purposes
 		static const bool addsubs[16] = {0,0,1,1,1,1,1,1,0,0,1,1,0,0,0,0};
@@ -309,23 +311,23 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 		
 		if(result & 0xFFFFFFFFu)
 		{
-			TRACE(" %s", "Z0");
+			TDEBUG(" %s", "Z0");
 			*cpsr &= ~FLAG_Z;
 		}
 		else
 		{
-			TRACE(" %s", "Z1");
+			TDEBUG(" %s", "Z1");
 			*cpsr |= FLAG_Z;
 		}
 		
 		if(result & 0x80000000u)
 		{
-			TRACE(" %s", "N1");
+			TDEBUG(" %s", "N1");
 			*cpsr |= FLAG_N;
 		}
 		else
 		{
-			TRACE(" %s", "N0");
+			TDEBUG(" %s", "N0");
 			*cpsr &= ~FLAG_N;
 		}
 		
@@ -334,12 +336,12 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 			//Subtraction ops use inverted carry-flag...? set when there's no borrow
 			if(!(result & 0xFFFFFFFF00000000u))
 			{
-				TRACE(" %s", "C1");
+				TDEBUG(" %s", "C1");
 				*cpsr |= FLAG_C;
 			}
 			else
 			{
-				TRACE(" %s", "C0");
+				TDEBUG(" %s", "C0");
 				*cpsr &= ~FLAG_C;
 			}
 		}
@@ -347,12 +349,12 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 		{
 			if((result & 0xFFFFFFFF00000000u))
 			{
-				TRACE(" %s", "C1");
+				TDEBUG(" %s", "C1");
 				*cpsr |= FLAG_C;
 			}
 			else
 			{
-				TRACE(" %s", "C0");
+				TDEBUG(" %s", "C0");
 				*cpsr &= ~FLAG_C;
 			}
 		}
@@ -361,12 +363,12 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 			//Some ops like MOV set carry as the carry-out of the shifter
 			if(shifter_carry)
 			{
-				TRACE(" %s", "C1");
+				TDEBUG(" %s", "C1");
 				*cpsr |= FLAG_C;
 			}
 			else
 			{
-				TRACE(" %s", "C0");
+				TDEBUG(" %s", "C0");
 				*cpsr &= ~FLAG_C;
 			}
 		}
@@ -375,27 +377,27 @@ static void interp_dataproc(int opcode, uint32_t *dest, uint32_t *cpsr, uint32_t
 		{
 			if(result_s < -2147483648ll || result_s >= 2147483648ll)
 			{
-				TRACE(" %s", "V1");
+				TDEBUG(" %s", "V1");
 				*cpsr |= FLAG_V;
 			}
 			else
 			{
-				TRACE(" %s", "V0");				
+				TDEBUG(" %s", "V0");				
 				*cpsr &= ~FLAG_V;
 			}
 		}
 		
-		TRACE("%s", " ");
+		TDEBUG("%s", " ");
 	}
 	
 	//Comparison ops don't write their result, others do
 	if( (opcode & 0xC) != 0x8 )
 	{
-		TRACE("%s", "Result saved");
+		TDEBUG("%s", "Result saved");
 		*dest = result & 0xFFFFFFFFu;
 	}
 	
-	TRACE("%s", "\n");
+	TDEBUG("%s", "\n");
 }
 
 static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_t *mem, size_t memsz, uint32_t force_ir)
@@ -409,13 +411,13 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		{
 			//Misaligned program counter
 			//(Todo - thumb mode)
-			TRACE("Misaligned program counter %8.8X\n", regs[15]);
+			TERROR("Misaligned program counter %8.8X\n", regs[15]);
 			return INTERP_RESULT_FATAL;
 		}
 		if(regs[15] < 0x1000 || regs[15] + 4 > memsz)
 		{
 			//Out of bounds program counter, simulate as prefetch abort
-			TRACE("Out-of-bounds program counter %8.8X, memsz=%8.8X\n", regs[15], (uint32_t)memsz);
+			TWARNING("Out-of-bounds program counter %8.8X, memsz=%8.8X\n", regs[15], (uint32_t)memsz);
 			return INTERP_RESULT_PF;
 		}
 	}
@@ -423,9 +425,9 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	//Fetch next instruction
 	const uint32_t ir = (force_ir) ? (force_ir) : (mem[regs[15] / 4]);
 	if(force_ir)
-		TRACE("%s", "(IR FORCED) ");
+		TWARNING("%s", "(IR FORCED) ");
 	
-	TRACE("=== INTERP STEP === PC %8.8X : IR %8.8X : ", regs[15], ir);
+	TDEBUG("=== INTERP STEP === PC %8.8X : IR %8.8X : ", regs[15], ir);
 	
 	regs[15] += 8; //For the rest of the CPU, r15 refers to the current instruction plus 8 bytes.
 	
@@ -460,33 +462,33 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	(void)imm12; (void)mask; (void)l; (void)w; (void)b; (void)slsm;
 	(void)p; (void)n; (void)u; (void)swino;
 
-	TRACE("cond:%X group:%X opcode:%X\n", cond, group, opcode);
+	TDEBUG("cond:%X group:%X opcode:%X\n", cond, group, opcode);
 
 	if(ir == 0xE7F009F2)
 	{
 		//UDF 0x92 is our system-call instruction
-		TRACE("Caught syscall %8.8X\n", regs[0]);
+		TDEBUG("Caught syscall %8.8X\n", regs[0]);
 		return INTERP_RESULT_SYSCALL;
 	}
 	
 	if(ir == 0xe7ffdefe)
 	{
 		//This is the GDB breakpoint instruction
-		TRACE("%s", "Caught GDB breakpoint instruction\n");
+		TDEBUG("%s", "Caught GDB breakpoint instruction\n");
 		return INTERP_RESULT_BKPT;
 	}
 	
 	if(ir == 0xEAFFFFFE)
 	{
 		//This is an unconditional jump back to the current instruction
-		TRACE("Caught one-cycle infinite loop instruction %8.8X\n", ir);
+		TERROR("Caught one-cycle infinite loop instruction %8.8X\n", ir);
 		return INTERP_RESULT_FATAL;
 	}
 
 	//Check condition field and see if instruction is skipped
 	if(cond == 0xF)
 	{
-		TRACE("Unconditional unhandled %8.8X\n", ir);
+		TERROR("Unconditional unhandled %8.8X\n", ir);
 		return INTERP_RESULT_FATAL;
 	}
 	
@@ -514,12 +516,12 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		case 14: condsatisfied = true; break;
 		case 15: condsatisfied = true; break;
 		default:
-			TRACE("Bad condition code %d\n", cond);
+			TERROR("Bad condition code %d\n", cond);
 			return INTERP_RESULT_FATAL;
 	}
 	if(!condsatisfied)
 	{
-		TRACE("%s", "Skipping as condition not met.\n");
+		TDEBUG("%s", "Skipping as condition not met.\n");
 		return INTERP_RESULT_OK;
 	}
 	
@@ -528,13 +530,13 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		if(p == 0)
 		{
 			//Coprocessor instruction
-			TRACE("Coproc unhandled %8.8X\n", ir);
+			TERROR("Coproc unhandled %8.8X\n", ir);
 			return INTERP_RESULT_FATAL;
 		}
 		else
 		{
 			//Software interrupt
-			TRACE("Unhandled SWI instruction %8.8X\n", ir);
+			TERROR("Unhandled SWI instruction %8.8X\n", ir);
 			return INTERP_RESULT_FATAL;
 		}
 	}
@@ -542,7 +544,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	if(group == 0x6)
 	{
 		//Coprocessor load/store and double register transfers
-		TRACE("Coproc l/s unhandled %8.8X\n", ir);
+		TERROR("Coproc l/s unhandled %8.8X\n", ir);
 		return INTERP_RESULT_FATAL;
 	}
 	
@@ -560,12 +562,12 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		{
 			regs[14] = regs[15] - 4;
 			regs[15] += offset;
-			TRACE("Branch with link +%8.8X to %8.8X, saved %8.8X in LR\n", offset, regs[15]-4, regs[14]);
+			TDEBUG("Branch with link +%8.8X to %8.8X, saved %8.8X in LR\n", offset, regs[15]-4, regs[14]);
 		}
 		else
 		{
 			regs[15] += offset;
-			TRACE("Branch +%8.8X to %8.8X\n", offset, regs[15]-4);
+			TDEBUG("Branch +%8.8X to %8.8X\n", offset, regs[15]-4);
 		}
 			
 		return INTERP_RESULT_OK;
@@ -574,12 +576,12 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	if(group == 0x4)
 	{
 		//Load/store multiple
-		TRACE("Load/store multiple %8.8X\n", ir);
+		TDEBUG("Load/store multiple %8.8X\n", ir);
 		
 		//Make sure the S bit isn't set (that's a privileged op)
 		if(slsm)
 		{
-			TRACE("%s", "Load/store op has S bit set, cannot run in usermode\n");
+			TERROR("%s", "Load/store op has S bit set, cannot run in usermode\n");
 			return INTERP_RESULT_FATAL;
 		}
 		
@@ -606,7 +608,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			else
 				memresult = interp_store_w(mem, memsz, access_addr, regs[reg]);
 			
-			TRACE("\tr%d %c @%8.8X (#%8.8X)\n", reg, l?'<':'>', access_addr, regs[reg]);
+			TDEBUG("\tr%d %c @%8.8X (#%8.8X)\n", reg, l?'<':'>', access_addr, regs[reg]);
 			
 			if(l && reg == 15)
 				regs[15] += 4; //Correct PC as we keep it offset
@@ -629,51 +631,51 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	{
 		if( (ir & 0x07F000F0) == 0x07F000F0)
 		{
-			TRACE("Undefined instruction %8.8X\n", ir);
+			TERROR("Undefined instruction %8.8X\n", ir);
 			return INTERP_RESULT_FATAL;
 		}
 		else if(ir & 0x10)
 		{
-			TRACE("Media instruction %8.8X\n", ir);
+			TERROR("Media instruction %8.8X\n", ir);
 			return INTERP_RESULT_FATAL;
 		}
 		else
 		{
-			TRACE("load/store register offset %c r%d from r%d (%8.8X)\n",
+			TDEBUG("load/store register offset %c r%d from r%d (%8.8X)\n",
 				u?'+':'-', rm, rn, regs[rn]);
 			
 			
 			int effective_shift = shamt;
-			TRACE("Scaled offset - Shifting r%d (%8.8X) by %d ", rm, regs[rm], effective_shift);
+			TDEBUG("Scaled offset - Shifting r%d (%8.8X) by %d ", rm, regs[rm], effective_shift);
 			uint32_t srcdata = regs[rm];
 			uint32_t shifted = 0;
 			switch(shift)
 			{
 				case 0:
-					TRACE("%s", "(LSL)");
+					TDEBUG("%s", "(LSL)");
 					shifted |= srcdata << effective_shift;
 					break;
 				case 1:
-					TRACE("%s", "(LSR)");
+					TDEBUG("%s", "(LSR)");
 					shifted |= srcdata >> effective_shift;
 					break;
 				case 2:
-					TRACE("%s", "(ASR)");
+					TDEBUG("%s", "(ASR)");
 					shifted |= srcdata >> effective_shift;
 					if(srcdata & 0x80000000u)
 						shifted |= 0xFFFFFFFF << (32 - effective_shift);
 					break;
 				case 3:
-					TRACE("%s", "(ROR)");
+					TDEBUG("%s", "(ROR)");
 					shifted |= srcdata >> effective_shift;
 					shifted |= srcdata << (32 - effective_shift);
 					break;
 				default:
-					TRACE("Bad shift operation %d\n", shift);
+					TERROR("Bad shift operation %d\n", shift);
 					return INTERP_RESULT_FATAL;
 			}
 			
-			TRACE(" gives %8.8X\n", shifted);
+			TDEBUG(" gives %8.8X\n", shifted);
 		
 			uint32_t baseonly = regs[rn];
 			uint32_t withoffset = u ? (regs[rn] + shifted) : (regs[rn] - shifted);
@@ -681,58 +683,58 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			uint32_t effective = p ? withoffset : baseonly;
 			if(!p)
 			{
-				TRACE("postindexed, addr=base=%8.8X, ", effective);
+				TDEBUG("postindexed, addr=base=%8.8X, ", effective);
 			}
 			else
 			{
-				TRACE("preindex/offset, addr=base+off=%8.8X, ", effective);
+				TDEBUG("preindex/offset, addr=base+off=%8.8X, ", effective);
 			}
 			
 			interp_result_t memresult = INTERP_RESULT_FATAL;
 			if(l)
 			{
-				TRACE("%s", "loading ");
+				TDEBUG("%s", "loading ");
 				if(b)
 				{
 					memresult = interp_load_b(mem, memsz, effective, &(regs[rd]));
-					TRACE("byte %2.2X", regs[rd]);
+					TDEBUG("byte %2.2X", regs[rd]);
 				}
 				else
 				{
 					memresult = interp_load_w(mem, memsz, effective, &(regs[rd]));
-					TRACE("word %8.8X", regs[rd]);
+					TDEBUG("word %8.8X", regs[rd]);
 				}
-				TRACE(" to r%d", rd);
+				TDEBUG(" to r%d", rd);
 			}
 			else
 			{
-				TRACE("%s", "storing ");
+				TDEBUG("%s", "storing ");
 				if(b)
 				{
 					memresult = interp_store_b(mem, memsz, effective, regs[rd]);
-					TRACE("byte %2.2X", regs[rd]);
+					TDEBUG("byte %2.2X", regs[rd]);
 				}
 				else
 				{
 					memresult = interp_store_w(mem, memsz, effective, regs[rd]);
-					TRACE("word %8.8X", regs[rd]);
+					TDEBUG("word %8.8X", regs[rd]);
 				}
-				TRACE(" from r%d", rd);
+				TDEBUG(" from r%d", rd);
 			}
 			
 			if(p && w)
 			{
-				TRACE("%s", ", preindex writeback");
+				TDEBUG("%s", ", preindex writeback");
 				regs[rn] = withoffset;
 			}
 			if((!p) && (!w))
 			{
-				TRACE("%s", ", postindex writeback");
+				TDEBUG("%s", ", postindex writeback");
 				regs[rn] = withoffset;
 			}
 			if((!p) && w)
 			{
-				TRACE("%s", "\nLDRBT/LDRT/STRBT/STRT unsupported\n");
+				TERROR("%s", "\nLDRBT/LDRT/STRBT/STRT unsupported\n");
 				return INTERP_RESULT_FATAL;
 			}
 			
@@ -740,7 +742,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				regs[15] += 4; //Correct PC as we keep it offset
 				
 			
-			TRACE("%s", "\n");
+			TDEBUG("%s", "\n");
 			return memresult;
 			
 		}
@@ -751,7 +753,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		//Load/store immediate offset
 		
 		uint32_t immediate = ir & 0xFFFu;
-		TRACE("load/store immediate offset %c %8.8X from r%d (%8.8X) ",
+		TDEBUG("load/store immediate offset %c %8.8X from r%d (%8.8X) ",
 			u?'+':'-', immediate, rn, regs[rn]);
 		
 		uint32_t baseonly = regs[rn];
@@ -760,58 +762,58 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		uint32_t effective = p ? withoffset : baseonly;
 		if(!p)
 		{
-			TRACE("postindexed, addr=base=%8.8X, ", effective);
+			TDEBUG("postindexed, addr=base=%8.8X, ", effective);
 		}
 		else
 		{
-			TRACE("preindex/offset, addr=base+off=%8.8X, ", effective);
+			TDEBUG("preindex/offset, addr=base+off=%8.8X, ", effective);
 		}
 		
 		interp_result_t memresult = INTERP_RESULT_FATAL;
 		if(l)
 		{
-			TRACE("%s", "loading ");
+			TDEBUG("%s", "loading ");
 			if(b)
 			{
 				memresult = interp_load_b(mem, memsz, effective, &(regs[rd]));
-				TRACE("byte %2.2X", regs[rd]);
+				TDEBUG("byte %2.2X", regs[rd]);
 			}
 			else
 			{
 				memresult = interp_load_w(mem, memsz, effective, &(regs[rd]));
-				TRACE("word %8.8X", regs[rd]);
+				TDEBUG("word %8.8X", regs[rd]);
 			}
-			TRACE(" to r%d", rd);
+			TDEBUG(" to r%d", rd);
 		}
 		else
 		{
-			TRACE("%s", "storing ");
+			TDEBUG("%s", "storing ");
 			if(b)
 			{
 				memresult = interp_store_b(mem, memsz, effective, regs[rd]);
-				TRACE("byte %2.2X", regs[rd]);
+				TDEBUG("byte %2.2X", regs[rd]);
 			}
 			else
 			{
 				memresult = interp_store_w(mem, memsz, effective, regs[rd]);
-				TRACE("word %8.8X", regs[rd]);
+				TDEBUG("word %8.8X", regs[rd]);
 			}
-			TRACE(" from r%d", rd);
+			TDEBUG(" from r%d", rd);
 		}
 		
 		if(p && w)
 		{
-			TRACE("%s", ", preindex writeback");
+			TDEBUG("%s", ", preindex writeback");
 			regs[rn] = withoffset;
 		}
 		if((!p) && (!w))
 		{
-			TRACE("%s", ", postindex writeback");
+			TDEBUG("%s", ", postindex writeback");
 			regs[rn] = withoffset;
 		}
 		if((!p) && w)
 		{
-			TRACE("%s", "\nLDRBT/LDRT/STRBT/STRT unsupported\n");
+			TERROR("%s", "\nLDRBT/LDRT/STRBT/STRT unsupported\n");
 			return INTERP_RESULT_FATAL;
 		}
 		
@@ -819,7 +821,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			regs[15] += 4; //Correct PC as we keep it offset
 			
 		
-		TRACE("%s", "\n");
+		TDEBUG("%s", "\n");
 		return memresult;
 	}
 	
@@ -827,12 +829,12 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	{
 		if(!sdata && (opcode == 8 || opcode == 10))
 		{
-			TRACE("Undefined instruction %8.8X\n", ir);
+			TERROR("Undefined instruction %8.8X\n", ir);
 			return INTERP_RESULT_FATAL;
 		}
 		else if(!sdata && (opcode == 9 || opcode == 11))
 		{
-			TRACE("Move immediate to status register %8.8X\n", ir);
+			TERROR("Move immediate to status register %8.8X\n", ir);
 			return INTERP_RESULT_FATAL;
 		}
 		else
@@ -848,7 +850,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			else
 				shifter_carry = (imm8rotated & 0x80000000u) ? 1 : 0;
 	
-			TRACE("Data processing immediate, rotated immediate = %8.8X, shifter-carry %d\n", imm8rotated, shifter_carry ? 1 : 0);
+			TDEBUG("Data processing immediate, rotated immediate = %8.8X, shifter-carry %d\n", imm8rotated, shifter_carry ? 1 : 0);
 			interp_dataproc(opcode, regs + rd, cpsr, regs[rn], imm8rotated, sdata, shifter_carry);
 			return INTERP_RESULT_OK;
 		}
@@ -861,15 +863,15 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			//BX instruction (Added in ARMv5)
 			if( (ir & 0x000FFF00) != 0x000FFF00 )
 			{
-				TRACE("BX instruction has bad should-be-one fields, %8.8X\n", ir);
+				TERROR("BX instruction has bad should-be-one fields, %8.8X\n", ir);
 				return INTERP_RESULT_FATAL;
 			}
 			
-			TRACE("BX instruction to r%d = %8.8X\n", rm, regs[rm]);
+			TDEBUG("BX instruction to r%d = %8.8X\n", rm, regs[rm]);
 			regs[15] = (regs[rm] & 0xFFFFFFFE) + 4;
 			if(regs[15] & 3)
 			{
-				TRACE("%s", "Error - thumb mode unsupported!\n");
+				TERROR("%s", "Error - thumb mode unsupported!\n");
 				return INTERP_RESULT_FATAL;
 			}
 			
@@ -880,7 +882,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			//UMLAL - Unsigned Multiply Accumulate Long (Quake loves this one)
 			int rdlo = rd;
 			int rdhi = rn;
-			TRACE("UMLAL {r%d,r%d} += r%d * r%d\n", rdhi, rdlo, rm, rs);
+			TDEBUG("UMLAL {r%d,r%d} += r%d * r%d\n", rdhi, rdlo, rm, rs);
 			
 			uint64_t accum = 0;
 			accum = (accum << 32) | regs[rdhi];
@@ -893,29 +895,29 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			
 			if(sdata)
 			{
-				TRACE("%s", "Writing flags for UMLAL");
+				TDEBUG("%s", "Writing flags for UMLAL");
 				if(accum == 0)
 				{
-					TRACE(" %s", "Z1");
+					TDEBUG(" %s", "Z1");
 					*cpsr |= FLAG_Z;
 				}
 				else
 				{
-					TRACE(" %s", "Z0");				
+					TDEBUG(" %s", "Z0");				
 					*cpsr &= ~FLAG_Z;
 				}
 				
 				if(regs[rdhi] & 0x80000000u)
 				{
-					TRACE(" %s", "N1");
+					TDEBUG(" %s", "N1");
 					*cpsr |= FLAG_N;
 				}
 				else
 				{
-					TRACE(" %s", "N0");				
+					TDEBUG(" %s", "N0");				
 					*cpsr &= ~FLAG_N;
 				}
-				TRACE("%s", "\n");
+				TDEBUG("%s", "\n");
 			}
 			return INTERP_RESULT_OK;
 			
@@ -925,7 +927,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			//SMLAL - Signed Multiply Accumulate Long
 			int rdlo = rd;
 			int rdhi = rn;
-			TRACE("SMLAL {r%d,r%d} += r%d * r%d\n", rdhi, rdlo, rm, rs);
+			TDEBUG("SMLAL {r%d,r%d} += r%d * r%d\n", rdhi, rdlo, rm, rs);
 			
 			uint64_t accum = 0;
 			accum = (accum << 32) | regs[rdhi];
@@ -938,29 +940,29 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			
 			if(sdata)
 			{
-				TRACE("%s", "Writing flags for SMLAL");
+				TDEBUG("%s", "Writing flags for SMLAL");
 				if(accum == 0)
 				{
-					TRACE(" %s", "Z1");
+					TDEBUG(" %s", "Z1");
 					*cpsr |= FLAG_Z;
 				}
 				else
 				{
-					TRACE(" %s", "Z0");				
+					TDEBUG(" %s", "Z0");				
 					*cpsr &= ~FLAG_Z;
 				}
 				
 				if(regs[rdhi] & 0x80000000u)
 				{
-					TRACE(" %s", "N1");
+					TDEBUG(" %s", "N1");
 					*cpsr |= FLAG_N;
 				}
 				else
 				{
-					TRACE(" %s", "N0");				
+					TDEBUG(" %s", "N0");				
 					*cpsr &= ~FLAG_N;
 				}
-				TRACE("%s", "\n");
+				TDEBUG("%s", "\n");
 			}
 			return INTERP_RESULT_OK;
 		}
@@ -968,34 +970,34 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		{
 			//MLA - Multiply accumulate
 			//Note rd and rn positions reversed
-			TRACE("MLA multiply accumulate (r%d * r%d) + r%d -> r%d\n", rm, rs, rd, rn);
+			TDEBUG("MLA multiply accumulate (r%d * r%d) + r%d -> r%d\n", rm, rs, rd, rn);
 			regs[rn] = (regs[rm] * regs[rs]) + regs[rd];
 			if(sdata)
 			{
 				//Update N and Z flags
-				TRACE("%s", "Writing flags for MUL");
+				TDEBUG("%s", "Writing flags for MLA");
 				if(regs[rn] == 0)
 				{
-					TRACE(" %s", "Z1");
+					TDEBUG(" %s", "Z1");
 					*cpsr |= FLAG_Z;
 				}
 				else
 				{
-					TRACE(" %s", "Z0");				
+					TDEBUG(" %s", "Z0");				
 					*cpsr &= ~FLAG_Z;
 				}
 				
 				if(regs[rn] & 0x80000000u)
 				{
-					TRACE(" %s", "N1");
+					TDEBUG(" %s", "N1");
 					*cpsr |= FLAG_N;
 				}
 				else
 				{
-					TRACE(" %s", "N0");				
+					TDEBUG(" %s", "N0");				
 					*cpsr &= ~FLAG_N;
 				}
-				TRACE("%s", "\n");
+				TDEBUG("%s", "\n");
 			}
 			return INTERP_RESULT_OK;
 		}
@@ -1003,34 +1005,34 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		{
 			//MUL - Multiply
 			//Note "rn" position used as destination "rd"
-			TRACE("MUL Multiply r%d * r%d -> r%d\n", rm, rs, rn);
+			TDEBUG("MUL Multiply r%d * r%d -> r%d\n", rm, rs, rn);
 			regs[rn] = regs[rm] * regs[rs];
 			if(sdata)
 			{
 				//Update N and Z flags
-				TRACE("%s", "Writing flags for MUL");
+				TDEBUG("%s", "Writing flags for MUL");
 				if(regs[rn] == 0)
 				{
-					TRACE(" %s", "Z1");
+					TDEBUG(" %s", "Z1");
 					*cpsr |= FLAG_Z;
 				}
 				else
 				{
-					TRACE(" %s", "Z0");				
+					TDEBUG(" %s", "Z0");				
 					*cpsr &= ~FLAG_Z;
 				}
 				
 				if(regs[rn] & 0x80000000u)
 				{
-					TRACE(" %s", "N1");
+					TDEBUG(" %s", "N1");
 					*cpsr |= FLAG_N;
 				}
 				else
 				{
-					TRACE(" %s", "N0");				
+					TDEBUG(" %s", "N0");				
 					*cpsr &= ~FLAG_N;
 				}
-				TRACE("%s", "\n");
+				TDEBUG("%s", "\n");
 			}
 			return INTERP_RESULT_OK;
 			
@@ -1040,7 +1042,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			//SMULL - Signed multiply long
 			int rdlo = rd;
 			int rdhi = rn;
-			TRACE("SMULL Signed Multiply Long r%d * r%d -> {r%d,r%d}\n", rm, rs, rdhi, rdlo);
+			TDEBUG("SMULL Signed Multiply Long r%d * r%d -> {r%d,r%d}\n", rm, rs, rdhi, rdlo);
 			
 			int64_t mul_a = (int32_t)regs[rm];
 			int64_t mul_b = (int32_t)regs[rs];
@@ -1052,29 +1054,29 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			if(sdata)
 			{
 				//Update N and Z flags
-				TRACE("%s", "Writing flags for SMULL");
+				TDEBUG("%s", "Writing flags for SMULL");
 				if(product == 0)
 				{
-					TRACE(" %s", "Z1");
+					TDEBUG(" %s", "Z1");
 					*cpsr |= FLAG_Z;
 				}
 				else
 				{
-					TRACE(" %s", "Z0");				
+					TDEBUG(" %s", "Z0");				
 					*cpsr &= ~FLAG_Z;
 				}
 				
 				if(product < 0)
 				{
-					TRACE(" %s", "N1");
+					TDEBUG(" %s", "N1");
 					*cpsr |= FLAG_N;
 				}
 				else
 				{
-					TRACE(" %s", "N0");				
+					TDEBUG(" %s", "N0");				
 					*cpsr &= ~FLAG_N;
 				}
-				TRACE("%s", "\n");
+				TDEBUG("%s", "\n");
 			}
 			return INTERP_RESULT_OK;
 		}
@@ -1083,7 +1085,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			//UMULL - Unsigned multiply long
 			int rdlo = rd;
 			int rdhi = rn;
-			TRACE("UMULL Unsigned Multiply Long r%d * r%d -> {r%d,r%d}\n", rm, rs, rdhi, rdlo);
+			TDEBUG("UMULL Unsigned Multiply Long r%d * r%d -> {r%d,r%d}\n", rm, rs, rdhi, rdlo);
 			
 			uint64_t mul_a = (uint32_t)regs[rm];
 			uint64_t mul_b = (uint32_t)regs[rs];
@@ -1095,29 +1097,29 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			if(sdata)
 			{
 				//Update N and Z flags
-				TRACE("%s", "Writing flags for UMULL");
+				TDEBUG("%s", "Writing flags for UMULL");
 				if(product == 0)
 				{
-					TRACE(" %s", "Z1");
+					TDEBUG(" %s", "Z1");
 					*cpsr |= FLAG_Z;
 				}
 				else
 				{
-					TRACE(" %s", "Z0");				
+					TDEBUG(" %s", "Z0");				
 					*cpsr &= ~FLAG_Z;
 				}
 				
 				if(product & 0x8000000000000000ull)
 				{
-					TRACE(" %s", "N1");
+					TDEBUG(" %s", "N1");
 					*cpsr |= FLAG_N;
 				}
 				else
 				{
-					TRACE(" %s", "N0");				
+					TDEBUG(" %s", "N0");				
 					*cpsr &= ~FLAG_N;
 				}
-				TRACE("%s", "\n");
+				TDEBUG("%s", "\n");
 			}
 			return INTERP_RESULT_OK;			
 		}
@@ -1125,7 +1127,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		{
 			//Load and store halfword or doubleword, and load signed byte (Added in ARMv5/v5TE)
 			//Load/store, size, and signedness determined by L, S, H bits
-			TRACE("ARMv5 sbyte/hword/dword load/store %8.8X\n", ir);
+			TDEBUG("ARMv5 sbyte/hword/dword load/store %8.8X\n", ir);
 			int lsh = 0;
 			lsh += (ir & (1u << 20)) ? 4 : 0; //L
 			lsh += (ir & (1u <<  6)) ? 2 : 0; //S
@@ -1138,7 +1140,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				uint32_t immedh = (ir >> 8) & 0xF;
 				uint32_t immedl = (ir >> 0) & 0xF;
 				offset = (immedh << 4) + immedl;
-				TRACE("Immediate offset %8.8X\n", offset);
+				TDEBUG("Immediate offset %8.8X\n", offset);
 			}
 			else
 			{
@@ -1146,17 +1148,17 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				uint32_t sbz = (ir >> 8) & 0xF;
 				if(sbz != 0)
 				{
-					TRACE("Should-be-zero bits in byte/halfword load/store %8.8X not zero!\n", ir);
+					TERROR("Should-be-zero bits in byte/halfword load/store %8.8X not zero!\n", ir);
 					return INTERP_RESULT_FATAL;
 				}
 				offset = regs[rm];
-				TRACE("Register offset r%d = %8.8X\n", rm, offset);
+				TDEBUG("Register offset r%d = %8.8X\n", rm, offset);
 			}
 			
 			uint32_t effective = regs[rn];
 			if(!p)
 			{
-				TRACE("Postindexed addressing, using base r%d = %8.8X as address\n", rn, regs[rn]);
+				TDEBUG("Postindexed addressing, using base r%d = %8.8X as address\n", rn, regs[rn]);
 			}
 			else
 			{
@@ -1165,7 +1167,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				else
 					effective -= offset;
 				
-				TRACE("Offset/preindex addressing, using r%d (%8.8X) %c %8.8X = %8.8X as address\n",
+				TDEBUG("Offset/preindex addressing, using r%d (%8.8X) %c %8.8X = %8.8X as address\n",
 					rn, regs[rn], u?'+':'-', offset, effective);
 			}
 				
@@ -1177,7 +1179,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				case 1: //Store halfword
 				{
 					memresult = interp_store_h(mem, memsz, effective, regs[rd]);
-					TRACE("Store halfword %4.4X from r%d to %8.8X\n",
+					TDEBUG("Store halfword %4.4X from r%d to %8.8X\n",
 						regs[rd] & 0xFFFF, rd, effective);
 				}
 				break;
@@ -1187,7 +1189,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					memresult = interp_load_d(mem, memsz, effective, &dw);
 					regs[rd ^ 0] = dw >>  0;
 					regs[rd ^ 1] = dw >> 32;
-					TRACE("Load doubleword %8.8X %8.8X from %8.8X to r%d r%d\n",
+					TDEBUG("Load doubleword %8.8X %8.8X from %8.8X to r%d r%d\n",
 						regs[rd^0], regs[rd^1], effective, rd^0, rd^1);
 				}
 				break;
@@ -1197,14 +1199,14 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					dw = regs[rd ^ 0];
 					dw |= ((uint64_t)regs[rd ^ 1]) << 32;
 					memresult = interp_store_d(mem, memsz, effective, dw);
-					TRACE("Store doubleword %8.8X %8.8X from r%d r%d to %8.8X\n",
+					TDEBUG("Store doubleword %8.8X %8.8X from r%d r%d to %8.8X\n",
 						regs[rd^0], regs[rd^1], rd^0, rd^1, effective);
 				}
 				break;
 				case 5: //Load unsigned halfword
 				{
 					memresult = interp_load_h(mem, memsz, effective, &(regs[rd]));
-					TRACE("Load halfword %8.8X from %8.8X to r%d\n",
+					TDEBUG("Load halfword %8.8X from %8.8X to r%d\n",
 						regs[rd], effective, rd);
 				}
 				break;
@@ -1214,7 +1216,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					if((memresult == INTERP_RESULT_OK) && (regs[rd] & 0x80))
 						regs[rd] |= 0xFFFFFF00;
 					
-					TRACE("Load signed byte %8.8X from %8.8X to r%d\n",
+					TDEBUG("Load signed byte %8.8X from %8.8X to r%d\n",
 						regs[rd], effective, rd);
 				}
 				break;
@@ -1224,12 +1226,12 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					if((memresult == INTERP_RESULT_OK) && (regs[rd] & 0x8000))
 						regs[rd] |= 0xFFFF0000u;
 					
-					TRACE("Load signed halfword %8.8X from %8.8X to r%d\n",
+					TDEBUG("Load signed halfword %8.8X from %8.8X to r%d\n",
 						regs[rd], effective, rd);
 				}
 				break;
 				default:
-					TRACE("Bad combination of LSH bits %X in ARMv5 load/store %8.8X\n", lsh, ir);
+					TERROR("Bad combination of LSH bits %X in ARMv5 load/store %8.8X\n", lsh, ir);
 					return INTERP_RESULT_FATAL;
 			}
 			
@@ -1238,7 +1240,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			{
 				//New memory address written back after offsetting
 				regs[rn] = effective;
-				TRACE("Writing back r%d = %8.8X after preindex operation\n", rn, regs[rn]);
+				TDEBUG("Writing back r%d = %8.8X after preindex operation\n", rn, regs[rn]);
 			}
 			else if(p)
 			{
@@ -1247,14 +1249,14 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			else if(w)
 			{
 				//Invalid combination in ARMv5TE
-				TRACE("Load/store with W && !P bits %8.8X, architecturally unpredictable\n", ir);
+				TERROR("Load/store with W && !P bits %8.8X, architecturally unpredictable\n", ir);
 				return INTERP_RESULT_FATAL;
 			}
 			else
 			{
 				//Offset applied and written back but only after doing the access
 				regs[rn] = u ? (effective+offset) : (effective-offset);
-				TRACE("Writing back r%d = %8.8X after postindex operation\n", rn, regs[rn]);
+				TDEBUG("Writing back r%d = %8.8X after postindex operation\n", rn, regs[rn]);
 			}
 			
 			return memresult;
@@ -1263,14 +1265,14 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		{
 			if( (ir & (1u << 7)) && (ir & (1u << 4)) )
 			{
-				TRACE("Multiply %8.8X\n", ir);
+				TERROR("Unhandled Multiply %8.8X\n", ir);
 				return INTERP_RESULT_FATAL;
 			}
 			else if( ((opcode & 0xC) == 0x8) && !sdata )
 			{
 				if( (ir & 0x0FFF0FF0) == 0x016F0F10 )
 				{
-					TRACE("%s", "Count leading zeroes (CLZ)\n");
+					TDEBUG("%s", "Count leading zeroes (CLZ)\n");
 					uint32_t tocount = regs[rm]; //in case rm==rd
 					regs[rd] = 0;
 					for(uint32_t tt = 0x80000000u; tt != 0; tt >>= 1)
@@ -1284,7 +1286,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				
 				if( (ir & 0x0FF00090) == 0x01000080 )
 				{
-					TRACE("%s", "Signed multiply accumulate bottom/top 16-bits\n");
+					TDEBUG("%s", "Signed multiply accumulate bottom/top 16-bits\n");
 					
 					//Note - rd and rn flipped relative to normal decoding!
 					
@@ -1302,16 +1304,16 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				if( (ir & 0x0FFFFFF0) == (0x012FFF30) )
 				{
 					//Branch and link and exchange thumb state (blx)
-					TRACE("Branch and link and exchange to register r%d = %8.8X ", rm, regs[rm]); 
+					TDEBUG("Branch and link and exchange to register r%d = %8.8X ", rm, regs[rm]); 
 					regs[14] = regs[15] - 4;
 					regs[15] = regs[rm] + 4; //We store PC offset
-					TRACE("saved %8.8X in LR\n", regs[14]);
+					TDEBUG("saved %8.8X in LR\n", regs[14]);
 		
 					return INTERP_RESULT_OK;
 				}
 				
 				//Compare instruction that doesn't write-back the flags...?
-				TRACE("Misc instruction %8.8X\n", ir);
+				TERROR("Unhandled misc instruction %8.8X\n", ir);
 				return INTERP_RESULT_FATAL;
 			}
 			else
@@ -1320,9 +1322,9 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				//Instruction bit 4 determines whether immediate or register shift amount
 				int shift_by_reg = (ir & (1u << 4));
 				if(shift_by_reg)
-					TRACE("Data processing register shift, rs=%d\n", rs);
+					TDEBUG("Data processing register shift, rs=%d\n", rs);
 				else
-					TRACE("Data processing immediate shift, shamt=%d\n", shamt);
+					TDEBUG("Data processing immediate shift, shamt=%d\n", shamt);
 				
 				int to_shift = shift_by_reg ? (regs[rs] & 0xFF) : shamt;
 				
@@ -1333,7 +1335,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				{
 					if(!shift_by_reg)
 					{
-						TRACE("%s", "LSL imm");
+						TDEBUG("%s", "LSL imm");
 						if(to_shift == 0)
 						{
 							shifter_operand = regs[rm];
@@ -1347,7 +1349,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					}
 					else
 					{
-						TRACE("%s", "LSL reg");
+						TDEBUG("%s", "LSL reg");
 						if(to_shift == 0)
 						{
 							shifter_operand = regs[rm];
@@ -1374,7 +1376,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				{
 					if(!shift_by_reg)
 					{
-						TRACE("%s", "LSR imm");
+						TDEBUG("%s", "LSR imm");
 						if(to_shift == 0)
 						{
 							shifter_operand = 0;
@@ -1388,7 +1390,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					}
 					else
 					{
-						TRACE("%s", "LSR reg");
+						TDEBUG("%s", "LSR reg");
 						if(to_shift == 0)
 						{
 							shifter_operand = regs[rm];
@@ -1415,7 +1417,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				{
 					if(!shift_by_reg)
 					{
-						TRACE("%s", "ASR imm");
+						TDEBUG("%s", "ASR imm");
 						if(to_shift == 0)
 						{
 							if(!(regs[rm] & (1u << 31)))
@@ -1438,7 +1440,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					}
 					else
 					{
-						TRACE("%s", "ASR reg");
+						TDEBUG("%s", "ASR reg");
 						if(to_shift == 0)
 						{
 							shifter_operand = regs[rm];
@@ -1471,10 +1473,10 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				{
 					if(!shift_by_reg)
 					{
-						TRACE("%s", "ROR imm");
+						TDEBUG("%s", "ROR imm");
 						if(to_shift == 0)
 						{
-							TRACE("%s", " with extend");
+							TDEBUG("%s", " with extend");
 							shifter_operand = fc ? 0x80000000u : 0;
 							shifter_operand |= regs[rm] >> 1;
 							shifter_carry_out = regs[rm] & 1;
@@ -1488,7 +1490,7 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					}
 					else
 					{
-						TRACE("%s", "ROR reg");
+						TDEBUG("%s", "ROR reg");
 						if(to_shift == 0)
 						{
 							shifter_operand = regs[rm];
@@ -1509,21 +1511,21 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				}
 				else
 				{
-					TRACE("Bad shift operation %d\n", shift);
+					TERROR("Bad shift operation %d\n", shift);
 					return INTERP_RESULT_FATAL;
 				}
 				
-				TRACE(" r%d (%8.8X) by %d gives %8.8X with shifter-carry %d", 
+				TDEBUG(" r%d (%8.8X) by %d gives %8.8X with shifter-carry %d", 
 					rm, regs[rm], to_shift, shifter_operand, shifter_carry_out ? 1 : 0);
 				
-				TRACE("\nOp Destination=r%d\n", rd);
+				TDEBUG("\nOp Destination=r%d\n", rd);
 				interp_dataproc(opcode, regs + rd, cpsr, regs[rn], shifter_operand, sdata, shifter_carry_out);
 				return INTERP_RESULT_OK;
 			}
 		}
 	}
 	
-	TRACE("Bad decoding for instruction %8.8X\n", ir);
+	TERROR("Bad decoding for instruction %8.8X\n", ir);
 	return INTERP_RESULT_FATAL;
 }
 

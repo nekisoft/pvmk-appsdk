@@ -8,8 +8,10 @@
 //the Free Software Foundation, either version 3 of the License, or
 //(at your option) any later version.
 
-#include "rsp.h"
+#define FILE_TRACE_CAT TRACE_CAT_RSP
 #include "trace.h"
+
+#include "rsp.h"
 #include "process.h"
 
 #include <string.h>
@@ -116,7 +118,7 @@ static void rsp_fatal(const char *fmt, ...)
 	if(rsp_giveup_count > 5)
 	{
 		rsp_port = 0;
-		TRACE("%s", "GDB-RSP listener disabled.\n");
+		TWARNING("%s", "GDB-RSP listener disabled.\n");
 	}		
 }
 		
@@ -1274,7 +1276,7 @@ static const rsp_cmd_t rsp_cmd_table[] =
 //Command decoding - top level
 static void rsp_cmd(const char *cmd_buf, int cmd_len)
 {
-	TRACE("RSP command received: %.*s\n", cmd_len, cmd_buf);
+	TDEBUG("RSP command received: %.*s\n", cmd_len, cmd_buf);
 	for(int tt = 0; rsp_cmd_table[tt].prefix != NULL; tt++)
 	{
 		const char *prefix = rsp_cmd_table[tt].prefix;
@@ -1407,12 +1409,12 @@ void rsp_init(const prefs_t *prefs)
 	//Check if we're actually supposed to be running
 	if(!prefs->rsp_enabled)
 	{
-		TRACE("%s", "GDB-RSP listener disabled in preferences. Not starting.\n");
+		TWARNING("%s", "GDB-RSP listener disabled in preferences. Not starting.\n");
 		return;
 	}
 	
 	rsp_port = prefs->rsp_port;
-	TRACE("Setting up GDB-RSP listener on port %d\n", rsp_port);
+	TINFO("Setting up GDB-RSP listener on port %d\n", rsp_port);
 }
 
 void rsp_poll(void)
@@ -1616,7 +1618,7 @@ void rsp_dbgstop(int pid, process_dbgstop_t reason)
 	process_t *pptr = process_find(pid);
 	if(pptr == NULL)
 	{
-		TRACE("%s", "Tried to set debug-stop for an invalid process");
+		TERROR("%s", "Tried to set debug-stop for an invalid process");
 		return;
 	}
 	
