@@ -3,6 +3,7 @@
 #Makes documentation for PVMK SDK
 #Bryan E. Topp <betopp@betopp.com> 2024
 
+set -e
 
 mkdir -p out/docs
 TMPDIR=$(mktemp -d)

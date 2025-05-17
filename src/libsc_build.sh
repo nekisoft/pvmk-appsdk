@@ -3,6 +3,8 @@
 #Makes system call library for PVMK application SDK
 #Bryan E. Topp <betopp@betopp.com> 2024
 
-mkdir -p out/picolibc/arm-none-eabi/include/
-cp -r src/libsc/*.h out/picolibc/arm-none-eabi/include/
+set -e
+
+mkdir -p out/armv5te-pvmk-eabi/include/
+cp -r src/libsc/*.h out/armv5te-pvmk-eabi/include/
 

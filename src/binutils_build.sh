@@ -11,8 +11,9 @@ tar -xf ../src/binutils-2.44.tar.xz
 
 mkdir binutils-build
 cd binutils-build
-../binutils-2.44/configure --prefix=$(readlink -f ../..)/out/ --target=armv5te-none-eabi --disable-nls --with-sysroot --program-prefix=pvmk-
+../binutils-2.44/configure --prefix=$(readlink -f ../..)/out/ --target=armv5te-pvmk-eabi --disable-nls --with-sysroot --program-prefix=pvmk-
 
-gmake -j
+PVMKMAKE=$(readlink -f ../../out/bin/pvmk-make)
 
-gmake install
+$PVMKMAKE -j
+$PVMKMAKE install

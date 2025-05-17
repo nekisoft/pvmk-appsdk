@@ -8,24 +8,34 @@ set -e
 #Change to script directory
 cd "${0%/*}"
 
-mkdir out
-mkdir obj
+mkdir -p out
+mkdir -p obj
 
-./src/binutils_build.sh
+#Host-only utilities, not compiled for PVMK
 ./src/oksh_build.sh
 ./src/make_build.sh
+./src/xorriso_build.sh
+./src/sdlsc_build.sh
+
+#Binutils and compiler for targetting PVMK
+./src/binutils_build.sh
 ./src/wrappers_build.sh
+
+#C Runtime and Standard libraries for PVMK target
 ./src/picolibc_build.sh
 ./src/libsc_build.sh
 ./src/pvmkoslib_build.sh
 ./src/pvmkpicocrt_build.sh
+
+#Other libraries for PVMK target
 ./src/zlib_build.sh
 ./src/sdl3_build.sh
-./src/sdlsc_build.sh
+
+#Development miscellany
 ./src/updates_build.sh 
 ./src/examples_build.sh
 ./src/docs_build.sh
-./src/xorriso_build.sh
+
 date -u +%FT%TZ > out/pvmk-sdk.date
 cp ./src/README out/README
 
