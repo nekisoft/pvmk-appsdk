@@ -2,12 +2,16 @@
 #build.sh for PVMK app SDK
 #Bryan E. Topp <betopp@betopp.com> 2024
 
+#Abort on failures
+set -e
+
 #Change to script directory
 cd "${0%/*}"
 
 mkdir out
 mkdir obj
 
+./src/binutils_build.sh
 ./src/oksh_build.sh
 ./src/make_build.sh
 ./src/wrappers_build.sh
