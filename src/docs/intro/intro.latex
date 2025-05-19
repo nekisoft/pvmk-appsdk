@@ -676,6 +676,82 @@ Number & Name\\
 \Const{0xB0} &\VarName{{\Undie}sc{\Undie}print}\\
 \end{tabular}
 
+
+\section{Timing}
+
+Most video games will need some source of timing information to run correctly.
+Neki32 offers a few sources of timing that can be used by a game.
+
+\subsection{Timing sources}
+This section covers the valid, proper timing sources that a game can use.
+
+\subsubsection{Timing ticks elapsed}
+
+The most direct timing source is the return value of \VarName{{\Undie}sc{\Undie}getticks}.
+This system-call returns the number of milliseconds since the system booted.
+It is driven by a hardware timer that is always configured for 1ms intervals.
+	
+By tracking the change in \VarName{{\Undie}sc{\Undie}getticks}, a game can track elapsed time.
+
+Note that milliseconds will not divide evenly into video frames.
+Note also that this count may overflow after about 25 days.
+
+\subsubsection{Timing sound samples played}
+
+Timing can be derived from the amount of audio data sent by the system.
+
+A game can enqueue sound samples for playback with \VarName{{\Undie}sc{\Undie}snd{\Undie}play}.
+These samples are played back at a known rate - at the moment, always 48000 per second.
+
+The \VarName{{\Undie}sc{\Undie}snd{\Undie}play} system-call returns the number of samples currently in the queue.
+It also bails out, returning \Const{-{\Undie}SC{\Undie}EAGAIN}, if too many samples are enqueued already.
+	
+Either one of these situations provides information about how many samples have been played.
+
+A game can track elapsed time by how many times it has successfully enqueued some number of audio samples.
+To gain precision, it could also inspect how many samples are currently enqueued each time.
+
+\subsubsection{Timing video frames flipped}
+
+Timing can be derived as well from how many video frames have been presented.
+This approach is very common in older console games.
+
+A game can call \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} to enqueue a change of the video front-buffer.
+The system-call returns the location of the buffer currently being displayed.
+The buffer displayed - and therefore the return value - only changes when the video display enters vertical-blanking.
+
+Therefore, a game can see how many vertical-blanking intervals have elapsed, in how many times it can change the front-buffer.
+
+Note that it is possible to "miss" blanking intervals if the game is checking less often than 1/60s (in other words, if the game is running too slow).
+
+\subsection{Not timing sources}
+There are also some features of Neki32 which might seem like they provide timing, but do not.
+Games which attempt to use this approaches for timing are not expected to work on future software or hardware revisions.
+	
+\subsubsection{Not a timing source: The CPU}
+
+Neki32 currently ships with a single known ARM9 CPU. However, for future-compatibility, do not assume that the CPU speed is known.
+Later hardware revisions may run slightly faster in some scenarios. Larger caches or different memory technologies may also impact instruction throughput.
+
+Do not assume that timing based on execution speed is reliable.
+
+\subsubsection{Not a timing source: input events from \VarName{{\Undie}sc{\Undie}input}}
+
+At the moment, Neki32 reports a consistent number of input events per video frame.
+However, this is not guaranteed. More or less input events may be reported in a given time.
+
+Do not assume that one input report corresponds to one video frame.
+
+\subsubsection{No rational relationships}
+
+Current Neki32 firmware tends to have a rational relationship between the different timing sources.
+They are all derived from the same 24MHz crystal and therefore have fixed ratios to each other.
+However, this is not guaranteed.
+
+Do not assume that a given number of video frames, audio samples, or timer ticks will bear a fixed relationship to other timing sources.
+
+
+
 \section{The C SDK}
 The C SDK is an easy way to start writing programs for Neki32.
 It provides a runtime environment that behaves like a POSIX-compatible system, such as Linux or FreeBSD.
