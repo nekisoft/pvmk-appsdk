@@ -18,8 +18,9 @@ mkdir -p obj
 ./src/sdlsc_build.sh
 
 #Binutils and compiler for targetting PVMK
-./src/binutils_build.sh
 ./src/wrappers_build.sh
+./src/binutils_build.sh
+./src/gcc_build.sh
 
 #C Runtime and Standard libraries for PVMK target
 ./src/picolibc_build.sh
