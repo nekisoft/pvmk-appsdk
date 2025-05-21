@@ -22,7 +22,10 @@
 #include <stdlib.h>
 
 #include "interp.h"
-#include "trace.h"
+//#include "trace.h"
+
+#define TERROR(x, ...) printf(x, __VA_ARGS__)
+#define TINFO(x, ...) printf(x, __VA_ARGS__)
 
 int tracing = 1;
 
@@ -112,64 +115,64 @@ int main(int argc, const char **argv)
 			interp_result_t r = interp_step_force(sim_regs, sim_regs + 16, NULL, 0, ir);
 			if(r == INTERP_RESULT_FATAL)
 			{
-				TRACE("%s", "Fatal result\n");
+				TERROR("%s", "Fatal result\n");
 				exit(-1);
 			}
 			else if(r == INTERP_RESULT_OK)
 			{
-				TRACE("%s", "Interpreted OK, checking result regs\n");
+				TINFO("%s", "Interpreted OK, checking result regs\n");
 				if(memcmp(sim_regs, output_regs, sizeof(sim_regs)) != 0)
 				{
-					TRACE("Mismatch in registers!  Test=%d IR=0x%8.8X\n", testn, ir);
-					TRACE("%s", "reg\ttestcase\texpected\tsimulated\n");
+					TERROR("Mismatch in registers!  Test=%d IR=0x%8.8X\n", testn, ir);
+					TERROR("%s", "reg\ttestcase\texpected\tsimulated\n");
 					for(int rr = 0; rr < 17; rr++)
 					{
 						if(rr == 16)
-							TRACE("%s", "CPSR=\t");
+							TERROR("%s", "CPSR=\t");
 						else
-							TRACE("r%d=\t", rr);
+							TERROR("r%d=\t", rr);
 						
-						TRACE("%8.8X\t%8.8X\t%8.8X\n", 
+						TERROR("%8.8X\t%8.8X\t%8.8X\n", 
 							input_regs[rr], output_regs[rr], sim_regs[rr]);
 					}
 					exit(-1);
 				}
 				else
 				{
-					TRACE("%s", "Regs OK\n");
+					TINFO("%s", "Regs OK\n");
 				}
 			}
 			else if(r == INTERP_RESULT_ABT)
 			{
-				TRACE("%s", "Memory access attempted, trying to ignore loads\n");
+				TINFO("%s", "Memory access attempted, trying to ignore loads\n");
 				if(ir & (1u << 20))
 				{
-					TRACE("%s", "L-bit set, not comparing\n");
+					TINFO("%s", "L-bit set, not comparing\n");
 				}
 				else
 				{
-					TRACE("%s", "L-bit clear, comparing, resetting SP to correct value\n");
+					TINFO("%s", "L-bit clear, comparing, resetting SP to correct value\n");
 					sim_regs[13] = output_regs[13];
-					TRACE("%s", "checking result regs\n");
+					TINFO("%s", "checking result regs\n");
 					if(memcmp(sim_regs, output_regs, sizeof(sim_regs)) != 0)
 					{
-						TRACE("Mismatch in registers!  Test=%d IR=0x%8.8X\n", testn, ir);
-						TRACE("%s", "reg\ttestcase\texpected\tsimulated\n");
+						TERROR("Mismatch in registers!  Test=%d IR=0x%8.8X\n", testn, ir);
+						TERROR("%s", "reg\ttestcase\texpected\tsimulated\n");
 						for(int rr = 0; rr < 17; rr++)
 						{
 							if(rr == 16)
-								TRACE("%s", "CPSR=\t");
+								TERROR("%s", "CPSR=\t");
 							else
-								TRACE("r%d=\t", rr);
+								TERROR("r%d=\t", rr);
 							
-							TRACE("%8.8X\t%8.8X\t%8.8X\n", 
+							TERROR("%8.8X\t%8.8X\t%8.8X\n", 
 								input_regs[rr], output_regs[rr], sim_regs[rr]);
 						}
 						exit(-1);
 					}
 					else
 					{
-						TRACE("%s", "Regs OK\n");
+						TINFO("%s", "Regs OK\n");
 					}
 					
 				
@@ -180,17 +183,17 @@ int main(int argc, const char **argv)
 			}
 			else if(r == INTERP_RESULT_SYSCALL)
 			{
-				TRACE("%s", "Syscall attempted, ignoring\n");
+				TINFO("%s", "Syscall attempted, ignoring\n");
 			}
 			else
 			{
-				TRACE("%s", "Other result from interpreting\n");
+				TERROR("%s", "Other result from interpreting\n");
 				exit(-1);
 			}			
 		}
 	}
 	
-	TRACE("%s", "All tests passed.\n");
+	TINFO("%s", "All tests passed.\n");
 	return 0;
 }
 

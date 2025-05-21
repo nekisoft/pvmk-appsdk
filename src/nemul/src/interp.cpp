@@ -852,6 +852,10 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	
 			TDEBUG("Data processing immediate, rotated immediate = %8.8X, shifter-carry %d\n", imm8rotated, shifter_carry ? 1 : 0);
 			interp_dataproc(opcode, regs + rd, cpsr, regs[rn], imm8rotated, sdata, shifter_carry);
+			
+			if(rd == 15)
+				regs[15] += 4; //PC will get bumped back later
+			
 			return INTERP_RESULT_OK;
 		}
 	}
@@ -1520,6 +1524,10 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 				
 				TDEBUG("\nOp Destination=r%d\n", rd);
 				interp_dataproc(opcode, regs + rd, cpsr, regs[rn], shifter_operand, sdata, shifter_carry_out);
+				
+				if(rd == 15)
+					regs[15] += 4; //PC will get bumped back later
+				
 				return INTERP_RESULT_OK;
 			}
 		}
