@@ -1157,24 +1157,56 @@ static void rsp_rcmd_prep(void)
 	rsp_putpkt_hexprintf("Resetting process table...\n");
 	rsp_putpkt_end();
 	
-	//Reset as if just booting
-	process_reset();
-	
-	//Resize the initial process to be 24MBytes
-	process_table[1].mem = (uint32_t*)realloc(process_table[1].mem, 24*1024*1024);
-	memset(((char*)(process_table[1].mem)) + process_table[1].size, 0, 24*1024*1024 - process_table[1].size);
-	process_table[1].size = 24*1024*1024;
-	
-	//Stop everybody immediately
-	for(int pp = 0; pp < PROCESS_MAX; pp++)
+	//Clear memory for game process
+	if(process_table[0].mem != NULL)
 	{
-		if(process_table[pp].state == PROCESS_STATE_ALIVE)
-			process_table[pp].dbgstop = PROCESS_DBGSTOP_CTRLC;
+		free(process_table[0].mem);
+		process_table[0].mem = NULL;
+	}
+	if(process_table[0].mexec_mem != NULL)
+	{
+		free(process_table[0].mexec_mem);
+		process_table[0].mexec_mem = NULL;
+	}
+	
+	memset(&(process_table[0]), 0, sizeof(process_table[0]));
+	
+	process_table[0].mem = (uint32_t*)calloc(1, 24*1024*1024);
+	process_table[0].size = 24*1024*1024;
+	
+	//Copy environment from init process
+	memcpy(process_table[0].env_buf, process_table[1].env_buf, sizeof(process_table[0].env_buf));
+	process_table[0].env_len = process_table[1].env_len;
+	
+	//Reset identity
+	process_table[0].pid = PROCESS_MAX;
+	process_table[0].ppid = 1;
+	
+	//Stop process at entry point
+	process_table[0].regs[15] = 0x1000;
+	process_table[0].dbgstop = PROCESS_DBGSTOP_CTRLC;
+	process_table[0].state = PROCESS_STATE_ALIVE;
+	
+	//Nuke all other processes
+	for(int pp = 2; pp < PROCESS_MAX; pp++)
+	{
+		if(process_table[pp].mem != NULL)
+		{
+			free(process_table[pp].mem);
+			process_table[pp].mem = NULL;
+		}
+		if(process_table[pp].mexec_mem != NULL)
+		{
+			free(process_table[pp].mexec_mem);
+			process_table[pp].mexec_mem = NULL;
+		}
+		
+		memset(&(process_table[pp]), 0, sizeof(process_table[pp]));
 	}
 	
 	//Reset active PIDs
-	rsp_pid_c = 1;
-	rsp_pid_g = 1;
+	rsp_pid_c = PROCESS_MAX;
+	rsp_pid_g = PROCESS_MAX;
 	
 }
 
