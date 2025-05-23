@@ -37,7 +37,7 @@ do
 done
 
 OUTDIR="../../out"
-mkdir -p ${OUTDIR}/bin/
-${CC} ${COBJ} -o ${OUTDIR}/bin/pvmk-make
+mkdir -p ${OUTDIR}/bin/$(uname -o)/$(uname -m)
+${CC} ${COBJ} -o ${OUTDIR}/bin/$(uname -o)/$(uname -m)/pvmk-make
 
 popd

@@ -36,6 +36,7 @@ done
 
 OUTDIR="../../out"
 mkdir -p ${OUTDIR}/bin/
-${CC} ${COBJ} -o ${OUTDIR}/bin/pvmk-oksh
+mkdir -p ${OUTDIR}/bin/$(uname -o)/$(uname -m)
+${CC} ${COBJ} -o ${OUTDIR}/bin/$(uname -o)/$(uname -m)/pvmk-oksh
 
 popd

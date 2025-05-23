@@ -2,5 +2,5 @@
 #Toolchain wrapper for PVMK
 #Bryan E. Topp <betopp@betopp.com> 2023
 source $(dirname $0)/pvmk-vars
-exec -a "$0" ${SYSROOT}/bin/pvmk-gcc "$@"
+exec -a "$0" ${SYSROOT}/bin/$(uname -o)/$(uname -m)/$(basename $0) "$@"
 

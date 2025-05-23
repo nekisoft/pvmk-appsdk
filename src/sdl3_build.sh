@@ -18,7 +18,7 @@ CFLAGS+=" -I${INCDIR}"
 CFLAGS+=" -I${INCDIR}/SDL3"
 CFLAGS+=" -I${INCDIR}/SDL3/build_config"
 CFLAGS+=" -g -O2"
-CFLAGS+=" -Werror"
+CFLAGS+=" -Werror -std=c11"
 
 CSRC=`find ${SRCDIR} -name \*.c`
 COBJ=

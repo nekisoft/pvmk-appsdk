@@ -11,6 +11,9 @@ cd "${0%/*}"
 mkdir -p out
 mkdir -p obj
 
+#Wrapper scripts to provide "pvmk-x" utilities calling "pvmk-x.SomeOSName"
+./src/wrappers_build.sh
+
 #Host-only utilities, not compiled for PVMK
 ./src/oksh_build.sh
 ./src/make_build.sh

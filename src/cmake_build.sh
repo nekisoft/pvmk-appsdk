@@ -76,6 +76,6 @@ done
 
 OUTDIR="../../out"
 mkdir -p ${OUTDIR}/bin/
-${CXX} ${COBJ} ${CXXOBJ} ${LIBS} -o ${OUTDIR}/bin/pvmk-cmake
+${CXX} ${COBJ} ${CXXOBJ} ${LIBS} -o ${OUTDIR}/bin/pvmk-cmake.$(uname)
 
 popd

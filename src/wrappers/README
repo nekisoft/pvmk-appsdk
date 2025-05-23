@@ -1,5 +1,5 @@
 README for compiler wrappers
 Bryan E. Topp <betopp@betopp.com> 2024
 
-These are wrapper scripts which will invoke GCC using the correct flags for Neki32.
+These are wrapper scripts which will invoke the right binary for your OS, with the right flags for Neki32.
 
