@@ -1288,6 +1288,30 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 					return INTERP_RESULT_OK;
 				}
 				
+				if( (ir & 0x0FF00090) == 0x01400080 )
+				{
+					TDEBUG("%s", "SMLALxy Signed multiply accumulate long bottom/top\n");
+					
+					int rdhi = rn;
+					int rdlo = rd;
+					
+					int16_t mula = (ir & (1u << 5)) ? ((regs[rm] >> 16) & 0xFFFF) : (regs[rm] & 0xFFFF);
+					int16_t mulb = (ir & (1u << 6)) ? ((regs[rs] >> 16) & 0xFFFF) : (regs[rs] & 0xFFFF);
+					
+					uint64_t accum = 0;
+					accum = (accum << 32) | regs[rdhi];
+					accum = (accum << 32) | regs[rdlo];
+					
+					int64_t result = (int64_t)mula * (int64_t)mulb;
+					
+					accum += result;
+					
+					regs[rdlo] = (accum >>  0) & 0xFFFFFFFFu;
+					regs[rdhi] = (accum >> 32) & 0xFFFFFFFFu;
+					
+					return INTERP_RESULT_OK;
+				}
+				
 				if( (ir & 0x0FF00090) == 0x01600080 )
 				{
 					TDEBUG("%s", "Signed multiply bottom/top 16-bits\n");
