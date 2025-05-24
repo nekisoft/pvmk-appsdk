@@ -588,7 +588,7 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 	mplane_t	*pplane;
 	float		distinv;
 	vec3_t		p_normal;
-	medge_t		tedge;
+	static medge_t		tedge; //pvmk - made static to squelch dangling-pointer warning
 	clipplane_t	*pclip;
 
 // skip out if no more surfs

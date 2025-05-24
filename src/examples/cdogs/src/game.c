@@ -457,7 +457,7 @@ int gameloop( void )
   int ticks;
   int cmd1, cmd2;
   int done = NO;
-  int c;
+  int c = 0;
   int timeTicks = CLOCK_LIMIT;
   time_t t;
   struct tm *tp;

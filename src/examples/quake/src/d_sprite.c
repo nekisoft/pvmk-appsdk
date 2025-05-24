@@ -394,7 +394,7 @@ void D_DrawSprite (void)
 	int			i, nump;
 	float		ymin, ymax;
 	emitpoint_t	*pverts;
-	sspan_t		spans[MAXHEIGHT+1];
+	static sspan_t		spans[MAXHEIGHT+1]; //pvmk - made static to squelch dangling-pointer warning
 
 	sprite_spans = spans;
 

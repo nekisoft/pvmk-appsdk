@@ -29421,7 +29421,7 @@ void display_ents()
                 {
                     s_anim *anim = e->animation;
 
-                    if ( anim->platform[e->animpos] )
+                    /* if ( anim->platform[e->animpos] ) */ //pvmk - gcc says this is always true
                     {
                         if ( anim->platform[e->animpos][PLATFORM_HEIGHT] ) eplatheight += anim->platform[e->animpos][PLATFORM_HEIGHT];
                     }
