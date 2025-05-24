@@ -20,6 +20,3 @@ PVMKMAKE=$(readlink -f ../../out/bin/pvmk-make)
 $PVMKMAKE -j
 $PVMKMAKE install
 
-mv ../../out/armv5te-pvmk-eabi/bin/* ../../out/bin/$(uname -o)/$(uname -m)/
-rm -rf ../../out/armv5te-pvmk-eabi/bin
-

@@ -26,3 +26,7 @@ $PVMKMAKE install
 
 mv ${OUTDIR}/libexec/gcc/armv5te-pvmk-eabi/15.1.0/* ${OUTDIR}/bin/$(uname -o)/$(uname -m)/
 rm -rf ${OUTDIR}/libexec
+
+mv ../../out/armv5te-pvmk-eabi/bin/* ../../out/bin/$(uname -o)/$(uname -m)/
+rm -rf ../../out/armv5te-pvmk-eabi/bin
+
