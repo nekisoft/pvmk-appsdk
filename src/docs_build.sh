@@ -13,11 +13,10 @@ pushd src/docs/intro
 #Twice to update refs
 pdflatex  -output-directory=${TMPDIR} -halt-on-error intro.latex
 pdflatex  -output-directory=${TMPDIR} -halt-on-error intro.latex
-
-
 cp ${TMPDIR}/*.pdf ${OUTDIR}
+popd
 
-
-
-
+pushd src/docs
+cp ARM_DDI01001.pdf ${OUTDIR}
+popd
 
