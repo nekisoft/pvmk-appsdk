@@ -1,1 +1,0 @@
-../../../sdlsc/src/sdlsc.c
