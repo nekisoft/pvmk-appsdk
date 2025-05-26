@@ -11,5 +11,6 @@
 #else
 	#define HAVE_ST_MTIMESPEC 1
 	#define HAVE_SIGLIST 1
+	#define HAVE_STRAVIS 1
 #endif //windows
 

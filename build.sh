@@ -43,3 +43,7 @@ mkdir -p obj
 date -u +%FT%TZ > out/pvmk-sdk.date
 cp ./src/README out/README
 
+rm -rf ./out/trash
+rmdir ./out/share
+rmdir ./out/include
+

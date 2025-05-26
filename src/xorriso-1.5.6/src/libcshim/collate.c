@@ -39,7 +39,7 @@
 
 #include "collate.h"
 
-static char *_PathLocale = "C";
+//static char *_PathLocale = "C";
 int __collate_load_error = 1;
 int __collate_substitute_nontrivial;
 char __collate_version[STR_LEN];
@@ -58,8 +58,8 @@ struct __collate_st_chain_pri __collate_chain_pri_table[TABLE_SIZE];
 void __collate_err(int ex, const char *f);
 
 #define EX_OSERR errno
-
-int
+#if 0
+static int
 __collate_load_tables(
 	char *encoding
 )
@@ -114,6 +114,7 @@ __collate_load_tables(
 
 	return 0;
 }
+#endif //0
 
 #define reallocf realloc
 

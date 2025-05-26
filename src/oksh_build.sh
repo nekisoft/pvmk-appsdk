@@ -4,6 +4,7 @@
 #Bryan E. Topp <betopp@betopp.com> 2025
 
 set -x
+set -e
 
 mkdir -p obj/oksh
 pushd obj/oksh
@@ -28,7 +29,7 @@ do
 	if [ ! -f ${OBJFILE} ]
 	then
 		mkdir -p $(dirname ${OBJFILE})
-		${CC} ${CFILE} ${CFLAGS} -c -o ${OBJFILE} || exit -1
+		${CC} ${CFILE} ${CFLAGS} -c -o ${OBJFILE} -static || exit -1
 	fi
 	COBJ+=" "
 	COBJ+=${OBJFILE}
@@ -37,6 +38,6 @@ done
 OUTDIR="../../out"
 mkdir -p ${OUTDIR}/bin/
 mkdir -p ${OUTDIR}/bin/$(uname -o)/$(uname -m)
-${CC} ${COBJ} -o ${OUTDIR}/bin/$(uname -o)/$(uname -m)/pvmk-oksh
+${CC} ${COBJ} -o ${OUTDIR}/bin/$(uname -o)/$(uname -m)/pvmk-oksh -static
 
 popd

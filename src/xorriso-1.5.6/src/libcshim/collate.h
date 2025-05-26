@@ -58,7 +58,7 @@ extern struct __collate_st_chain_pri __collate_chain_pri_table[TABLE_SIZE];
 __BEGIN_DECLS
 u_char	*__collate_strdup(u_char *);
 u_char	*__collate_substitute(const u_char *);
-int	__collate_load_tables(char *);
+//int	__collate_load_tables(char *);
 void	__collate_lookup(const u_char *, int *, int *, int *);
 int	__collate_range_cmp(int, int);
 #ifdef COLLATE_DEBUG

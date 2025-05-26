@@ -13,7 +13,11 @@ tar -xf ../src/binutils-2.44.tar.xz
 
 mkdir binutils-build
 cd binutils-build
-../binutils-2.44/configure --prefix=$(readlink -f ../..)/out/ --target=armv5te-pvmk-eabi --disable-nls --with-sysroot --program-prefix=pvmk- --bindir=$(readlink -f ../..)/out/bin/$(uname -o)/$(uname -m)/
+
+OUTDIR=$(readlink -f ../..)/out
+PLATDIR=${OUTDIR}/bin/$(uname -o)/$(uname -m)/
+
+../binutils-2.44/configure LDFLAGS="--static" --prefix=${OUTDIR} --target=armv5te-pvmk-eabi --disable-nls --with-sysroot --program-prefix=pvmk- --bindir=${PLATDIR} --libdir=${PLATDIR} --libexecdir=${PLATDIR} --mandir=${OUTDIR}/trash --infodir=${OUTDIR}/trash --docdir=${OUTDIR}/trash --disable-host-shared  --enable-host-static --enable-static --disable-shared 
 
 PVMKMAKE=$(readlink -f ../../out/bin/pvmk-make)
 

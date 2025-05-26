@@ -4,6 +4,7 @@
 #Bryan E. Topp <betopp@betopp.com> 2024
 
 set -x
+set -e
 
 mkdir -p obj/make
 pushd obj/make
@@ -30,7 +31,7 @@ do
 	if [ ! -f ${OBJFILE} ]
 	then
 		mkdir -p $(dirname ${OBJFILE})
-		${CC} ${CFILE} ${CFLAGS} -c -o ${OBJFILE} || exit -1
+		${CC} ${CFILE} ${CFLAGS} -c -o ${OBJFILE} -static || exit -1
 	fi
 	COBJ+=" "
 	COBJ+=${OBJFILE}
@@ -38,6 +39,6 @@ done
 
 OUTDIR="../../out"
 mkdir -p ${OUTDIR}/bin/$(uname -o)/$(uname -m)
-${CC} ${COBJ} -o ${OUTDIR}/bin/$(uname -o)/$(uname -m)/pvmk-make
+${CC} ${COBJ} -o ${OUTDIR}/bin/$(uname -o)/$(uname -m)/pvmk-make -static
 
 popd

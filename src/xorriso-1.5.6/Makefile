@@ -14,8 +14,10 @@ CFLAGS+=-std=c99 -Wall -Werror -Wextra
 CFLAGS+=-g -O0
 CFLAGS+=-I$(SRCDIR)
 CFLAGS+=-DHAVE_CONFIG_H=1
+CFLAGS+=-static
 
 LIBS+=-liconv
+LINKFLAGS+=-static
 
 #Ugh just build, I don't know why they do these things
 CFLAGS+=-Wno-unused-parameter

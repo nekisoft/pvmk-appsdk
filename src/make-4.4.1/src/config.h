@@ -396,7 +396,7 @@
 #undef HAVE_STRDUP
 
 /* Define to 1 if you have the `strerror' function. */
-#undef HAVE_STRERROR
+#define HAVE_STRERROR 1
 
 /* Define to 1 if you have the `stricmp' function. */
 #undef HAVE_STRICMP
@@ -408,7 +408,7 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the `strncasecmp' function. */
-#undef HAVE_STRNCASECMP
+#define HAVE_STRNCASECMP 1
 
 /* Define to 1 if you have the `strncmpi' function. */
 #undef HAVE_STRNCMPI
