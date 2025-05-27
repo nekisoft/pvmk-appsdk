@@ -545,7 +545,7 @@ struct iso_filesystem
      * "file" -> local filesystem
      * "iso " -> iso image filesystem
      */
-    char type[4];
+    char type[5];
 
     /* reserved for future usage, set to 0 */
     int version;
@@ -1013,7 +1013,7 @@ struct IsoStream_Iface
      * "pizg" -> gzip uncompression (gunzip)
      * "user" -> User supplied stream
      */
-    char type[4];
+    char type[5];
 
     /**
      * Opens the stream.
