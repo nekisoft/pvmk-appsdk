@@ -17,10 +17,9 @@ cd binutils-build
 OUTDIR=$(readlink -f ../..)/out
 PLATDIR=${OUTDIR}/bin/$(uname -o)/$(uname -m)/
 
-../binutils-2.44/configure LDFLAGS="--static" --prefix=${OUTDIR} --target=armv5te-pvmk-eabi --disable-nls --with-sysroot --program-prefix=pvmk- --bindir=${PLATDIR} --libdir=${PLATDIR} --libexecdir=${PLATDIR} --mandir=${OUTDIR}/trash --infodir=${OUTDIR}/trash --docdir=${OUTDIR}/trash --disable-host-shared  --enable-host-static --enable-static --disable-shared 
+../binutils-2.44/configure MAKEINFO="true" LDFLAGS="--static" --prefix=${OUTDIR} --target=armv5te-pvmk-eabi --disable-nls --with-sysroot --program-prefix=pvmk- --bindir=${PLATDIR} --libdir=${PLATDIR} --libexecdir=${PLATDIR} --mandir=${OUTDIR}/trash --infodir=${OUTDIR}/trash --docdir=${OUTDIR}/trash --disable-host-shared  --enable-host-static --enable-static --disable-shared 
 
-PVMKMAKE=$(readlink -f ../../out/bin/pvmk-make)
 
-$PVMKMAKE -j
-$PVMKMAKE install
+make 
+make install
 
