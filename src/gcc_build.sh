@@ -38,8 +38,14 @@ mkdir -p ${PLATDIR}
 
 mkdir -p  ${OUTDIR}/armv5te-pvmk-eabi/include
 
-make
-make install
+MAKE=gmake
+if [ "$(which ${MAKE})" == "" ]
+then
+        MAKE=make
+fi
+
+${MAKE}
+${MAKE} install
 
 mv ../../out/armv5te-pvmk-eabi/bin/* ../../out/bin/$(uname -o)/$(uname -m)/
 rm -rf ../../out/armv5te-pvmk-eabi/bin
