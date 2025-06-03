@@ -1,44 +1,25 @@
 #!/usr/bin/env bash
 #make_build.sh
-#Makes GNU Make for PVMK application SDK
-#Bryan E. Topp <betopp@betopp.com> 2024
+#builds GNU Make for PVMK application SDK
+#Bryan E. Topp <betopp@betopp.com> 2025
 
-set -x
 set -e
 
-mkdir -p obj/make
-pushd obj/make
+mkdir -p out/bin/$(uname -o)/$(uname -m)/
 
-SRCDIR="../../src/make-4.4.1/src"
+mkdir -p obj
+cd obj
+tar -xf ../src/make-4.4.1.tar.gz
 
-CC=gcc
+mkdir make-build
+cd make-build
 
-CFLAGS+=" -I${SRCDIR}"
-CFLAGS+=" -g -O2"
-CFLAGS+=" -std=c99 -Wall -Wextra -Werror "
-CFLAGS+=" -Wno-unused-parameter "
-CFLAGS+=" -Wno-unused-but-set-variable "
-CFLAGS+=" -Wno-unused-variable "
-CFLAGS+=" -DHAVE_CONFIG_H=1 "
+OUTDIR=$(readlink -f ../..)/out
+PLATDIR=${OUTDIR}/bin/$(uname -o)/$(uname -m)/
 
-CSRC=`find ${SRCDIR} -name \*.c`
-COBJ=
-for CFILE in ${CSRC}
-do	
-	CFILENAME=$(basename ${CFILE})
-	echo ${CFILENAME}
-	OBJFILE=./$(readlink -f ${CFILE}).o
-	if [ ! -f ${OBJFILE} ]
-	then
-		mkdir -p $(dirname ${OBJFILE})
-		${CC} ${CFILE} ${CFLAGS} -c -o ${OBJFILE} -static || exit -1
-	fi
-	COBJ+=" "
-	COBJ+=${OBJFILE}
-done
+../make-4.4.1/configure MAKEINFO="true" LDFLAGS="--static" --prefix=${OUTDIR} --disable-nls --program-prefix=pvmk- --bindir=${PLATDIR} --libdir=${PLATDIR} --libexecdir=${PLATDIR} --mandir=${OUTDIR}/trash --infodir=${OUTDIR}/trash --docdir=${OUTDIR}/trash --without-guile 
 
-OUTDIR="../../out"
-mkdir -p ${OUTDIR}/bin/$(uname -o)/$(uname -m)
-${CC} ${COBJ} -o ${OUTDIR}/bin/$(uname -o)/$(uname -m)/pvmk-make -static
 
-popd
+make 
+make install
+
