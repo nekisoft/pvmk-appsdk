@@ -19,7 +19,7 @@ mkdir -p obj
 ./src/make_build.sh
 ./src/xorriso_build.sh
 ./src/sdlsc_build.sh
-./src/toybox_build.sh
+./src/bsdutils_build.sh
 
 #Binutils and compiler for targetting PVMK
 ./src/wrappers_build.sh
