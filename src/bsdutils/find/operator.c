@@ -34,8 +34,10 @@
 
 #include <sys/types.h>
 
-#include <err.h>
-#include <fts.h>
+//#include <err.h>
+#include "../shared/our_stubs.h"
+//#include <fts.h>
+#include "../shared/fts.h"
 #include <stdio.h>
 #include <time.h>
 
@@ -87,7 +89,7 @@ yankexpr(PLAN **planp)
 	if (node->execute == f_openparen)
 		for (tail = subplan = NULL;;) {
 			if ((next = yankexpr(planp)) == NULL)
-				errx(1, "(: missing closing ')'");
+				our_errx(1, "(: missing closing ')'");
 			/*
 			 * If we find a closing ')' we store the collected
 			 * subplan in our '(' node and convert the node to
@@ -97,7 +99,7 @@ yankexpr(PLAN **planp)
 			 */
 			if (next->execute == f_closeparen) {
 				if (subplan == NULL)
-					errx(1, "(): empty inner expression");
+					our_errx(1, "(): empty inner expression");
 				node->p_data[0] = subplan;
 				node->execute = f_expr;
 				break;
@@ -137,7 +139,7 @@ paren_squish(PLAN *plan)
 		 * '(' someplace.
 		 */
 		if (expr->execute == f_closeparen)
-			errx(1, "): no beginning '('");
+			our_errx(1, "): no beginning '('");
 
 		/* add the expression to our result plan */
 		if (result == NULL)
@@ -187,9 +189,9 @@ not_squish(PLAN *plan)
 				node = yanknode(&plan);
 			}
 			if (node == NULL)
-				errx(1, "!: no following expression");
+				our_errx(1, "!: no following expression");
 			if (node->execute == f_or)
-				errx(1, "!: nothing between ! and -o");
+				our_errx(1, "!: nothing between ! and -o");
 			/*
 			 * If we encounter ! ( expr ) then look for nots in
 			 * the expr subplan.
@@ -246,11 +248,11 @@ or_squish(PLAN *plan)
 		 */
 		if (next->execute == f_or) {
 			if (result == NULL)
-				errx(1, "-o: no expression before -o");
+				our_errx(1, "-o: no expression before -o");
 			next->p_data[0] = result;
 			next->p_data[1] = or_squish(plan);
 			if (next->p_data[1] == NULL)
-				errx(1, "-o: no expression after -o");
+				our_errx(1, "-o: no expression after -o");
 			return (next);
 		}
 

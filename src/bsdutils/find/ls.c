@@ -32,13 +32,15 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <err.h>
+//#include <err.h>
+#include "../shared/our_stubs.h"
 #include <errno.h>
-#include <fts.h>
-#include <grp.h>
+//#include <fts.h>
+#include "../shared/fts.h"
+//#include <grp.h>
 #include <inttypes.h>
-#include <langinfo.h>
-#include <pwd.h>
+//#include <langinfo.h>
+//#include <pwd.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -56,12 +58,16 @@ printlong(char *name, char *accpath, struct stat *sb)
 {
 	char modep[15];
 
-	(void)printf("%6ju %8"PRId64" ", (uintmax_t)sb->st_ino, sb->st_blocks);
-	(void)strmode(sb->st_mode, modep);
+	(void)printf("%6ju %8"PRId64" ", (uintmax_t)sb->st_ino, /*sb->st_blocks*/ 0);
+	(void)our_strmode(sb->st_mode, modep);
+#ifdef MAXLOGNAME
 	(void)printf("%s %3ju %-*s %-*s ", modep, (uintmax_t)sb->st_nlink,
 	    MAXLOGNAME - 1,
 	    user_from_uid(sb->st_uid, 0), MAXLOGNAME - 1,
 	    group_from_gid(sb->st_gid, 0));
+#else
+	(void)printf("%s %3ju u g ", modep, (uintmax_t)sb->st_nlink);
+#endif
 
 	if (S_ISCHR(sb->st_mode) || S_ISBLK(sb->st_mode))
 		(void)printf("%#8jx ", (uintmax_t)sb->st_rdev);
@@ -69,8 +75,10 @@ printlong(char *name, char *accpath, struct stat *sb)
 		(void)printf("%8"PRId64" ", sb->st_size);
 	printtime(sb->st_mtime);
 	(void)printf("%s", name);
+#ifdef S_ISLNK
 	if (S_ISLNK(sb->st_mode))
 		printlink(accpath);
+#endif
 	(void)putchar('\n');
 }
 
@@ -100,7 +108,7 @@ printtime(time_t ftime)
 	if ((tm = localtime(&ftime)) != NULL)
 		strftime(longstring, sizeof(longstring), format, tm);
 	else
-		strlcpy(longstring, "bad date val ", sizeof(longstring));
+		our_strlcpy(longstring, "bad date val ", sizeof(longstring));
 	fputs(longstring, stdout);
 }
 
@@ -110,10 +118,13 @@ printlink(char *name)
 	ssize_t lnklen;
 	char path[MAXPATHLEN];
 
+#ifdef S_ISLNK
 	if ((lnklen = readlink(name, path, MAXPATHLEN - 1)) == -1) {
-		warn("%s", name);
+		our_warn("%s", name);
 		return;
 	}
+#endif //S_ISLNK
+
 	path[lnklen] = '\0';
 	(void)printf(" -> %s", path);
 }

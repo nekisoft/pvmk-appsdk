@@ -34,22 +34,28 @@
 #include <sys/stat.h>
 
 #include <ctype.h>
-#include <err.h>
+//#include <err.h>
 #include <errno.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
+#include <stdarg.h>
+//#include <syslog.h>
 #include <unistd.h>
-#include <utmpx.h>
+//#include <utmpx.h>
 
 #include "vary.h"
 
 #ifndef	TM_YEAR_BASE
 #define	TM_YEAR_BASE	1900
 #endif
+
+
+//pvmk hacks
+#include "../shared/our_stubs.h"
+#include "LibOb_strptime.h"
 
 static void badformat(void);
 static void iso8601_usage(const char *) __dead2;
@@ -131,17 +137,17 @@ main(int argc, char *argv[])
 			break;
 		case 'r':		/* user specified seconds */
 			rflag = 1;
-			ts.tv_sec = strtoq(optarg, &tmp, 0);
+			ts.tv_sec = strtoll(optarg, &tmp, 0);
 			if (*tmp != 0) {
 				if (stat(optarg, &sb) == 0) {
-					ts.tv_sec = sb.st_mtim.tv_sec;
-					ts.tv_nsec = sb.st_mtim.tv_nsec;
+					ts.tv_sec = sb.st_mtime;
+					//ts.tv_nsec = sb.st_mtim.tv_nsec;
 				} else
 					usage();
 			}
 			break;
 		case 'u':		/* do everything in UTC */
-			(void)setenv("TZ", "UTC0", 1);
+			(void)our_setenv("TZ", "UTC0", 1);
 			break;
 		case 'z':
 			outzone = optarg;
@@ -156,9 +162,10 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (!rflag && clock_gettime(CLOCK_REALTIME, &ts) == -1)
-		err(1, "clock_gettime");
+		our_err(1, "clock_gettime");
 
-	format = "%+";
+
+	format = "%a %b %e %H:%M:%S %Z %Y";//"%+";
 
 	if (Rflag)
 		format = rfc2822_format;
@@ -183,11 +190,11 @@ main(int argc, char *argv[])
 		format = *argv + 1;
 	}
 
-	if (outzone != NULL && setenv("TZ", outzone, 1) != 0)
-		err(1, "setenv(TZ)");
+	if (outzone != NULL && our_setenv("TZ", outzone, 1) != 0)
+		our_err(1, "setenv(TZ)");
 	lt = localtime(&ts.tv_sec);
 	if (lt == NULL)
-		errx(1, "invalid time");
+		our_errx(1, "invalid time");
 	badv = vary_apply(v, lt);
 	if (badv) {
 		fprintf(stderr, "%s: Cannot apply date adjustment\n",
@@ -217,7 +224,7 @@ printdate(const char *buf)
 {
 	(void)printf("%s\n", buf);
 	if (fflush(stdout))
-		err(1, "stdout");
+		our_err(1, "stdout");
 	exit(EXIT_SUCCESS);
 }
 
@@ -229,7 +236,7 @@ printisodate(struct tm *lt, long nsec)
 
 	fmtbuf[0] = 0;
 	for (it = iso8601_fmts; it <= iso8601_selected; it++)
-		strlcat(fmtbuf, it->format_string, sizeof(fmtbuf));
+		our_strlcat(fmtbuf, it->format_string, sizeof(fmtbuf));
 
 	(void)strftime_ns(buf, sizeof(buf), fmtbuf, lt, nsec);
 
@@ -237,7 +244,7 @@ printisodate(struct tm *lt, long nsec)
 		(void)strftime_ns(tzbuf, sizeof(tzbuf), "%z", lt, nsec);
 		memmove(&tzbuf[4], &tzbuf[3], 3);
 		tzbuf[3] = ':';
-		strlcat(buf, tzbuf, sizeof(buf));
+		our_strlcat(buf, tzbuf, sizeof(buf));
 	}
 
 	printdate(buf);
@@ -248,18 +255,19 @@ printisodate(struct tm *lt, long nsec)
 static void
 setthetime(const char *fmt, const char *p, int jflag, struct timespec *ts)
 {
-	struct utmpx utx;
+	//struct utmpx utx;
 	struct tm *lt;
 	const char *dot, *t;
 	int century;
 
 	lt = localtime(&ts->tv_sec);
 	if (lt == NULL)
-		errx(1, "invalid time");
+		our_errx(1, "invalid time");
 	lt->tm_isdst = -1;		/* divine correct DST */
 
 	if (fmt != NULL) {
-		t = strptime(p, fmt, lt);
+		stTimeZone localZone = LibOb_localTimeZone(0);
+		t = LibOb_strptime(p, fmt, lt, &localZone);
 		if (t == NULL) {
 			fprintf(stderr, "Failed conversion of ``%s''"
 				" using format ``%s''\n", p, fmt);
@@ -337,24 +345,40 @@ setthetime(const char *fmt, const char *p, int jflag, struct timespec *ts)
 	lt->tm_yday = -1;
 	ts->tv_sec = mktime(lt);
 	if (lt->tm_yday == -1)
-		errx(1, "nonexistent time");
+		our_errx(1, "nonexistent time");
 	ts->tv_nsec = 0;
 
 	if (!jflag) {
-		utx.ut_type = OLD_TIME;
-		memset(utx.ut_id, 0, sizeof(utx.ut_id));
-		(void)gettimeofday(&utx.ut_tv, NULL);
-		pututxline(&utx);
+		//utx.ut_type = OLD_TIME;
+		//memset(utx.ut_id, 0, sizeof(utx.ut_id));
+		//(void)gettimeofday(&utx.ut_tv, NULL);
+		//pututxline(&utx);
 		if (clock_settime(CLOCK_REALTIME, ts) != 0)
-			err(1, "clock_settime");
-		utx.ut_type = NEW_TIME;
-		(void)gettimeofday(&utx.ut_tv, NULL);
-		pututxline(&utx);
+			our_err(1, "clock_settime");
+		//utx.ut_type = NEW_TIME;
+		//(void)gettimeofday(&utx.ut_tv, NULL);
+		//pututxline(&utx);
 
-		if ((p = getlogin()) == NULL)
-			p = "???";
-		syslog(LOG_AUTH | LOG_NOTICE, "date set by %s", p);
+		//if ((p = getlogin()) == NULL)
+		//	p = "???";
+		//syslog(LOG_AUTH | LOG_NOTICE, "date set by %s", p);
 	}
+}
+
+
+int our_asprintf(char **strp, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	char dummy[4];
+	int len = vsnprintf(dummy, 4, fmt, ap);
+	va_end(ap);
+
+	*strp = malloc(len+1);
+	memset(*strp, 0, len+1);
+	vsnprintf(*strp, len, fmt, ap);
+
+	return len;
 }
 
 /*
@@ -383,7 +407,7 @@ strftime_ns(char * __restrict s, size_t maxsize, const char * __restrict format,
 
 	seen_percent = false;
 	if ((newformat = strdup(format)) == NULL)
-		err(1, "strdup");
+		our_err(1, "strdup");
 	tok = newformat;
 	for (tok = newformat; *tok != '\0'; tok++) {
 		switch (*tok) {
@@ -412,10 +436,10 @@ strftime_ns(char * __restrict s, size_t maxsize, const char * __restrict format,
 				 * of the old format from the next token to the
 				 * end).
 				 */
-				if (asprintf(&newformat, "%.*s%.9ld%s",
+				if (our_asprintf(&newformat, "%.*s%.9ld%s",
 				    (int)prefixlen, prefix, nsec,
 				    suffix) < 0) {
-					err(1, "asprintf");
+					our_err(1, "asprintf");
 				}
 				free(oldformat);
 				tok = newformat + prefixlen + 9;
@@ -428,7 +452,8 @@ strftime_ns(char * __restrict s, size_t maxsize, const char * __restrict format,
 		}
 	}
 
-	ret = strftime(s, maxsize, newformat, t);
+	stTimeZone localZone = LibOb_localTimeZone(0);
+	ret = LibOb_strftime(s, maxsize, newformat, t, &localZone, NULL);
 	free(newformat);
 	return (ret);
 }
@@ -436,20 +461,20 @@ strftime_ns(char * __restrict s, size_t maxsize, const char * __restrict format,
 static void
 badformat(void)
 {
-	warnx("illegal time format");
+	our_warnx("illegal time format");
 	usage();
 }
 
 static void
 iso8601_usage(const char *badarg)
 {
-	errx(1, "invalid argument '%s' for -I", badarg);
+	our_errx(1, "invalid argument '%s' for -I", badarg);
 }
 
 static void
 multipleformats(void)
 {
-	errx(1, "multiple output formats specified");
+	our_errx(1, "multiple output formats specified");
 }
 
 static void

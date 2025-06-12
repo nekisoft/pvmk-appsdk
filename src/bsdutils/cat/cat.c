@@ -32,7 +32,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
+#define NO_UDOM_SUPPORT 1
+#define BOOTSTRAP_CAT 1
+
+//#include <sys/capsicum.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #ifndef NO_UDOM_SUPPORT
@@ -41,9 +44,10 @@
 #include <netdb.h>
 #endif
 
-#include <capsicum_helpers.h>
+//#include <capsicum_helpers.h>
 #include <ctype.h>
-#include <err.h>
+//#include <err.h>
+#include "../shared/our_stubs.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
@@ -54,14 +58,14 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
-#include <casper/cap_net.h>
+//#include <libcasper.h>
+//#include <casper/cap_fileargs.h>
+//#include <casper/cap_net.h>
 
 static int bflag, eflag, lflag, nflag, sflag, tflag, vflag;
 static int rval;
 static const char *filename;
-static fileargs_t *fa;
+//static fileargs_t *fa;
 
 static void usage(void) __dead2;
 static void scanfiles(char *argv[], int cooked);
@@ -115,21 +119,21 @@ init_casper_net(cap_channel_t *casper)
 
 	capnet = cap_service_open(casper, "system.net");
 	if (capnet == NULL)
-		err(EXIT_FAILURE, "unable to create network service");
+		our_err(EXIT_FAILURE, "unable to create network service");
 
 	limit = cap_net_limit_init(capnet, CAPNET_NAME2ADDR |
 	    CAPNET_CONNECTDNS);
 	if (limit == NULL)
-		err(EXIT_FAILURE, "unable to create limits");
+		our_err(EXIT_FAILURE, "unable to create limits");
 
 	familylimit = AF_LOCAL;
 	cap_net_limit_name2addr_family(limit, &familylimit, 1);
 
 	if (cap_net_limit(limit) != 0)
-		err(EXIT_FAILURE, "unable to apply limits");
+		our_err(EXIT_FAILURE, "unable to apply limits");
 }
 #endif
-
+#if 0
 static void
 init_casper(int argc, char *argv[])
 {
@@ -138,13 +142,13 @@ init_casper(int argc, char *argv[])
 
 	casper = cap_init();
 	if (casper == NULL)
-		err(EXIT_FAILURE, "unable to create Casper");
+		our_err(EXIT_FAILURE, "unable to create Casper");
 
 	fa = fileargs_cinit(casper, argc, argv, O_RDONLY, 0,
 	    cap_rights_init(&rights, CAP_READ, CAP_FSTAT, CAP_FCNTL, CAP_SEEK),
 	    FA_OPEN | FA_REALPATH);
 	if (fa == NULL)
-		err(EXIT_FAILURE, "unable to create fileargs");
+		our_err(EXIT_FAILURE, "unable to create fileargs");
 
 #ifndef NO_UDOM_SUPPORT
 	init_casper_net(casper);
@@ -152,12 +156,12 @@ init_casper(int argc, char *argv[])
 
 	cap_close(casper);
 }
-
+#endif 
 int
 main(int argc, char *argv[])
 {
 	int ch;
-	struct flock stdout_lock;
+	//struct flock stdout_lock;
 
 	setlocale(LC_CTYPE, "");
 
@@ -194,27 +198,27 @@ main(int argc, char *argv[])
 	argc -= optind;
 
 	if (lflag) {
-		stdout_lock.l_len = 0;
-		stdout_lock.l_start = 0;
-		stdout_lock.l_type = F_WRLCK;
-		stdout_lock.l_whence = SEEK_SET;
-		if (fcntl(STDOUT_FILENO, F_SETLKW, &stdout_lock) != 0)
-			err(EXIT_FAILURE, "stdout");
+		//stdout_lock.l_len = 0;
+		//stdout_lock.l_start = 0;
+		//stdout_lock.l_type = F_WRLCK;
+		//stdout_lock.l_whence = SEEK_SET;
+		//if (fcntl(STDOUT_FILENO, F_SETLKW, &stdout_lock) != 0)
+			our_err(EXIT_FAILURE, "stdout");
 	}
 
-	init_casper(argc, argv);
+	//init_casper(argc, argv);
 
-	caph_cache_catpages();
+	//caph_cache_catpages();
 
-	if (caph_enter_casper() != 0)
-		err(EXIT_FAILURE, "capsicum");
+//	if (caph_enter_casper() != 0)
+//		err(EXIT_FAILURE, "capsicum");
 
 	if (bflag || eflag || nflag || sflag || tflag || vflag)
 		scanfiles(argv, 1);
 	else
 		scanfiles(argv, 0);
 	if (fclose(stdout))
-		err(1, "stdout");
+		our_err(1, "stdout");
 	exit(rval);
 	/* NOTREACHED */
 }
@@ -245,14 +249,14 @@ scanfiles(char *argv[], int cooked __unused)
 			fd = STDIN_FILENO;
 		} else {
 			filename = path;
-			fd = fileargs_open(fa, path);
+			fd = open(path, O_RDONLY); //fileargs_open(fa, path);
 #ifndef NO_UDOM_SUPPORT
 			if (fd < 0 && errno == EOPNOTSUPP)
 				fd = udom_open(path, O_RDONLY);
 #endif
 		}
 		if (fd < 0) {
-			warn("%s", path);
+			our_warn("%s", path);
 			rval = 1;
 #ifndef BOOTSTRAP_CAT
 		} else if (cooked) {
@@ -271,7 +275,7 @@ scanfiles(char *argv[], int cooked __unused)
 				    errno == EISDIR)
 					raw_cat(fd);
 				else
-					err(1, "%s", filename);
+					our_err(1, "%s", filename);
 			}
 #else
 			raw_cat(fd);
@@ -368,12 +372,12 @@ ilseq:
 			break;
 	}
 	if (ferror(fp)) {
-		warn("%s", filename);
+		our_warn("%s", filename);
 		rval = 1;
 		clearerr(fp);
 	}
 	if (ferror(stdout))
-		err(1, "stdout");
+		our_err(1, "stdout");
 }
 
 static ssize_t
@@ -405,28 +409,29 @@ raw_cat(int rfd)
 	wfd = fileno(stdout);
 	if (buf == NULL) {
 		if (fstat(wfd, &sbuf))
-			err(1, "stdout");
+			our_err(1, "stdout");
 		if (S_ISREG(sbuf.st_mode)) {
 			/* If there's plenty of RAM, use a large copy buffer */
-			if (sysconf(_SC_PHYS_PAGES) > PHYSPAGES_THRESHOLD)
-				bsize = MIN(BUFSIZE_MAX, MAXPHYS * 8);
-			else
-				bsize = BUFSIZE_SMALL;
+			//if (sysconf(_SC_PHYS_PAGES) > PHYSPAGES_THRESHOLD)
+			//	bsize = MIN(BUFSIZE_MAX, MAXPHYS * 8);
+			//else
+			//	bsize = BUFSIZE_SMALL;
+			bsize = 4096;
 		} else {
-			bsize = sbuf.st_blksize;
-			pagesize = sysconf(_SC_PAGESIZE);
+			bsize = 512; //sbuf.st_blksize;
+			pagesize = 4096; //sysconf(_SC_PAGESIZE);
 			if (pagesize > 0)
-				bsize = MAX(bsize, (size_t)pagesize);
+				bsize = 4096; //MAX(bsize, (size_t)pagesize);
 		}
 		if ((buf = malloc(bsize)) == NULL)
-			err(1, "malloc() failure of IO buffer");
+			our_err(1, "malloc() failure of IO buffer");
 	}
 	while ((nr = read(rfd, buf, bsize)) > 0)
 		for (off = 0; nr; nr -= nw, off += nw)
 			if ((nw = write(wfd, buf + off, (size_t)nr)) < 0)
-				err(1, "stdout");
+				our_err(1, "stdout");
 	if (nr < 0) {
-		warn("%s", filename);
+		our_warn("%s", filename);
 		rval = 1;
 	}
 }

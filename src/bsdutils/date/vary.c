@@ -25,7 +25,7 @@
  */
 
 #include <sys/cdefs.h>
-#include <err.h>
+#include "../shared/our_stubs.h"
 #include <time.h>
 #include <stdint.h>
 #include <string.h>
@@ -92,7 +92,7 @@ vary_append(struct vary *v, char *arg)
     nextp = &result;
 
   if ((*nextp = (struct vary *)malloc(sizeof(struct vary))) == NULL)
-    err(1, "malloc");
+    our_err(1, "malloc");
   (*nextp)->arg = arg;
   (*nextp)->next = NULL;
   return result;

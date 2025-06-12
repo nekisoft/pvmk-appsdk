@@ -35,9 +35,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <err.h>
+//#include <err.h>
+#include "../shared/our_stubs.h"
 #include <errno.h>
-#include <fts.h>
+//#include <fts.h>
+#include "../shared/fts.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,13 +62,13 @@ brace_subst(char *orig, char **store, char *path, size_t len)
 	pastorigend = orig + newlen;
 	for (p = orig; (q = strstr(p, "{}")) != NULL; p = q + 2) {
 		if (plen > 2 && newlen + plen - 2 < newlen)
-			errx(2, "brace_subst overflow");
+			our_errx(2, "brace_subst overflow");
 		newlen += plen - 2;
 	}
 	if (newlen > len) {
-		*store = reallocf(*store, newlen);
+		*store = our_reallocf(*store, newlen);
 		if (*store == NULL)
-			err(2, NULL);
+			our_err(2, NULL);
 	}
 	dst = *store;
 	for (p = orig; (q = strstr(p, "{}")) != NULL; p = q + 2) {
@@ -103,5 +105,5 @@ queryuser(char *argv[])
 		(void)fprintf(stderr, "\n");
 		(void)fflush(stderr);
 	}
-        return (rpmatch(resp) == 1);
+        return (our_rpmatch(resp) == 1);
 }

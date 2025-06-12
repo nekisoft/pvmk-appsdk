@@ -33,11 +33,13 @@
  */
 
 #include <sys/types.h>
-#include <sys/acl.h>
+//#include <sys/acl.h>
 #include <sys/stat.h>
 
-#include <err.h>
-#include <fts.h>
+//#include <err.h>
+#include "../shared/our_stubs.h"
+//#include <fts.h>
+#include "../shared/fts.h"
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,7 +186,7 @@ find_create(char ***argvp)
 	argv = *argvp;
 
 	if ((p = lookup_option(*argv)) == NULL)
-		errx(1, "%s: unknown primary or operator", *argv);
+		our_errx(1, "%s: unknown primary or operator", *argv);
 	++argv;
 
 	new = (p->create)(p, &argv);

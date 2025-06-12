@@ -35,10 +35,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <err.h>
+//#include <err.h>
+#include "../shared/our_stubs.h"
 #include <errno.h>
 #include <fcntl.h>
-#include <fts.h>
+//#include <fts.h>
+#include "../shared/fts.h"
 #include <locale.h>
 #include <regex.h>
 #include <stdio.h>
@@ -74,7 +76,9 @@ main(int argc, char *argv[])
 
 	(void)time(&now);	/* initialize the time-of-day */
 
+#ifdef SIGINFO
 	(void)signal(SIGINFO, siginfo_handler);
+#endif
 
 	p = start = argv;
 	Hflag = Lflag = 0;

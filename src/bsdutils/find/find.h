@@ -33,7 +33,8 @@
  */
 
 #include <regex.h>
-#include <sys/mount.h>
+//#include <sys/mount.h>
+#include "../shared/our_stubs.h"
 #include <sys/stat.h>
 
 /*

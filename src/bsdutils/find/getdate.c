@@ -1,6 +1,7 @@
 /* original parser id follows */
 /* yysccsid[] = "@(#)yaccpar	1.9 (Berkeley) 02/21/93" */
 /* (use YYMAJOR/YYMINOR for ifdefs dependent on parser version) */
+#include "../shared/our_stubs.h"
 
 #define YYBYACC 1
 #define YYMAJOR 2
@@ -920,7 +921,7 @@ get_date(char *p)
     time_t		tod;
     time_t nowtime;
 
-    bzero (&gmt, sizeof(struct tm));
+    memset(&gmt, 0, sizeof(struct tm)); //bzero (&gmt, sizeof(struct tm));
     yyInput = p;
 
     (void)time (&nowtime);

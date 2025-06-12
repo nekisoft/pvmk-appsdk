@@ -35,9 +35,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <err.h>
+//#include <err.h>
+#include "../shared/our_stubs.h"
 #include <errno.h>
-#include <fts.h>
+//#include <fts.h>
+#include "../shared/fts.h"
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,13 +174,13 @@ find_execute(PLAN *plan, char *paths[])
 
 	tree = fts_open(paths, ftsoptions, (issort ? find_compare : NULL));
 	if (tree == NULL)
-		err(1, "ftsopen");
+		our_err(1, "ftsopen");
 
 	exitstatus = 0;
 	while (errno = 0, (entry = fts_read(tree)) != NULL) {
 		if (maxdepth != -1 && entry->fts_level >= maxdepth) {
 			if (fts_set(tree, entry, FTS_SKIP))
-				err(1, "%s", entry->fts_path);
+				our_err(1, "%s", entry->fts_path);
 		}
 
 		switch (entry->fts_info) {
@@ -198,7 +200,7 @@ find_execute(PLAN *plan, char *paths[])
 			/* FALLTHROUGH */
 		case FTS_ERR:
 			(void)fflush(stdout);
-			warnx("%s: %s",
+			our_warnx("%s: %s",
 			    entry->fts_path, strerror(entry->fts_errno));
 			exitstatus = 1;
 			continue;
@@ -220,7 +222,7 @@ find_execute(PLAN *plan, char *paths[])
 #define	BADCH	" \t\n\\'\""
 		if (isxargs && strpbrk(entry->fts_path, BADCH)) {
 			(void)fflush(stdout);
-			warnx("%s: illegal path", entry->fts_path);
+			our_warnx("%s: illegal path", entry->fts_path);
 			exitstatus = 1;
 			continue;
 		}
@@ -238,6 +240,6 @@ find_execute(PLAN *plan, char *paths[])
 	e = errno;
 	finish_execplus();
 	if (e && (!ignore_readdir_race || e != ENOENT))
-		errc(1, e, "fts_read");
+		our_errc(1, e, "fts_read");
 	return (exitstatus);
 }
