@@ -60,7 +60,7 @@ printlong(char *name, char *accpath, struct stat *sb)
 
 	(void)printf("%6ju %8"PRId64" ", (uintmax_t)sb->st_ino, /*sb->st_blocks*/ 0);
 	(void)our_strmode(sb->st_mode, modep);
-#ifdef MAXLOGNAME
+#if 0 //#ifdef MAXLOGNAME
 	(void)printf("%s %3ju %-*s %-*s ", modep, (uintmax_t)sb->st_nlink,
 	    MAXLOGNAME - 1,
 	    user_from_uid(sb->st_uid, 0), MAXLOGNAME - 1,

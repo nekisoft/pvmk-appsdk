@@ -609,6 +609,9 @@ c_empty(OPTION *option, char ***argvp __unused)
 int
 f_exec(PLAN *plan, FTSENT *entry)
 {
+	our_err(1, "Exec isn't supported because I don't care to get this working on Windows -betopp/pvmk");
+
+#if 0
 	int cnt;
 	pid_t pid;
 	int status;
@@ -681,6 +684,7 @@ doexec:	if ((plan->flags & F_NEEDOK) && !queryuser(plan->e_argv))
 		return (1);
 	}
 	return (0);
+#endif //0
 }
 
 /*
@@ -693,6 +697,9 @@ doexec:	if ((plan->flags & F_NEEDOK) && !queryuser(plan->e_argv))
 PLAN *
 c_exec(OPTION *option, char ***argvp)
 {
+	our_errx(1, "Exec filters are not supported because I don't care to get this working on Windows -betopp/pvmk");
+	
+#if 0
 	PLAN *new;			/* node returned */
 	long argmax;
 	int cnt, i;
@@ -793,6 +800,7 @@ c_exec(OPTION *option, char ***argvp)
 
 done:	*argvp = argv + 1;
 	return new;
+#endif //0
 }
 
 /* Finish any pending -exec ... {} + functions. */
@@ -1006,7 +1014,7 @@ c_group(OPTION *option, char ***argvp)
 			gname++;
 		gid = atoi(gname);
 		if (gid == 0 && gname[0] != '0')
-			errx(1, "%s: %s: no such group", option->name, gname);
+			our_errx(1, "%s: %s: no such group", option->name, gname);
 		gid = find_parsenum(new, option->name, cp, NULL);
 	//} else
 	//	gid = g->gr_gid;
@@ -1085,7 +1093,7 @@ c_samefile(OPTION *option, char ***argvp)
 #endif
 		error = stat(fn, &sb);
 	if (error != 0)
-		err(1, "%s", fn);
+		our_err(1, "%s", fn);
 	new->i_data = sb.st_ino;
 	return new;
 }
@@ -1205,7 +1213,7 @@ f_newer(PLAN *plan, FTSENT *entry)
 	else if (plan->flags & F_TIME_A)
 		ft = entry->fts_statp->st_atim;
 	else if (plan->flags & F_TIME_B)
-		ft = entry->fts_statp->st_birthtime
+		ft = entry->fts_statp->st_birthtim;
 #endif
 	else
 		ft = entry->fts_statp->st_mtim;
@@ -1230,7 +1238,7 @@ c_newer(OPTION *option, char ***argvp)
 	if (option->flags & F_TIME2_T) {
 		new->t_data.tv_sec = get_date(fn_or_tspec);
 		if (new->t_data.tv_sec == (time_t) -1)
-			errx(1, "Can't parse date/time: %s", fn_or_tspec);
+			our_errx(1, "Can't parse date/time: %s", fn_or_tspec);
 		/* Use the seconds only in the comparison. */
 		new->t_data.tv_nsec = 999999999;
 	} else {
@@ -1239,7 +1247,7 @@ c_newer(OPTION *option, char ***argvp)
 		else
 			error = stat(fn_or_tspec, &sb);
 		if (error != 0)
-			err(1, "%s", fn_or_tspec);
+			our_err(1, "%s", fn_or_tspec);
 		if (option->flags & F_TIME2_C)
 			new->t_data = sb.st_ctim;
 		else if (option->flags & F_TIME2_A)
@@ -1406,7 +1414,7 @@ int
 f_prune(PLAN *plan __unused, FTSENT *entry)
 {
 	if (fts_set(tree, entry, FTS_SKIP))
-		err(1, "%s", entry->fts_path);
+		our_err(1, "%s", entry->fts_path);
 	return 1;
 }
 
@@ -1441,7 +1449,7 @@ f_regex(PLAN *plan, FTSENT *entry)
 
 	if (errcode != 0 && errcode != REG_NOMATCH) {
 		regerror(errcode, pre, errbuf, sizeof errbuf);
-		errx(1, "%s: %s",
+		our_errx(1, "%s: %s",
 		     plan->flags & F_IGNCASE ? "-iregex" : "-regex", errbuf);
 	}
 
@@ -1461,14 +1469,14 @@ c_regex(OPTION *option, char ***argvp)
 	char errbuf[LINE_MAX];
 
 	if ((pre = malloc(sizeof(regex_t))) == NULL)
-		err(1, NULL);
+		our_err(1, NULL);
 
 	pattern = nextarg(option, argvp);
 
 	if ((errcode = regcomp(pre, pattern,
 	    regexp_flags | (option->flags & F_IGNCASE ? REG_ICASE : 0))) != 0) {
 		regerror(errcode, pre, errbuf, sizeof errbuf);
-		errx(1, "%s: %s: %s",
+		our_errx(1, "%s: %s: %s",
 		     option->flags & F_IGNCASE ? "-iregex" : "-regex",
 		     pattern, errbuf);
 	}
@@ -1545,12 +1553,12 @@ c_size(OPTION *option, char ***argvp)
 			scale = 0x4000000000000LL;
 			break;
 		default:
-			errx(1, "%s: %s: illegal trailing character",
+			our_errx(1, "%s: %s: illegal trailing character",
 				option->name, size_str);
 			break;
 		}
 		if (new->o_data > QUAD_MAX / scale)
-			errx(1, "%s: %s: value too large",
+			our_errx(1, "%s: %s: value too large",
 				option->name, size_str);
 		new->o_data *= scale;
 	}
@@ -1645,7 +1653,7 @@ c_type(OPTION *option, char ***argvp)
 		break;
 #endif /* FTS_WHITEOUT */
 	default:
-		errx(1, "%s: %s: unknown type", option->name, typestring);
+		our_errx(1, "%s: %s: unknown type", option->name, typestring);
 	}
 
 	new = palloc(option);
@@ -1685,7 +1693,7 @@ c_user(OPTION *option, char ***argvp)
 			username++;
 		uid = atoi(username);
 		if (uid == 0 && username[0] != '0')
-			errx(1, "%s: %s: no such user", option->name, username);
+			our_errx(1, "%s: %s: no such user", option->name, username);
 		uid = find_parsenum(new, option->name, cp, NULL);
 	//} else
 	//	uid = p->pw_uid;
