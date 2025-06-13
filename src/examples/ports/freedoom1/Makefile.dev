@@ -1,8 +1,10 @@
 #Makefile for card-based application - development version
 #Bryan E. Topp <betopp@betopp.com> 2024
 
-CC     = cc
-OBJCOPY= objcopy
+CC     =cc
+OBJCOPY=objcopy
+DATE   =date
+FIND   =find
 
 #Directories used locally
 SRCDIR=./src
@@ -12,7 +14,7 @@ IMGDIR=./img.dev
 CARDROOT=./cardroot
 
 #C source files and resulting objects
-CSRC:=$(shell find -L $(SRCDIR) -name "*.c")
+CSRC:=$(shell $(FIND) -L $(SRCDIR) -name "*.c")
 COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
 
 #For development build - phony system call library
@@ -53,17 +55,13 @@ LINKFLAGS +=
 LIBS += -lm $(shell sdl2-config --libs)
 
 #Build information provided to compiler
-BUILDVERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
-BUILDDATE := $(shell date -u +%FT%TZ)
+BUILDDATE := $(shell $(DATE) -u +%Y-%m-%dT%H:%M:%SZ)
 BUILDUSER := $(shell whoami)@$(shell hostname)
-UNIXTIME := $(shell date +%s)
-CFLAGS += -DBUILDVERSION=\"$(BUILDVERSION)\"
 CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
-CFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
 
 #Build directory with the game contents
-IMGFILES_SRC=$(shell find -H $(CARDROOT) -type f)
+IMGFILES_SRC=$(shell $(FIND) -H $(CARDROOT) -type f)
 IMGFILES_DST=$(patsubst $(CARDROOT)%, $(IMGDIR)%, $(IMGFILES_SRC))
 IMGFILES_DST+=$(IMGDIR)/boot.nne $(IMGDIR)/boot.elf
 

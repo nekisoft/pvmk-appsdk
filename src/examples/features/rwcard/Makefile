@@ -3,15 +3,16 @@
 
 #SDK toolchain location
 SDKROOT=../../..
-CC=$(SDKROOT)/bin/pvmk-cc
+CC     =$(SDKROOT)/bin/pvmk-cc
 OBJCOPY=$(SDKROOT)/bin/pvmk-objcopy
 MKISOFS=$(SDKROOT)/bin/pvmk-xorriso -as mkisofs
+FIND   =$(SDKROOT)/bin/pvmk-find
 
 #Options to pass to compiler
 GCCOPTS += -std=c99 -Wall -Werror -Wextra -pedantic -g -O1
 
 #Source files
-CSRC:=$(shell find src -name *.c)
+CSRC:=$(shell $(FIND) src -name *.c)
 
 #Object files
 COBJ:=$(patsubst src/%.c, obj/%.o, $(CSRC))

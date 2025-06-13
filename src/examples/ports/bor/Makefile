@@ -6,6 +6,8 @@ PVMKSDK=../../..
 CC     =$(PVMKSDK)/bin/pvmk-cc
 OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy
 MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
+DATE   =$(PVMKSDK)/bin/pvmk-date
+FIND   =$(PVMKSDK)/bin/pvmk-find
 
 #Directories used locally
 SRCDIR=./src
@@ -15,7 +17,7 @@ IMGDIR=./img
 CARDROOT=./cardroot
 
 #C source files and resulting objects
-CSRC:=$(shell find -L $(SRCDIR) -name "*.c")
+CSRC:=$(shell $(FIND) -L $(SRCDIR) -name "*.c")
 COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
 
 #Flags to use when compiling
@@ -41,20 +43,16 @@ CFLAGS += -Wno-incompatible-pointer-types
 LINKFLAGS += 
 
 #Build information provided to compiler
-BUILDVERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
-BUILDDATE := $(shell date -u +%FT%TZ)
+BUILDDATE := $(shell $(DATE) -u +%Y-%m-%dT%H:%M:%SZ)
 BUILDUSER := $(shell whoami)@$(shell hostname)
-UNIXTIME := $(shell date +%s)
-CFLAGS += -DBUILDVERSION=\"$(BUILDVERSION)\"
 CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
-CFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
 
 #Name of ISO image to build
 GAMEIMG=$(IMGDIR)/game.iso
 
 #Build filesystem with the game contents
-$(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/name.txt $(shell find -H $(CARDROOT))
+$(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/name.txt $(shell $(FIND) -H $(CARDROOT))
 	mkdir -p $(@D)
 	$(MKISOFS) -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -R -follow-links -o $@ $(CARDROOT)
 	
