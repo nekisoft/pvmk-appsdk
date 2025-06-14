@@ -25,6 +25,8 @@
 	#define nitems(jj) ((int)(((int)sizeof(jj)/sizeof(jj[0]))))
 #endif
 
+#define OUR_MAX(a,b) (((a)>(b))?(a):(b))
+
 #define our_errx our_err
 #define our_warnx our_warn
 
@@ -39,6 +41,7 @@ void *our_reallocf(void *ptr, size_t size);
 void our_strmode(mode_t mode, char *bp);
 int our_gmtime_s(struct tm *dst, const time_t *src);
 int our_localtime_s(struct tm *dst, const time_t *src);
+int our_fchdir(int fd);
 
 #ifndef _UID_T_DECLARED
 	typedef int uid_t;
@@ -58,6 +61,10 @@ typedef uint64_t nlink_t;
 
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
+#endif
+
+#ifndef O_DIRECTORY
+#define O_DIRECTORY 0
 #endif
 
 #ifndef S_ISUID

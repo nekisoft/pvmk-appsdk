@@ -5,17 +5,25 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <errno.h>
 
 int our_gmtime_s(struct tm *dst, const time_t *src)
 {
-	gmtime_r(src, dst);
+	memcpy(dst, gmtime(src), sizeof(*dst));
 	return 0;
 }
 
 int our_localtime_s(struct tm *dst, const time_t *src)
 {
-	localtime_r(src, dst);
+	memcpy(dst, localtime(src), sizeof(*dst));
 	return 0;
+}
+
+int our_fchdir(int fd)
+{
+	(void)fd;
+	errno = ENOSYS;
+	return -1;
 }
 
 void our_errc(int nn, int ee, const char *ss, ...)

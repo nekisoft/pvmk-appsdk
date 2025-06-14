@@ -25,8 +25,14 @@ mkdir -p ${PLATDIR}
 
 SHARED=${SRCDIR}/shared/*.c
 
-${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/date/*.c -o ${PLATDIR}/pvmk-date -static
-${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/cat/*.c -o ${PLATDIR}/pvmk-cat -static
-${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/find/*.c -o ${PLATDIR}/pvmk-find -static
+
+
+#Windows needs libs linked for regex
+LIBS+=$(pkg-config regex --cflags --libs || true)
+LIBS+=" -liconv "
+
+${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/date/*.c -o ${PLATDIR}/pvmk-date -static ${LIBS}
+${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/cat/*.c -o ${PLATDIR}/pvmk-cat -static ${LIBS}
+${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/find/*.c -o ${PLATDIR}/pvmk-find -static ${LIBS}
 
 popd

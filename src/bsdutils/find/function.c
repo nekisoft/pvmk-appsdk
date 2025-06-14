@@ -1206,17 +1206,18 @@ int
 f_newer(PLAN *plan, FTSENT *entry)
 {
 	struct timespec ft;
+	memset(&ft, 0, sizeof(ft));
 
 	if (plan->flags & F_TIME_C)
-		ft = entry->fts_statp->st_ctim;
+		ft.tv_sec = entry->fts_statp->st_ctime;
 #if HAVE_STRUCT_STAT_ST_BIRTHTIME
 	else if (plan->flags & F_TIME_A)
-		ft = entry->fts_statp->st_atim;
+		ft.tv_sec = entry->fts_statp->st_atime;
 	else if (plan->flags & F_TIME_B)
-		ft = entry->fts_statp->st_birthtim;
+		ft.tv_sec = entry->fts_statp->st_birthtime;
 #endif
 	else
-		ft = entry->fts_statp->st_mtim;
+		ft.tv_sec = entry->fts_statp->st_mtime;
 	return (ft.tv_sec > plan->t_data.tv_sec ||
 	    (ft.tv_sec == plan->t_data.tv_sec &&
 	    ft.tv_nsec > plan->t_data.tv_nsec));
@@ -1242,22 +1243,26 @@ c_newer(OPTION *option, char ***argvp)
 		/* Use the seconds only in the comparison. */
 		new->t_data.tv_nsec = 999999999;
 	} else {
+		/*pvmk hack - no cross-compatible way of getting ns*/
+		new->t_data.tv_nsec = 999999999;
+#ifdef S_ISLNK
 		if (ftsoptions & FTS_PHYSICAL)
 			error = lstat(fn_or_tspec, &sb);
 		else
+#endif
 			error = stat(fn_or_tspec, &sb);
 		if (error != 0)
 			our_err(1, "%s", fn_or_tspec);
 		if (option->flags & F_TIME2_C)
-			new->t_data = sb.st_ctim;
+			new->t_data.tv_sec = sb.st_ctime;
 		else if (option->flags & F_TIME2_A)
-			new->t_data = sb.st_atim;
+			new->t_data.tv_sec = sb.st_atime;
 #if HAVE_STRUCT_STAT_ST_BIRTHTIME
 		else if (option->flags & F_TIME2_B)
-			new->t_data = sb.st_birthtim;
+			new->t_data.tv_sec = sb.st_birthtime;
 #endif
 		else
-			new->t_data = sb.st_mtim;
+			new->t_data.tv_sec = sb.st_mtime;
 	}
 	return new;
 }
@@ -1343,6 +1348,8 @@ f_perm(PLAN *plan, FTSENT *entry)
 PLAN *
 c_perm(OPTION *option, char ***argvp)
 {
+	our_errx(1, "%s is unsupported because I can't be bothered making it work on Windows -betopp/pvmk", option->name);
+#if 0
 	char *perm;
 	PLAN *new;
 	mode_t *set;
@@ -1366,6 +1373,7 @@ c_perm(OPTION *option, char ***argvp)
 	new->m_data = getmode(set, 0);
 	free(set);
 	return new;
+#endif
 }
 
 /*
@@ -1444,6 +1452,11 @@ f_regex(PLAN *plan, FTSENT *entry)
 
 	pmatch.rm_so = 0;
 	pmatch.rm_eo = len;
+
+	//Why are we using REG_STARTEND at all? We just derived the bounds above as normal. -betopp 
+#ifndef REG_STARTEND
+#define REG_STARTEND 0
+#endif
 
 	errcode = regexec(pre, str, 1, &pmatch, REG_STARTEND);
 
