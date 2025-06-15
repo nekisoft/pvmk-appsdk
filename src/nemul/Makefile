@@ -7,11 +7,15 @@ OBJDIR=obj
 BINDIR=bin
 
 #Toolchain
-CPP=clang++
-CPPFLAGS=-std=c++20 -pedantic -Wall -Werror -Wextra -gdwarf -O1
-CPPFLAGS+=-Wno-c99-designator
+CPP=c++
+CPPFLAGS=-std=c++20 -pedantic -Wall -Werror -Wextra -gdwarf -O2
 LINKFLAGS=-std=c++20
 LIBS=-lm
+
+UNAME_O := $(shell uname -o)
+ifeq ($(UNAME_O),Msys)
+	LIBS+=-lws2_32
+endif
 
 #Build information provided to compiler
 BUILDVERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
@@ -32,6 +36,9 @@ ifeq (, $(shell which $(WXCFG)))
 	WXCFG=wxgtk3u-3.2-config
 endif
 ifeq (, $(shell which $(WXCFG)))
+	WXCFG=wx-config
+endif
+ifeq (, $(shell which $(WXCFG)))
 	$(error "Didn't find a wx___-3.2-config config program to use")
 endif
 
@@ -40,10 +47,10 @@ CPPFLAGS+=$(shell $(WXCFG) $(WXBITS) --cxxflags)
 LIBS+=$(shell $(WXCFG) $(WXBITS) --libs)
 
 #C++ sources to compile
-CPPSRC=$(shell find $(SRCDIR) -name *.cpp)
+CPPSRC:=$(shell find $(SRCDIR) -name *.cpp)
 
 #Object files made from C++ sources
-CPPOBJ=$(patsubst %.cpp, $(OBJDIR)/%.cpp.o, $(CPPSRC))
+CPPOBJ:=$(patsubst %.cpp, $(OBJDIR)/%.cpp.o, $(CPPSRC))
 
 #Top-level target linked from all C++ objects
 $(BINDIR)/nemul.elf : $(CPPOBJ)

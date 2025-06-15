@@ -347,11 +347,11 @@ int pvmk_sc_disk_read2k(uint32_t sector_num, uint32_t buf, uint32_t nsectors)
 		return -PVMK_EFAULT;
 	
 	off_t seeked = lseek(sysc_diskfd, sector_num * 2048ull, SEEK_SET);
-	if(seeked != sector_num * 2048ull)
+	if(seeked != sector_num * 2048ll)
 		return -PVMK_ENOSPC;
 	
 	int nread = read(sysc_diskfd, &(sysc_pptr->mem[buf/4]), 2048 * nsectors);
-	if(nread != nsectors * 2048ull)
+	if(nread != nsectors * 2048ll)
 		return -PVMK_ENOSPC;
 	
 	return 0;
@@ -372,11 +372,11 @@ int pvmk_sc_disk_write2k(uint32_t sector_num, uint32_t buf, uint32_t nsectors)
 		return -PVMK_EFAULT;
 	
 	off_t seeked = lseek(sysc_diskfd, sector_num * 2048ull, SEEK_SET);
-	if(seeked != sector_num * 2048ull)
+	if(seeked != sector_num * 2048ll)
 		return -PVMK_ENOSPC;
 	
 	int nwritten = write(sysc_diskfd, &(sysc_pptr->mem[buf/4]), 2048 * nsectors);
-	if(nwritten != nsectors * 2048ull)
+	if(nwritten != nsectors * 2048ll)
 		return -PVMK_ENOSPC;
 	
 	return 0;	

@@ -21,7 +21,11 @@
 
 //Compatibility shim for cross-platform TCP stuff
 //Todo - mangle this for WinSock if we're on Windows
-#if 1
+#if !defined(__MINGW32__)
+	//Constant that Winsock would use
+	#define INVALID_SOCKET (-1)
+	typedef int SOCKET;
+
 	//Normal POSIX-y names
 	#include <sys/types.h>
 	#include <sys/socket.h>
@@ -52,14 +56,39 @@
 	static int rsp_c_nonblock(int sockfd)
 		{ return fcntl(sockfd, F_SETFL, O_NONBLOCK); }
 #else
-	//...put WinSock shit here
+	//Winsock mangled names
+	#include <Winsock2.h>
+	#include <ws2tcpip.h>
+
+	static int rsp_c_close(int sockfd)
+		{ return closesocket(sockfd); }
+	static int rsp_c_socket(int domain, int type, int protocol)
+		{ return socket(domain, type, protocol); }
+	static int rsp_c_listen(int sockfd, int backlog)
+		{ return listen(sockfd, backlog); }
+	static int rsp_c_bind(int sockfd, struct sockaddr *my_addr, int addrlen)
+		{ return bind(sockfd, my_addr, addrlen); }
+	static int rsp_c_getaddrinfo(const char *node, const char *service, const struct addrinfo *hint, struct addrinfo **res)
+		{ return getaddrinfo(node, service, hint, res); }
+	static void rsp_c_freeaddrinfo(struct addrinfo *f)
+		{ freeaddrinfo(f); }
+	static int rsp_c_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+		{ return accept(sockfd, addr, addrlen); }
+	static int rsp_c_write(int sockfd, const char *data, int len)
+		{ return send(sockfd, data, len, 0); }
+	static int rsp_c_read(int sockfd, char *data, int len)
+		{ return recv(sockfd, data, len, 0); }
+	static const char *rsp_c_errstr(void)
+		{ return strerror(WSAGetLastError()); }
+	static int rsp_c_nonblock(int sockfd)
+		{ unsigned long mode = 1; return ioctlsocket(sockfd, FIONBIO, &mode); }
 #endif
 
 //Socket accepting new connections for RSP
-static int rsp_listen_sock = -1;
+static SOCKET rsp_listen_sock = INVALID_SOCKET;
 
 //Socket communicating with a client for RSP
-static int rsp_client_sock = -1;
+static SOCKET rsp_client_sock = INVALID_SOCKET;
 
 //Port we use for RSP listener
 static int rsp_port;
@@ -96,16 +125,16 @@ static void rsp_fatal(const char *fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 	
-	if(rsp_listen_sock >= 0)
+	if(rsp_listen_sock != INVALID_SOCKET)
 	{
 		rsp_c_close(rsp_listen_sock);
-		rsp_listen_sock = -1;
+		rsp_listen_sock = INVALID_SOCKET;
 	}
 	
-	if(rsp_client_sock >= 0)
+	if(rsp_client_sock != INVALID_SOCKET)
 	{
 		rsp_c_close(rsp_client_sock);
-		rsp_client_sock = -1;
+		rsp_client_sock = INVALID_SOCKET;
 	}
 	
 	memset(rsp_incoming_buf, 0, sizeof(rsp_incoming_buf));
@@ -406,7 +435,8 @@ static void rsp_cmd_qsupported(const char *remain_buf, int remain_len)
 	rsp_putpkt_str("PacketSize=ff0;multiprocess+;error-message+;hwbreak+");
 	rsp_putpkt_end();
 	
-	if(strnstr(remain_buf, "error-message+", remain_len))
+	(void)remain_len; //todo - windows lacks strnstr
+	if(strstr(remain_buf, "error-message+"))
 		rsp_errtext_supported = 1;
 	
 	return;
@@ -1426,16 +1456,16 @@ static void rsp_gotbyte(char byte_in)
 void rsp_init(const prefs_t *prefs)
 {
 	//Close existing sockets if any
-	if(rsp_listen_sock >= 0)
+	if(rsp_listen_sock != INVALID_SOCKET)
 	{
 		rsp_c_close(rsp_listen_sock);
-		rsp_listen_sock = -1;
+		rsp_listen_sock = INVALID_SOCKET;
 	}
 	
-	if(rsp_client_sock >= 0)
+	if(rsp_client_sock != INVALID_SOCKET)
 	{
 		rsp_c_close(rsp_client_sock);
-		rsp_client_sock = -1;
+		rsp_client_sock = INVALID_SOCKET;
 	}
 	
 	//Check if we're actually supposed to be running
@@ -1458,7 +1488,7 @@ void rsp_poll(void)
 	}
 	
 	//Handle connection setup/acceptance
-	if(rsp_client_sock < 0 && rsp_listen_sock < 0)
+	if(rsp_client_sock == INVALID_SOCKET && rsp_listen_sock == INVALID_SOCKET)
 	{
 		//Neither socket valid. Need to make the listener socket to get connections.
 		
@@ -1469,7 +1499,7 @@ void rsp_poll(void)
 		hints.ai_socktype = SOCK_STREAM; //TCP
 		hints.ai_flags = AI_PASSIVE; //Fill in local IP automatically
 		
-		char portstr[8] = {0};
+		char portstr[16] = {0};
 		snprintf(portstr, sizeof(portstr)-1, "%d", rsp_port);
 		
 		struct addrinfo *result_addr = NULL;
@@ -1482,7 +1512,7 @@ void rsp_poll(void)
 		
 		//Make a socket for that type of address
 		rsp_listen_sock = rsp_c_socket(result_addr->ai_family, result_addr->ai_socktype, result_addr->ai_protocol);
-		if(rsp_listen_sock < 0)
+		if(rsp_listen_sock == INVALID_SOCKET)
 		{
 			rsp_fatal("Failed to make listener socket: %s\n", rsp_c_errstr());
 			rsp_c_freeaddrinfo(result_addr);
@@ -1497,7 +1527,7 @@ void rsp_poll(void)
 			rsp_c_freeaddrinfo(result_addr);
 			result_addr = NULL;
 			rsp_c_close(rsp_listen_sock);
-			rsp_listen_sock = -1;
+			rsp_listen_sock = INVALID_SOCKET;
 			return;
 		}
 
@@ -1509,7 +1539,7 @@ void rsp_poll(void)
 			rsp_c_freeaddrinfo(result_addr);
 			result_addr = NULL;
 			rsp_c_close(rsp_listen_sock);
-			rsp_listen_sock = -1;
+			rsp_listen_sock = INVALID_SOCKET;
 			return;
 		}
 		
@@ -1523,14 +1553,14 @@ void rsp_poll(void)
 		{
 			rsp_fatal("Failed to listen on socket: %s\n", rsp_c_errstr());
 			rsp_c_close(rsp_listen_sock);
-			rsp_listen_sock = -1;
+			rsp_listen_sock = INVALID_SOCKET;
 			return;
 		}
 		
 		//Made the listener socket OK
 		return;
 	}
-	else if(rsp_client_sock < 0 && rsp_listen_sock >= 0)
+	else if(rsp_client_sock == INVALID_SOCKET && rsp_listen_sock != INVALID_SOCKET)
 	{
 		//No client, but we've made the listener. See if we can accept a connection.
 		struct sockaddr_storage their_addr;
@@ -1539,7 +1569,7 @@ void rsp_poll(void)
 		socklen_t their_addrlen = sizeof(their_addr);
 		
 		rsp_client_sock = rsp_c_accept(rsp_listen_sock, (struct sockaddr*)(&their_addr), &their_addrlen);
-		if(rsp_client_sock < 0)
+		if(rsp_client_sock == INVALID_SOCKET)
 		{
 			//Nobody connected to us yet
 			return;
@@ -1550,18 +1580,18 @@ void rsp_poll(void)
 		{
 			rsp_fatal("Failed to make client socket nonblocking: %s\n", rsp_c_errstr());
 			rsp_c_close(rsp_client_sock);
-			rsp_client_sock = -1;
+			rsp_client_sock = INVALID_SOCKET;
 			return;
 		}
 		
 		//Great, we got a connection
 		return;
 	}
-	else if(rsp_client_sock > 0 && rsp_listen_sock > 0)
+	else if(rsp_client_sock != INVALID_SOCKET && rsp_listen_sock != INVALID_SOCKET)
 	{
 		//Have both client and listener sockets. Don't listen for any more clients.
 		rsp_c_close(rsp_listen_sock);
-		rsp_listen_sock = -1;
+		rsp_listen_sock = INVALID_SOCKET;
 		return;
 	}
 	
@@ -1656,14 +1686,12 @@ void rsp_dbgstop(int pid, process_dbgstop_t reason)
 	
 	pptr->dbgstop = reason;
 		
-	static const int signal_mapping[PROCESS_DBGSTOP_MAX] = 
-	{
-		[PROCESS_DBGSTOP_AC] = 10, //GDB SIGBUS
-		[PROCESS_DBGSTOP_BKPT] = 5, //GDB SIGTRAP
-		[PROCESS_DBGSTOP_ABT] = 11, //GDB SIGSEGV
-		[PROCESS_DBGSTOP_PF] = 11, //GDB SIGSEGV
-		[PROCESS_DBGSTOP_FATAL] = 32, //GDB SIGPWR = power-failure
-	};
+	static int signal_mapping[PROCESS_DBGSTOP_MAX] =  {0};
+	signal_mapping[PROCESS_DBGSTOP_AC] = 10; //GDB SIGBUS
+	signal_mapping[PROCESS_DBGSTOP_BKPT] = 5; //GDB SIGTRAP
+	signal_mapping[PROCESS_DBGSTOP_ABT] = 11; //GDB SIGSEGV
+	signal_mapping[PROCESS_DBGSTOP_PF] = 11; //GDB SIGSEGV
+	signal_mapping[PROCESS_DBGSTOP_FATAL] = 32; //GDB SIGPWR = power-failure
 	
 	int report_signal = 5;
 	if(signal_mapping[reason])
@@ -1682,5 +1710,5 @@ void rsp_dbgstop(int pid, process_dbgstop_t reason)
 
 bool rsp_present(void)
 {
-	return (rsp_client_sock >= 0);
+	return (rsp_client_sock != INVALID_SOCKET);
 }

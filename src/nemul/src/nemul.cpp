@@ -85,16 +85,14 @@ void EmulTimer::Notify()
 					if(nstopped && !YelledAboutCrash)
 					{
 						//Haven't told the user about the crashed program
-						static const char *reasons[PROCESS_DBGSTOP_MAX] = 
-						{
-							[PROCESS_DBGSTOP_CTRLC] = "Interrupted by User",
-							[PROCESS_DBGSTOP_SIGNAL] = "Signal Sent",
-							[PROCESS_DBGSTOP_BKPT] = "Breakpoint Hit",
-							[PROCESS_DBGSTOP_ABT] = "Data Abort",
-							[PROCESS_DBGSTOP_AC] = "Alignment Check",
-							[PROCESS_DBGSTOP_PF] = "Prefetch Abort", 
-							[PROCESS_DBGSTOP_FATAL] = "Neki32 Interpreter Bug", 
-						};
+						static const char *reasons[PROCESS_DBGSTOP_MAX] = {0};
+						reasons[PROCESS_DBGSTOP_CTRLC] = "Interrupted by User";
+						reasons[PROCESS_DBGSTOP_SIGNAL] = "Signal Sent";
+						reasons[PROCESS_DBGSTOP_BKPT] = "Breakpoint Hit";
+						reasons[PROCESS_DBGSTOP_ABT] = "Data Abort";
+						reasons[PROCESS_DBGSTOP_AC] = "Alignment Check";
+						reasons[PROCESS_DBGSTOP_PF] = "Prefetch Abort";
+						reasons[PROCESS_DBGSTOP_FATAL] = "Neki32 Interpreter Bug";
 						
 						wxString emsg = wxString::Format("PID %d stopped: %s at program location 0x%8.8X.",
 							pptr->pid, reasons[pptr->dbgstop], pptr->regs[15]);
@@ -378,7 +376,7 @@ void EmulFrame::OnOpenImage(wxCommandEvent &event)
 	if(dlg.ShowModal() == wxID_CANCEL)
 		return; //User canceled
 	
-	int newfd = open(dlg.GetPath(), O_RDONLY);
+	int newfd = open(dlg.GetPath().c_str(), O_RDONLY);
 	if(newfd < 0)
 	{
 		//Failed to open the given file
@@ -400,7 +398,7 @@ void EmulFrame::OnOpenImage(wxCommandEvent &event)
 	
 	//Update status bar
 	char stbuf[1024] = {0};
-	snprintf(stbuf, sizeof(stbuf)-1, "Opened %s", (const char*)(dlg.GetPath()));
+	snprintf(stbuf, sizeof(stbuf)-1, "Opened %s", (const char*)(dlg.GetPath().c_str()));
 	SetStatusText(stbuf);
 	
 	//Reset simulation with the new game inserted
