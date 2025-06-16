@@ -70,6 +70,9 @@ int our_symlink(const char *name1, const char *name2);
 int our_link(const char *name1, const char *name2);
 int our_chown(const char *path, uid_t owner, gid_t group);
 void our_timespec_to_timeval(struct timeval *tv_out, const struct timespec *ts_in);
+int our_mkdir(const char *path, mode_t mode);
+mode_t our_getmode(const void *set, mode_t mode);
+void *our_setmode(const char *mode_str);
 
 #ifndef TIMESPEC_TO_TIMEVAL
 #define TIMESPEC_TO_TIMEVAL our_timespec_to_timeval

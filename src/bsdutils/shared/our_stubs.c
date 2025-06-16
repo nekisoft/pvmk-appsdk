@@ -150,6 +150,33 @@ int our_fchmod(int fd, mode_t mode)
 #endif
 }
 
+int our_mkdir(const char *path, mode_t mode)
+{
+#ifdef S_IFLNK
+	return mkdir(path, mode);
+#else
+	return mkdir(path); (void)mode;
+#endif
+}
+
+void *our_setmode(const char *mode_str)
+{
+#ifdef S_IFLNK
+	return setmode(mode_str);
+#else
+	return NULL; (void)mode_str;
+#endif
+}
+
+mode_t our_getmode(const void *set, mode_t mode)
+{
+#ifdef S_IFLNK
+	return getmode(set, mode);
+#else
+	return mode; (void)set;
+#endif
+}
+
 void our_errc(int nn, int ee, const char *ss, ...)
 {
 	fprintf(stderr, "%s ", strerror(ee));
