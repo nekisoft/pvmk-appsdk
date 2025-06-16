@@ -44,6 +44,10 @@
 	#define NO_GROUPS 1
 #endif
 
+#ifndef O_BINARY
+	#define O_BINARY 0
+#endif
+
 void our_errc(int nn, int ee, const char *ss, ...) __attribute__((noreturn));
 void our_err(int nn, const char *ss, ...) __attribute__((noreturn));
 void our_warn(const char *ss, ...);

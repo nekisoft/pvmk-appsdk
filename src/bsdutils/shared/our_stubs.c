@@ -10,6 +10,42 @@
 #include <stdio.h>
 #include <errno.h>
 
+int our_lutimes(const char *path, const struct timeval *times)
+{
+#ifdef S_IFLNK
+	return lutimes(path, times);
+#else
+	(void)path;
+	(void)times;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_lchmod(const char *path, mode_t mode)
+{
+#ifdef S_IFLNK
+	return lchmod(path, mode);
+#else
+	(void)path;
+	(void)mode;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_lstat(const char *path, struct stat *sb)
+{
+#ifdef S_IFLNK
+	return lstat(path, sb);
+#else
+	(void)path;
+	(void)sb;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
 int our_gmtime_s(struct tm *dst, const time_t *src)
 {
 	memcpy(dst, gmtime(src), sizeof(*dst));
