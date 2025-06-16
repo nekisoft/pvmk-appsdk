@@ -177,6 +177,15 @@ mode_t our_getmode(const void *set, mode_t mode)
 #endif
 }
 
+char *our_realpath(const char *path, char *resolved)
+{
+#ifdef __MINGW32__
+	return _fullpath(resolved, path, PATH_MAX);
+#else
+	return realpath(path, resolved);
+#endif
+}
+
 void our_errc(int nn, int ee, const char *ss, ...)
 {
 	fprintf(stderr, "%s ", strerror(ee));

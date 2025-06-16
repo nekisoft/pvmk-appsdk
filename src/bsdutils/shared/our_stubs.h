@@ -73,6 +73,7 @@ void our_timespec_to_timeval(struct timeval *tv_out, const struct timespec *ts_i
 int our_mkdir(const char *path, mode_t mode);
 mode_t our_getmode(const void *set, mode_t mode);
 void *our_setmode(const char *mode_str);
+char *our_realpath(const char *path, char *resolved);
 
 #ifndef TIMESPEC_TO_TIMEVAL
 #define TIMESPEC_TO_TIMEVAL our_timespec_to_timeval
