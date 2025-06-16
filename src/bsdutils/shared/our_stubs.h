@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <time.h>
 
 #ifndef __dead2
@@ -30,6 +31,19 @@
 #define our_errx our_err
 #define our_warnx our_warn
 
+
+#ifndef _UID_T_DECLARED
+	typedef int uid_t;
+	#define _UID_T_DECLARED
+	#define NO_USERS 1
+#endif
+
+#ifndef _GID_T_DECLARED
+	typedef int gid_t;
+	#define _GID_T_DECLARED
+	#define NO_GROUPS 1
+#endif
+
 void our_errc(int nn, int ee, const char *ss, ...) __attribute__((noreturn));
 void our_err(int nn, const char *ss, ...) __attribute__((noreturn));
 void our_warn(const char *ss, ...);
@@ -42,19 +56,31 @@ void our_strmode(mode_t mode, char *bp);
 int our_gmtime_s(struct tm *dst, const time_t *src);
 int our_localtime_s(struct tm *dst, const time_t *src);
 int our_fchdir(int fd);
+int our_lstat(const char *path, struct stat *sb);
+int our_fchown(int fd, uid_t owner, gid_t group);
+int our_lchown(const char *path, uid_t owner, gid_t group);
+int our_utimes(const char *path, const struct timeval *times);
+int our_lutimes(const char *path, const struct timeval *times);
+int our_mknod(const char *path, mode_t mode, dev_t dev);
+int our_mkfifo(const char *path, mode_t mode);
+int our_fchmod(int fd, mode_t mode);
+int our_lchmod(const char *path, mode_t mode);
+int our_readlink(const char *path, char *buf, size_t bufsiz);
+int our_symlink(const char *name1, const char *name2);
+int our_link(const char *name1, const char *name2);
+int our_chown(const char *path, uid_t owner, gid_t group);
+void our_timespec_to_timeval(struct timeval *tv_out, const struct timespec *ts_in);
 
-#ifndef _UID_T_DECLARED
-	typedef int uid_t;
-	#define _UID_T_DECLARED
-#endif
-
-#ifndef _GID_T_DECLARED
-	typedef int gid_t;
-	#define _GID_T_DECLARED
+#ifndef TIMESPEC_TO_TIMEVAL
+#define TIMESPEC_TO_TIMEVAL our_timespec_to_timeval
 #endif
 
 typedef uint64_t u_long;
 typedef uint64_t nlink_t;
+
+#ifndef EX_USAGE
+#define EX_USAGE 1
+#endif
 
 //typedef uint32_t sig_atomic_t;
 #include <signal.h>
@@ -77,6 +103,10 @@ typedef uint64_t nlink_t;
 
 #ifndef S_ISTXT
 #define S_ISTXT 0
+#endif
+
+#ifndef S_ISVTX
+#define S_ISVTX 0
 #endif
 
 #ifndef LINE_MAX

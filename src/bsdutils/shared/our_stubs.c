@@ -1,7 +1,10 @@
 #include "our_stubs.h"
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <string.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -24,6 +27,127 @@ int our_fchdir(int fd)
 	(void)fd;
 	errno = ENOSYS;
 	return -1;
+}
+
+int our_link(const char *name1, const char *name2)
+{
+#ifdef S_IFLNK
+	return link(name1, name2);
+#else
+	(void)name1; (void)name2;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_mknod(const char *path, mode_t mode, dev_t dev)
+{
+#ifdef S_IFLNK
+	return mknod(path, mode, dev);
+#else
+	(void)path; (void)mode; (void)dev;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_mkfifo(const char *path, mode_t mode)
+{
+#ifdef S_IFLNK
+	return mkfifo(path, mode);
+#else
+	(void)path; (void)mode;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_fchown(int fd, uid_t owner, gid_t group)
+{
+#ifdef NO_USERS
+	(void)fd;
+	(void)owner;
+	(void)group;
+	errno = ENOSYS;
+	return -1;
+#else
+	return fchown(fd, owner, group);
+#endif
+}
+
+int our_lchown(const char *path, uid_t owner, gid_t group)
+{
+#ifdef NO_USERS
+	(void)path;
+	(void)owner;
+	(void)group;
+	errno = ENOSYS;
+	return -1;
+#else
+	return lchown(path, owner, group);
+#endif
+}
+
+int our_chown(const char *path, uid_t owner, gid_t group)
+{
+#ifdef NO_USERS
+	(void)path;
+	(void)owner;
+	(void)group;
+	errno = ENOSYS;
+	return -1;
+#else
+	return chown(path, owner, group);
+#endif
+}
+
+int our_readlink(const char *path, char *buf, size_t buflen)
+{
+#ifdef S_IFLNK
+	return readlink(path, buf, buflen);
+#else
+	(void)path;
+	(void)buf;
+	(void)buflen;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_symlink(const char *path1, const char *path2)
+{
+#ifdef S_IFLNK
+	return symlink(path1, path2);
+#else
+	(void)path1;
+	(void)path2;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_utimes(const char *path, const struct timeval *times)
+{
+#ifdef st_atime
+	return utimes(path, times);
+#else
+	(void)path;
+	(void)times;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+int our_fchmod(int fd, mode_t mode)
+{
+#ifdef S_IFLNK
+	return fchmod(fd, mode);
+#else
+	(void)fd;
+	(void)mode;
+	errno = ENOSYS;
+	return -1;
+#endif
 }
 
 void our_errc(int nn, int ee, const char *ss, ...)
