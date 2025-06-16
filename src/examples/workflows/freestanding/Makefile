@@ -4,6 +4,7 @@
 #Toolchain location
 PVMKSDK=../../..
 MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
+MKDIR  =$(PVMKSDK)/bin/pvmk-mkdir
 
 #Options passed to GCC - freestanding mode, no system libraries/headers
 GCCOPTS += -ffreestanding -nostdlib -nostdinc
@@ -19,7 +20,7 @@ GCCOPTS += -g
 
 #Make output ISO using mkisofs
 img/game.iso: bin/boot.nne isoroot/BOOT.NNE
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(MKISOFS) -follow-links -eltorito-platform 0x92 -no-emul-boot -eltorito-boot BOOT.NNE -o $@ isoroot
 	
 #Including binary as built into the ISO
@@ -28,13 +29,13 @@ isoroot/BOOT.NNE : bin/boot.nne
 
 #Make output ISO image from the compiled ELF, stripping the ELF format
 bin/boot.nne: bin/boot.elf
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	arm-none-eabi-objcopy $< -O binary $@
 	
 #Compile assembly and C source into ELF
 #Note that the assembly containing the header must come first!
 bin/boot.elf: src/setup.s src/freestanding.c
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	arm-none-eabi-gcc $(GCCOPTS) $^ -o $@
 	
 #Pseudotarget to clean project

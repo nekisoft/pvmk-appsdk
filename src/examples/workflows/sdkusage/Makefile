@@ -7,6 +7,7 @@ CC     =$(SDKROOT)/bin/pvmk-cc
 OBJCOPY=$(SDKROOT)/bin/pvmk-objcopy
 MKISOFS=$(SDKROOT)/bin/pvmk-xorriso -as mkisofs
 FIND   =$(SDKROOT)/bin/pvmk-find
+MKDIR  =$(SDKROOT)/bin/pvmk-mkdir
 
 #Source files
 CSRC:=$(shell $(FIND) src -name *.c)
@@ -16,7 +17,7 @@ COBJ:=$(patsubst src/%.c, obj/%.o, $(CSRC))
 
 #Make output ISO using mkisofs
 img/game.iso: bin/boot.nne isoroot/BOOT.NNE isoroot/IMAGE.BIN
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(MKISOFS) -follow-links -eltorito-platform 0x92 -no-emul-boot -eltorito-boot BOOT.NNE -o $@ isoroot
 	
 #Including binary as built into the ISO
@@ -25,17 +26,17 @@ isoroot/BOOT.NNE : bin/boot.nne
 
 #Make output ISO image from the compiled ELF, stripping the ELF format
 bin/boot.nne: bin/boot.elf
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(OBJCOPY) $< -O binary $@
 	
 #Link C source with SDK into ELF
 bin/boot.elf: $(COBJ)
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(CC) $(GCCOPTS) $< -o $@
 
 #Compile C source with SDK
 obj/%.o : src/%.c
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(CC) $(GCCOPTS) $< -c -o $@
 	
 #Pseudotarget to clean project

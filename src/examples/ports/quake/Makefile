@@ -8,6 +8,7 @@ OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy
 MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
 DATE   =$(PVMKSDK)/bin/pvmk-date
 FIND   =$(PVMKSDK)/bin/pvmk-find
+MKDIR  =$(PVMKSDK)/bin/pvmk-mkdir
 
 #Directories used locally
 SRCDIR=./src
@@ -58,7 +59,7 @@ GAMEIMG=$(IMGDIR)/game.iso
 
 #Build filesystem with the game contents
 $(GAMEIMG) : $(CARDROOT)/boot.nne $(shell $(FIND) -H $(CARDROOT))
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(MKISOFS) -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -R -follow-links -o $@ $(CARDROOT)
 	
 #Copy built executable into game files
@@ -67,17 +68,17 @@ $(CARDROOT)/boot.nne : $(BINDIR)/boot.nne
 
 #Link post-process target - no-nonsense executable made by stripping the ELF
 $(BINDIR)/boot.nne : $(BINDIR)/boot.elf
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(OBJCOPY) -O binary $< $@
 
 #Link stage target - ELF made from linking all objects
 $(BINDIR)/boot.elf : $(COBJ)
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(CC) $(LINKFLAGS) $^ -o $@
 
 #Compile targets - object for each C file
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 	
 #Cleanup target

@@ -5,6 +5,7 @@ CC     =cc
 OBJCOPY=objcopy
 DATE   =date
 FIND   =find
+MKDIR  =mkdir
 
 #Directories used locally
 SRCDIR=./src
@@ -69,35 +70,35 @@ $(IMGDIR) : $(IMGFILES_DST)
 	
 #Image comes from "bin.dev" for executables, cardroot otherwise
 $(IMGDIR)/%.elf : $(BINDIR)/%.elf
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	cp $^ $@
 
 $(IMGDIR)/%.nne : $(BINDIR)/%.nne
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	cp $^ $@
 
 $(IMGDIR)/% : $(CARDROOT)/%
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	cp $^ $@
 
 #Link post-process target - no-nonsense executable made by stripping the ELF
 $(BINDIR)/boot.nne : $(BINDIR)/boot.elf
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(OBJCOPY) -O binary $< $@
 
 #Link stage target - ELF made from linking all objects
 $(BINDIR)/boot.elf : $(COBJ)
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(CC) $(LINKFLAGS) $^ -o $@ $(LIBS)
 
 #Compile targets - object for each C file
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 	
 #Dev-only targets - object for each C file
 $(OBJDIR)/%.o : $(SRCDIR)/%.c.dev
-	mkdir -p $(@D)
+	$(MKDIR) -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 	
 #Cleanup target
