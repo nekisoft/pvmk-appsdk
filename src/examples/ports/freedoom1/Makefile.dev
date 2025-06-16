@@ -6,6 +6,8 @@ OBJCOPY=objcopy
 DATE   =date
 FIND   =find
 MKDIR  =mkdir
+CP     =cp
+RM     =rm
 
 #Directories used locally
 SRCDIR=./src
@@ -71,15 +73,15 @@ $(IMGDIR) : $(IMGFILES_DST)
 #Image comes from "bin.dev" for executables, cardroot otherwise
 $(IMGDIR)/%.elf : $(BINDIR)/%.elf
 	$(MKDIR) -p $(@D)
-	cp $^ $@
+	$(CP) $^ $@
 
 $(IMGDIR)/%.nne : $(BINDIR)/%.nne
 	$(MKDIR) -p $(@D)
-	cp $^ $@
+	$(CP) $^ $@
 
 $(IMGDIR)/% : $(CARDROOT)/%
 	$(MKDIR) -p $(@D)
-	cp $^ $@
+	$(CP) $^ $@
 
 #Link post-process target - no-nonsense executable made by stripping the ELF
 $(BINDIR)/boot.nne : $(BINDIR)/boot.elf
@@ -103,4 +105,4 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c.dev
 	
 #Cleanup target
 clean:
-	rm -rf $(BINDIR) $(OBJDIR) $(IMGDIR)
+	$(RM) -rf $(BINDIR) $(OBJDIR) $(IMGDIR)

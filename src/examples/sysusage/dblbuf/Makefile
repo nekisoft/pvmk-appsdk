@@ -8,6 +8,8 @@ OBJCOPY=$(SDKROOT)/bin/pvmk-objcopy
 MKISOFS=$(SDKROOT)/bin/pvmk-xorriso -as mkisofs
 FIND   =$(SDKROOT)/bin/pvmk-find
 MKDIR  =$(SDKROOT)/bin/pvmk-mkdir
+CP     =$(SDKROOT)/bin/pvmk-cp
+RM     =$(SDKROOT)/bin/pvmk-rm
 
 #Options to pass to compiler
 GCCOPTS += -std=c99 -Wall -Werror -Wextra -pedantic -g -O1
@@ -25,7 +27,7 @@ img/game.iso: bin/boot.nne isoroot/BOOT.NNE
 	
 #Including binary as built into the ISO
 isoroot/BOOT.NNE : bin/boot.nne
-	cp $< $@
+	$(CP) $< $@
 
 #Make output ISO image from the compiled ELF, stripping the ELF format
 bin/boot.nne: bin/boot.elf
@@ -44,7 +46,7 @@ obj/%.o : src/%.c
 	
 #Pseudotarget to clean project
 clean :
-	rm -rf obj
-	rm -rf bin
-	rm -rf img
+	$(RM) -rf obj
+	$(RM) -rf bin
+	$(RM) -rf img
 

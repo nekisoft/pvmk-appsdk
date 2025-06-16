@@ -9,6 +9,8 @@ MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
 DATE   =$(PVMKSDK)/bin/pvmk-date
 FIND   =$(PVMKSDK)/bin/pvmk-find
 MKDIR  =$(PVMKSDK)/bin/pvmk-mkdir
+CP     =$(PVMKSDK)/bin/pvmk-cp
+RM     =$(PVMKSDK)/bin/pvmk-rm
 
 #Directories used locally
 SRCDIR=./src
@@ -45,7 +47,7 @@ $(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/name.txt $(shell $(FIND) -H $(CARD
 	
 #Copy built executable to card
 $(CARDROOT)/boot.nne : $(BINDIR)/boot.nne
-	cp $< $@
+	$(CP) $< $@
 
 #Link post-process target - no-nonsense executable made by stripping the ELF
 $(BINDIR)/boot.nne : $(BINDIR)/boot.elf
@@ -64,4 +66,4 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	
 #Cleanup target
 clean:
-	rm -rf $(BINDIR) $(OBJDIR) $(IMGDIR)
+	$(RM) -rf $(BINDIR) $(OBJDIR) $(IMGDIR)
