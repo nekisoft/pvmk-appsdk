@@ -78,6 +78,10 @@ int our_mkdir(const char *path, mode_t mode);
 mode_t our_getmode(const void *set, mode_t mode);
 void *our_setmode(const char *mode_str);
 char *our_realpath(const char *path, char *resolved);
+uid_t our_geteuid(void);
+const char *our_user_from_uid(uid_t uid, int nouser);
+const char *our_group_from_gid(gid_t gid, int nogroup);
+int our_fsync(int fd);
 
 #ifndef TIMESPEC_TO_TIMEVAL
 #define TIMESPEC_TO_TIMEVAL our_timespec_to_timeval
@@ -92,6 +96,14 @@ typedef uint64_t nlink_t;
 
 //typedef uint32_t sig_atomic_t;
 #include <signal.h>
+
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 0
+#endif
+
+#ifndef O_NOFOLLOW
+#define O_NOFOLLOW 0
+#endif
 
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0

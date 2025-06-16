@@ -31,6 +31,7 @@ SHARED=${SRCDIR}/shared/*.c
 LIBS+=$(pkg-config regex --cflags --libs || true)
 LIBS+=" -liconv "
 
+${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/rm/*.c       -o ${PLATDIR}/pvmk-rm       -static ${LIBS}
 ${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/realpath/*.c -o ${PLATDIR}/pvmk-realpath -static ${LIBS}
 ${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/mkdir/*.c    -o ${PLATDIR}/pvmk-mkdir    -static ${LIBS}
 ${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/cp/*.c       -o ${PLATDIR}/pvmk-cp       -static ${LIBS}

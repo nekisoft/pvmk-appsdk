@@ -10,6 +10,14 @@
 #include <stdio.h>
 #include <errno.h>
 
+#ifndef NO_USERS
+#include <pwd.h>
+#endif
+
+#ifndef NO_GROUPS
+#include <grp.h>
+#endif
+
 int our_lutimes(const char *path, const struct timeval *times)
 {
 #ifdef S_IFLNK
@@ -219,6 +227,43 @@ char *our_realpath(const char *path, char *resolved)
 	return _fullpath(resolved, path, PATH_MAX);
 #else
 	return realpath(path, resolved);
+#endif
+}
+
+uid_t our_geteuid(void)
+{
+#ifdef NO_USERS
+	return 0;
+#else
+	return geteuid();
+#endif
+}
+
+int our_fsync(int fd)
+{
+#ifdef __MINGW32__
+	//nothing
+	(void)fd;
+#else
+	return fsync(fd);
+#endif
+}
+
+const char *our_user_from_uid(uid_t u, int nouser)
+{
+#ifdef NO_USERS
+	return "";
+#else
+	return user_from_uid(u, nouser);
+#endif
+}
+
+const char *our_group_from_gid(gid_t g, int nogroup)
+{
+#ifdef NO_GROUPS
+	return "";
+#else
+	return group_from_gid(g, nogroup);
 #endif
 }
 
