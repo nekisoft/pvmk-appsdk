@@ -38,7 +38,8 @@ void badopt_short(char ch)
 //Prints available options
 void usage(void)
 {
-	fprintf(stderr, "pvmk-sdkversion: Information about the PVMK Application SDK\n---\n");
+	fprintf(stderr, "pvmk-sdkversion: Information about the PVMK Application SDK\n");
+	fprintf(stderr, "(Tools for the operating system of the Neki32 Game Console)\n---\n");
 	fprintf(stderr, "This program identifies the location and version of the SDK.\n");
 	fprintf(stderr, "If you can run this as a shell command, your PATH is correct.\n---\n");
 	fprintf(stderr, "Futher, this command can give information about the SDK:\n");
@@ -47,6 +48,9 @@ void usage(void)
 	{
 		fprintf(stderr, " %11s   %11s   %s\n", stringtab[ss][0], stringtab[ss][1], stringtab[ss][3]);
 	}
+	fprintf(stderr, "---\nThis SDK contains open-source code and original work for PVMK.\n");
+	fprintf(stderr, "See individual code files for more information about licensing.\n");
+	fprintf(stderr, "Published by Nekisoft Pty Ltd, Australian Company Number 680 583 251.\n");
 }
 
 int main(int argc, const char **argv)
