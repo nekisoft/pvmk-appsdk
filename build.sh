@@ -41,6 +41,7 @@ mkdir -p obj
 ./src/updates_build.sh 
 ./src/examples_build.sh
 ./src/docs_build.sh
+./src/launchers_build.sh
 
 #date -u +%FT%TZ > out/pvmk-sdk.date #Don't need this since having the SDKversion utility
 
