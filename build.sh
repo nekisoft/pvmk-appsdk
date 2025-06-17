@@ -15,6 +15,7 @@ mkdir -p obj
 ./src/wrappers_build.sh
 
 #Host-only utilities, not compiled for PVMK
+./src/sdkversion_build.sh
 ./src/oksh_build.sh
 ./src/make_build.sh
 ./src/xorriso_build.sh
@@ -41,8 +42,9 @@ mkdir -p obj
 ./src/examples_build.sh
 ./src/docs_build.sh
 
-date -u +%FT%TZ > out/pvmk-sdk.date
-cp ./src/README out/README
+#date -u +%FT%TZ > out/pvmk-sdk.date #Don't need this since having the SDKversion utility
+
+cp ./src/README.SDK out/README
 
 rm -rf ./out/trash
 rmdir ./out/share
