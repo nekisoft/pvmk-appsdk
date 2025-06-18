@@ -17,8 +17,9 @@ MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
 DATE   =$(PVMKSDK)/bin/pvmk-date
 FIND   =$(PVMKSDK)/bin/pvmk-find
 MKDIR  =$(PVMKSDK)/bin/pvmk-mkdir
-CP     =$(SDKROOT)/bin/pvmk-cp
-RM     =$(SDKROOT)/bin/pvmk-rm
+CP     =$(PVMKSDK)/bin/pvmk-cp
+RM     =$(PVMKSDK)/bin/pvmk-rm
+CAT    =$(PVMKSDK)/bin/pvmk-cat
 
 #Directories used locally
 SRCDIR=./src
@@ -46,13 +47,16 @@ BUILDUSER := $(shell whoami)@$(shell hostname)
 CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 
+#Volume ID when building ISO
+VOLID := "$(shell $(CAT) $(CARDROOT)/name.txt)"
+
 #Name of ISO image to build
 GAMEIMG=$(IMGDIR)/game.iso
 
 #Build filesystem with the game contents
 $(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/doom.nne $(CARDROOT)/fmv.nne $(CARDROOT)/name.txt $(shell $(FIND) -H $(CARDROOT))
 	$(MKDIR) -p $(@D)
-	$(MKISOFS) -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -eltorito-platform 0x22 -no-emul-boot -eltorito-boot neki_upd.tar -R -follow-links -o $@ $(CARDROOT)
+	$(MKISOFS) -V $(VOLID) -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -eltorito-platform 0x22 -no-emul-boot -eltorito-boot neki_upd.tar -R -follow-links -o $@ $(CARDROOT)
 	
 #Copy built executable into card image dir
 $(CARDROOT)/boot.nne : $(BINDIR)/boot.nne
