@@ -1,8 +1,16 @@
 #Makefile for double-buffering example for Neki32
 #Bryan E. Topp <betopp@betopp.com> 2024
 
-#SDK toolchain location
-SDKROOT=../../..
+#Find toolchain by locating "bin/pvmk-sdkversion" in the PATH or parent directories
+WHICH:=$(if $(findstring Windows, $(OS)), where, which)
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(firstword $(shell $(WHICH) pvmk-sdkversion)))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../bin/pvmk-sdkversion))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../bin/pvmk-sdkversion))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../../bin/pvmk-sdkversion))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../../../bin/pvmk-sdkversion))
+PVMKSDK?=$(realpath $(dir $(SDKVER))/..)
+SDKROOT?=$(PVMKSDK)
+
 CC     =$(SDKROOT)/bin/pvmk-cc
 OBJCOPY=$(SDKROOT)/bin/pvmk-objcopy
 MKISOFS=$(SDKROOT)/bin/pvmk-xorriso -as mkisofs

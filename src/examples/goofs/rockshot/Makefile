@@ -1,8 +1,16 @@
 #Makefile for card-based application
 #Bryan E. Topp <betopp@betopp.com> 2024
 
-#Toolchain location
-PVMKSDK=../../..
+#Find toolchain by locating "bin/pvmk-sdkversion" in the PATH or parent directories
+WHICH:=$(if $(findstring Windows, $(OS)), where, which)
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(firstword $(shell $(WHICH) pvmk-sdkversion)))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../bin/pvmk-sdkversion))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../bin/pvmk-sdkversion))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../../bin/pvmk-sdkversion))
+SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../../../bin/pvmk-sdkversion))
+PVMKSDK?=$(realpath $(dir $(SDKVER))/..)
+SDKROOT?=$(PVMKSDK)
+
 CC     =$(PVMKSDK)/bin/pvmk-cc
 OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy
 MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
