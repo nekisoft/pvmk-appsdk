@@ -4,11 +4,12 @@ Bryan E. Topp <betopp@betopp.com> 2024
 This is the top-level directory for the PVMK SDK, the Software Development Kit for Neki32.
 
 The following subdirectories are included:
-	picolibc - The C Runtime and C Standard library for Neki32, a port of picolibc. Contains system headers, startup files, compiler specs, and libraries.
-	bin      - Wrappers for GCC to pass the right flags for Neki32. References the compiler specs and system-root in the picolibc directory.
-        updates  - Latest version of the official Neki32 updates package. Contains system software updates. Read our licensing terms before distributing.
-	docs     - The Neki32 developer manual in PDF format. Describes the technical details of Neki32 software execution.
-	examples - Examples of game software built for the Neki32. Contains demos, ports, and examples to accompany the manual.
-	sdlsc    - A phony system-call library that actually runs on SDL on a desktop. Games that normally target PVMK could be compiled for Linux with this.
+	armv5te-pvmk-eabi - The C Runtime and C Standard library for Neki32, a port of picolibc. Contains system headers, startup files, compiler specs, and libraries.
+	bin               - Static binaries of all included tools for all platforms, and scripts that call the right one with the right parameters.
+        updates           - Latest version of the official Neki32 updates package. Contains system software updates. Read our licensing terms before distributing.
+	docs              - The Neki32 developer manual in PDF format. Describes the technical details of Neki32 software execution.
+	examples          - Examples of game software built for the Neki32. Contains demos, ports, and examples to accompany the manual.
+	sdlsc             - A phony system-call library that actually runs on SDL on a desktop. Games that normally target PVMK could be compiled for Linux with this.
 
+There are also scripts to launch a shell with the right PATH for using the pvmk- utilities from the bin directory. One script is for Windows and one for Unix-like systems.
 
