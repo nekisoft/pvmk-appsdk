@@ -26,25 +26,17 @@ CPPFLAGS += -DBUILDVERSION=\"$(BUILDVERSION)\"
 CPPFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CPPFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 CPPFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
+CPPFLAGS += -static
+CPPFLAGS += -Wno-inconsistent-missing-override
 
-#Try to find wxWidgets configuration
-WXCFG?=wx-3.2-config
-ifeq (, $(shell which $(WXCFG)))
-	WXCFG=wxgtk2u-3.2-config
-endif
-ifeq (, $(shell which $(WXCFG)))
-	WXCFG=wxgtk3u-3.2-config
-endif
-ifeq (, $(shell which $(WXCFG)))
-	WXCFG=wx-config
-endif
-ifeq (, $(shell which $(WXCFG)))
-	$(error "Didn't find a wx___-3.2-config config program to use")
-endif
+LINKFLAGS += -static
+
+#Use wxWidgets built as part of our build process, so we can static-link it
+WXCFG=../wx/pfx/bin/wx-config
 
 WXBITS=core,base
-CPPFLAGS+=$(shell $(WXCFG) $(WXBITS) --cxxflags)
-LIBS+=$(shell $(WXCFG) $(WXBITS) --libs)
+CPPFLAGS+=$(shell $(WXCFG) $(WXBITS) --static --cxxflags )
+LIBS+=$(shell $(WXCFG) $(WXBITS) --static --libs)
 
 #C++ sources to compile
 CPPSRC:=$(shell find $(SRCDIR) -name *.cpp)
