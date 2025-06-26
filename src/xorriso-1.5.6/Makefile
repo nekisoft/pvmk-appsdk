@@ -10,7 +10,7 @@ BINDIR?=bin
 CC=gcc
 
 #Tool flags
-CFLAGS+=-std=c99 -Wall -Werror -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE
+CFLAGS+=-std=c99 -Wall -Werror -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 
 CFLAGS+=-g -O0
 CFLAGS+=-I$(SRCDIR)
 CFLAGS+=-DHAVE_CONFIG_H=1
