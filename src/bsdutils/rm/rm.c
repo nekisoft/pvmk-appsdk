@@ -367,9 +367,12 @@ rm_file(char **argv)
 		/* Assume if can't stat the file, can't unlink it. */
 #ifdef S_ISLNK
 		if (lstat(f, &sb)) {
+#ifdef S_IFWHT
 			if (Wflag) {
 				sb.st_mode = S_IFWHT|S_IWUSR|S_IRUSR;
-			} else {
+			} else 
+#endif
+			{
 				if (!fflag || errno != ENOENT) {
 					our_warn("%s", f);
 					eval = 1;
@@ -528,9 +531,13 @@ check(const char *path, const char *name, struct stat *sp)
 		 */
 #ifdef S_ISLNK
 		if (!stdin_ok || S_ISLNK(sp->st_mode) ||
-		    (!access(name, W_OK) &&
+		    (!access(name, W_OK) 
+#ifdef SF_APPEND
+		     &&
 		    !(sp->st_flags & (SF_APPEND|SF_IMMUTABLE)) &&
-		    (!(sp->st_flags & (UF_APPEND|UF_IMMUTABLE)) || !uid)))
+		    (!(sp->st_flags & (UF_APPEND|UF_IMMUTABLE)) || !uid)
+#endif
+		    ))
 			return (1);
 #else
 		if(!stdin_ok || !access(name, W_OK))

@@ -205,20 +205,155 @@ int our_mkdir(const char *path, mode_t mode)
 
 void *our_setmode(const char *mode_str)
 {
-#ifdef S_IFLNK
-	return setmode(mode_str);
-#else
-	return NULL; (void)mode_str;
-#endif
+	return strdup(mode_str);
 }
 
 mode_t our_getmode(const void *set, mode_t mode)
 {
-#ifdef S_IFLNK
-	return getmode(set, mode);
-#else
-	return mode; (void)set;
-#endif
+	const char *mode_str = (const char*)set;
+	
+	//check for numeric mode
+	char *numend = NULL;
+	int oct = strtoul(mode_str, &numend, 8);
+	if(numend != NULL && numend != mode_str)
+		return oct;
+
+	while(*mode_str != '\0')
+	{
+		int do_u = 0;
+		int do_g = 0;
+		int do_o = 0;
+		while(*mode_str != '\0')
+		{
+			if(*mode_str == 'u')
+			{
+				do_u = 1;
+				mode_str++;
+			}
+			else if(*mode_str == 'g')
+			{
+				do_g = 1;
+				mode_str++;
+			}
+			else if(*mode_str == 'o')
+			{
+				do_o = 1;
+				mode_str++;
+			}
+			else if(*mode_str == 'a')
+			{
+				do_u = 1;
+				do_g = 1;
+				do_o = 1;
+				mode_str++;
+			}
+			else
+			{
+				if(!(do_u || do_g || do_o))
+				{
+					do_u = 1;
+					do_g = 1;
+					do_o = 1;
+				}
+				break;
+			}
+		}
+
+		int do_plus = 0;
+		int do_minus = 0;
+		int do_equals = 0;
+		while(*mode_str != '\0')
+		{
+			if(*mode_str == '+')
+			{
+				do_plus = 1;
+				mode_str++;
+			}
+			else if(*mode_str == '-')
+			{
+				do_minus = 1;
+				mode_str++;
+			}
+			else if(*mode_str == '=')
+			{
+				do_equals = 1;
+				mode_str++;
+			}
+			else
+			{
+				if(do_plus && do_minus)
+				{
+					do_plus = 0;
+					do_minus = 0;
+					do_equals = 1;
+				}
+				if(!(do_plus || do_minus || do_equals))
+				{
+					do_equals = 1;
+				}
+				if(do_plus || do_minus)
+				{
+					do_equals = 0;
+				}
+				break;
+			}
+		}
+
+		mode_t mask = 0;
+		while(*mode_str != '\0')
+		{
+			if(*mode_str == 'r')
+			{
+				if(do_u)
+					mask |= S_IRUSR;
+				if(do_g)
+					mask |= S_IRGRP;
+				if(do_o)
+					mask |= S_IROTH;
+
+				mode_str++;
+			}
+			else if(*mode_str == 'w')
+			{
+				if(do_u)
+					mask |= S_IWUSR;
+				if(do_g)
+					mask |= S_IWGRP;
+				if(do_o)
+					mask |= S_IWOTH;
+
+				mode_str++;
+			}
+			else if(*mode_str == 'x')
+			{
+				if(do_u)
+					mask |= S_IXUSR;
+				if(do_g)
+					mask |= S_IXGRP;
+				if(do_o)
+					mask |= S_IXOTH;
+
+				mode_str++;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		if(do_plus)
+			mode |= mask;
+		if(do_minus)
+			mode &= ~mask;
+		if(do_equals)
+			mode = mask;
+
+		mask = 0;
+		if(*mode_str == ',')
+			mode_str++;
+		else
+			break;
+	}
 }
 
 char *our_realpath(const char *path, char *resolved)
@@ -254,7 +389,15 @@ const char *our_user_from_uid(uid_t u, int nouser)
 #ifdef NO_USERS
 	return "";
 #else
-	return user_from_uid(u, nouser);
+	static char numbuf[16] = {0};
+	snprintf(numbuf, sizeof(numbuf)-1, "%d", u);
+
+	struct passwd *p = getpwuid(u);
+	if(p == NULL)
+		return nouser?NULL:numbuf;
+	else
+		return p->pw_name;
+	//return user_from_uid(u, nouser); //only works on BSD, not Linux
 #endif
 }
 
@@ -263,7 +406,15 @@ const char *our_group_from_gid(gid_t g, int nogroup)
 #ifdef NO_GROUPS
 	return "";
 #else
-	return group_from_gid(g, nogroup);
+	static char numbuf[16] = {0};
+	snprintf(numbuf, sizeof(numbuf)-1, "%d", g);
+
+	struct group *p = getgrgid(g);
+	if(p == NULL)
+		return nogroup?NULL:numbuf;
+	else
+		return p->gr_name;
+	//return group_from_gid(g, nogroup); //only works on BSD, not Linux
 #endif
 }
 

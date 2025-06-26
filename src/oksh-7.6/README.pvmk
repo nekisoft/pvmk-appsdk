@@ -1,4 +1,0 @@
-README.pvmk for OpenBSD Korn Shell
-This is a port of oksh-7.6 for development systems, in case your system lacks a reasonable shell.
-It can build under MS Windows and FreeBSD at least.
-

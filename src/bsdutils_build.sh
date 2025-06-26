@@ -15,9 +15,9 @@ CC=gcc
 
 CFLAGS+=" -I${SRCDIR}"
 CFLAGS+=" -g -O2"
-CFLAGS+=" -std=c99 -Werror "
+CFLAGS+=" -std=c11 -Werror "
 CFLAGS+=" -Wno-clobbered "
-CFLAGS+=" -D_POSIX=1 "
+CFLAGS+=" -D_DEFAULT_SOURCE"
 
 OUTDIR=../../out
 PLATDIR=${OUTDIR}/bin/$(uname -o)/$(uname -m)
@@ -29,7 +29,13 @@ SHARED=${SRCDIR}/shared/*.c
 
 #Windows needs libs linked for regex
 LIBS+=$(pkg-config regex --cflags --libs || true)
-LIBS+=" -liconv "
+
+#Linux doesn't have a separate libiconv... check what the iconv util links against
+if [[ $(ldd $(which iconv) | grep iconv) ]]
+then
+	LIBS+=" -liconv"
+fi
+
 
 ${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/rm/*.c       -o ${PLATDIR}/pvmk-rm       -static ${LIBS}
 ${CC} ${CFLAGS} ${SHARED} ${SRCDIR}/realpath/*.c -o ${PLATDIR}/pvmk-realpath -static ${LIBS}

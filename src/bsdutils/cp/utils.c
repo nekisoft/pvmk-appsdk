@@ -195,7 +195,7 @@ copy_file(const FTSENT *entp, int dne)
 				 * and not copy only some files. 
 				 */ 
 				bufsize = 4096;
-#ifdef _SC_PHYS_PAGES
+#if defined(_SC_PHYS_PAGES) && defined(MAXPHYS)
 				if (sysconf(_SC_PHYS_PAGES) > 
 				    PHYSPAGES_THRESHOLD)
 					bufsize = MIN(BUFSIZE_MAX, MAXPHYS * 8);

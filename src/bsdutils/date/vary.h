@@ -24,6 +24,8 @@
  * SUCH DAMAGE.
  */
 
+#include <time.h>
+
 struct vary {
   char *arg;
   struct vary *next;

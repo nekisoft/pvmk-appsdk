@@ -2,6 +2,9 @@
 #xorriso_build.sh
 #Builds xorriso for PVMK app SDK
 
+set -e
+set -x
+
 mkdir obj/xorriso-build
 pushd obj/xorriso-build
 THISDIR=$(readlink -f .)

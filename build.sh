@@ -16,7 +16,6 @@ mkdir -p obj
 
 #Host-only utilities, not compiled for PVMK
 ./src/sdkversion_build.sh
-./src/oksh_build.sh
 ./src/make_build.sh
 ./src/xorriso_build.sh
 ./src/sdlsc_build.sh

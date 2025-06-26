@@ -36,9 +36,14 @@
 //#include <sys/_types.h>
 #include <sys/types.h>
 #include <stdint.h>
+
+#undef __size_t
 #define __size_t size_t
+#undef __ino_t
 #define __ino_t uint64_t
+#undef __dev_t
 #define __dev_t uint64_t
+#undef __nlink_t
 #define __nlink_t uint64_t
 
 typedef struct {

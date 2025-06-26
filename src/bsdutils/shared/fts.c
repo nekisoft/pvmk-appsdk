@@ -743,7 +743,7 @@ fts_build(FTS *sp, int type)
 	/* Read the directory, attaching each entry to the `link' pointer. */
 	doadjust = 0;
 	for (head = tail = NULL, nitems = 0; dirp && (dp = readdir(dirp));) {
-		dnamlen = dp->d_namlen;
+		dnamlen = strlen(dp->d_name); //dp->d_namlen; //doesn't work on linux
 		if (!ISSET(FTS_SEEDOT) && ISDOT(dp->d_name))
 			continue;
 

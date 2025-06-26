@@ -10,13 +10,14 @@ BINDIR?=bin
 CC=gcc
 
 #Tool flags
-CFLAGS+=-std=c99 -Wall -Werror -Wextra
+CFLAGS+=-std=c99 -Wall -Werror -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE
 CFLAGS+=-g -O0
 CFLAGS+=-I$(SRCDIR)
 CFLAGS+=-DHAVE_CONFIG_H=1
 CFLAGS+=-static
 
-LIBS+=-liconv
+HASICONV=$(shell ldd `which iconv` | grep iconv)
+LIBS+=$(if $(HASICONV), -liconv, )
 LINKFLAGS+=-static
 
 #Ugh just build, I don't know why they do these things

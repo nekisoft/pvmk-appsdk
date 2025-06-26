@@ -483,7 +483,7 @@ int Xorriso_get_local_charset(struct XorrisO *xorriso, char **name, int flag)
 int Xorriso_set_local_charset(struct XorrisO *xorriso, char *name, int flag)
 {
  int ret;
- char *nl_charset;
+ char *nl_charset = NULL;
  iconv_t iconv_ret= (iconv_t) -1;
 
  //nl_charset= nl_langinfo(CODESET);

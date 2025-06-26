@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <time.h>
 
 #ifndef __dead2
@@ -32,20 +33,26 @@
 #define our_warnx our_warn
 
 
-#ifndef _UID_T_DECLARED
+#if !(defined(_UID_T_DECLARED) || defined(__uid_t_defined))
 	typedef int uid_t;
-	#define _UID_T_DECLARED
+	#define __uid_t_defined //linux style
+	#define _UID_T_DECLARED //bsd style
 	#define NO_USERS 1
 #endif
 
-#ifndef _GID_T_DECLARED
+#if !(defined(_GID_T_DECLARED) || defined(__gid_t_defined))
 	typedef int gid_t;
-	#define _GID_T_DECLARED
+	#define __gid_t_defined //linux style
+	#define _GID_T_DECLARED //bsd style
 	#define NO_GROUPS 1
 #endif
 
 #ifndef O_BINARY
 	#define O_BINARY 0
+#endif
+
+#ifndef REG_BASIC
+	#define REG_BASIC 0
 #endif
 
 void our_errc(int nn, int ee, const char *ss, ...) __attribute__((noreturn));

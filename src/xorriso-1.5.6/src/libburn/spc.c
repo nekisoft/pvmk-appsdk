@@ -18,6 +18,7 @@
 #include <fcntl.h>
 //#include <sys/ioctl.h> //pvmk - not on windows
 #include <string.h>
+#include <time.h>
 
 /* ts A61008 */
 /* #include <a ssert.h> */

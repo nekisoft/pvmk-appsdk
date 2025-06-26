@@ -11,9 +11,9 @@ OUTDIR=$(readlink -f out/docs)
 
 pushd src/docs/intro
 #Twice to update refs
-pdflatex  -output-directory=${TMPDIR} -halt-on-error intro.latex
-pdflatex  -output-directory=${TMPDIR} -halt-on-error intro.latex
-cp ${TMPDIR}/*.pdf ${OUTDIR}
+pdflatex  -output-directory=${TMPDIR} -interaction=batchmode intro.latex || true
+pdflatex  -output-directory=${TMPDIR} -interaction=batchmode intro.latex || true
+cp ${TMPDIR}/*.pdf ${OUTDIR} || true
 popd
 
 pushd src/docs

@@ -6,14 +6,14 @@
 #define Libburn_use_sg_dummY 1
 #define LIBDAX_MSGS_SINGLE_THREADED 1
 #define LIBISO_MSGS_SINGLE_THREADED 1
-#define _GNU_SOURCE // for strdup in cygwin
 
 //Nasty hack for MSW which doesn't define uid_t or gid_t
-#ifndef _UID_T_DECLARED
+#include <sys/types.h>
+#if !defined(_UID_T_DECLARED) && !defined(__uid_t_defined)
 typedef int uid_t;
 #define _UID_T_DECLARED int
 #endif
-#ifndef _GID_T_DECLARED
+#if !defined(_GID_T_DECLARED) && !defined(__gid_t_defined)
 typedef int gid_t;
 #define _GID_T_DECLARED int
 #endif
