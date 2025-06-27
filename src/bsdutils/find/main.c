@@ -48,6 +48,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <getopt.h> //pvmk hack
+
 #include "find.h"
 
 time_t now;			/* time find was run */
@@ -83,7 +85,14 @@ main(int argc, char *argv[])
 	p = start = argv;
 	Hflag = Lflag = 0;
 	ftsoptions = FTS_NOSTAT | FTS_PHYSICAL;
-	while ((ch = getopt(argc, argv, "EHLPXdf:sx")) != -1)
+	
+	//okay very dumb bsd/linux difference here
+	//we want the BSD behavior of stopping at nonarguments, which GNU provides if you prefix the opts with "+"
+	//BSD allows this but only using getopt_long, so use getopt_long with no long options
+	//fuck me sideways with a rake (thanks for that one, Harries)
+	//pvmk hack / betopp
+	const struct option longopts[1] = {0};
+	while ((ch = getopt_long(argc, argv, "+EHLPXdf:sx", longopts, NULL)) != -1)
 		switch (ch) {
 		case 'E':
 			regexp_flags |= REG_EXTENDED;
