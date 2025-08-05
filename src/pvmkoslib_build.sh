@@ -5,7 +5,7 @@
 
 set -e
 
-CFLAGS="-nostdinc -nostdlib -std=c99 -Wall -Werror -Wextra -pedantic -fno-short-enums -fsigned-char -Iout/armv5te-pvmk-eabi/include -Isrc/libsc -O1 -g"
+CFLAGS="-nostdinc -nostdlib -std=c99 -Wall -Werror -Wextra -pedantic -fno-short-enums -fsigned-char -Isrc/pvmkoslib -Iout/armv5te-pvmk-eabi/include -Isrc/libsc -O1 -g"
 CC="arm-none-eabi-gcc"
 AR="arm-none-eabi-ar"
 

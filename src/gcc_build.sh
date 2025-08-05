@@ -48,5 +48,10 @@ ${MAKE}
 ${MAKE} install
 
 mv ../../out/armv5te-pvmk-eabi/bin/* ../../out/bin/$(uname -o)/$(uname -m)/
+
+pushd ../../out/bin/$(uname -o)/$(uname -m)/gcc/armv5te-pvmk-eabi/15.1.0
+mv include include-gcc
+popd
+
 rm -rf ../../out/armv5te-pvmk-eabi/bin
 
