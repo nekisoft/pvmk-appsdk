@@ -65,9 +65,9 @@ void R_EntityRotate (vec3_t vec)
 	vec3_t	tvec;
 
 	VectorCopy (vec, tvec);
-	vec[0] = DotProduct (entity_rotation[0], tvec);
-	vec[1] = DotProduct (entity_rotation[1], tvec);
-	vec[2] = DotProduct (entity_rotation[2], tvec);
+	vec[0] = DotProduct_Shitty (entity_rotation[0], tvec);
+	vec[1] = DotProduct_Shitty (entity_rotation[1], tvec);
+	vec[2] = DotProduct_Shitty (entity_rotation[2], tvec);
 }
 
 
@@ -87,9 +87,9 @@ void R_RotateBmodel (void)
 
 // yaw
 	angle = currententity->angles[YAW];		
-	angle = angle * M_PI*2 / 360;
-	s = sin(angle);
-	c = cos(angle);
+	angle = rf_mul(angle, M_PI*2 / 360);
+	s = sinf(angle);
+	c = cosf(angle);
 
 	temp1[0][0] = c;
 	temp1[0][1] = s;
@@ -104,9 +104,9 @@ void R_RotateBmodel (void)
 
 // pitch
 	angle = currententity->angles[PITCH];		
-	angle = angle * M_PI*2 / 360;
-	s = sin(angle);
-	c = cos(angle);
+	angle = rf_mul(angle,M_PI*2 / 360);
+	s = sinf(angle);
+	c = cosf(angle);
 
 	temp2[0][0] = c;
 	temp2[0][1] = 0;
@@ -122,9 +122,9 @@ void R_RotateBmodel (void)
 
 // roll
 	angle = currententity->angles[ROLL];		
-	angle = angle * M_PI*2 / 360;
-	s = sin(angle);
-	c = cos(angle);
+	angle = rf_mul(angle,M_PI*2 / 360);
+	s = sinf(angle);
+	c = cosf(angle);
 
 	temp1[0][0] = 1;
 	temp1[0][1] = 0;
@@ -171,8 +171,8 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 // transform the BSP plane into model space
 // FIXME: cache these?
 	splitplane = pnode->plane;
-	tplane.dist = splitplane->dist -
-			DotProduct(r_entorigin, splitplane->normal);
+	tplane.dist = rf_sub(splitplane->dist,
+			DotProduct_Shitty(r_entorigin, splitplane->normal));
 	tplane.normal[0] = DotProduct_Shitty (entity_rotation[0], splitplane->normal);
 	tplane.normal[1] = DotProduct_Shitty (entity_rotation[1], splitplane->normal);
 	tplane.normal[2] = DotProduct_Shitty (entity_rotation[2], splitplane->normal);
@@ -185,8 +185,8 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	// set the status for the last point as the previous point
 	// FIXME: cache this stuff somehow?
 		plastvert = pedges->v[0];
-		lastdist = DotProduct_Shitty (plastvert->position, tplane.normal) -
-				   tplane.dist;
+		lastdist = rf_sub(DotProduct_Shitty (plastvert->position, tplane.normal),
+				   tplane.dist);
 
 		if (lastdist > 0)
 			lastside = 0;
@@ -195,7 +195,7 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 
 		pvert = pedges->v[1];
 
-		dist = DotProduct_Shitty (pvert->position, tplane.normal) - tplane.dist;
+		dist = rf_sub(DotProduct_Shitty (pvert->position, tplane.normal), tplane.dist);
 
 		if (dist > 0)
 			side = 0;
@@ -211,15 +211,15 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 		// generate the clipped vertex
 			frac = lastdist / (lastdist - dist);
 			ptvert = &pbverts[numbverts++];
-			ptvert->position[0] = plastvert->position[0] +
-					frac * (pvert->position[0] -
-					plastvert->position[0]);
-			ptvert->position[1] = plastvert->position[1] +
-					frac * (pvert->position[1] -
-					plastvert->position[1]);
-			ptvert->position[2] = plastvert->position[2] +
-					frac * (pvert->position[2] -
-					plastvert->position[2]);
+			ptvert->position[0] = rf_add(plastvert->position[0],
+					rf_mul(frac,rf_sub(pvert->position[0],
+					plastvert->position[0])));
+			ptvert->position[1] = rf_add(plastvert->position[1],
+					rf_mul(frac,rf_sub(pvert->position[1],
+					plastvert->position[1])));
+			ptvert->position[2] = rf_add(plastvert->position[2],
+					rf_mul(frac,rf_sub(pvert->position[2],
+					plastvert->position[2])));
 
 		// split into two edges, one on each side, and remember entering
 		// and exiting points

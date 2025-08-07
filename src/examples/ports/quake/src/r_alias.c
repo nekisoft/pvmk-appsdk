@@ -252,9 +252,9 @@ R_AliasTransformVector
 */
 void R_AliasTransformVector (vec3_t in, vec3_t out)
 {
-	out[0] = DotProduct_Shitty(in, aliastransform[0]) + aliastransform[0][3];
-	out[1] = DotProduct_Shitty(in, aliastransform[1]) + aliastransform[1][3];
-	out[2] = DotProduct_Shitty(in, aliastransform[2]) + aliastransform[2][3];
+	out[0] = rf_add(DotProduct_Shitty(in, aliastransform[0]),aliastransform[0][3]);
+	out[1] = rf_add(DotProduct_Shitty(in, aliastransform[1]),aliastransform[1][3]);
+	out[2] = rf_add(DotProduct_Shitty(in, aliastransform[2]),aliastransform[2][3]);
 }
 
 
@@ -434,7 +434,7 @@ void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
 
 	if (lightcos < 0)
 	{
-		temp += (int)(r_shadelight * lightcos);
+		temp += (int)(rf_mul(r_shadelight, lightcos));
 
 	// clamp; because we limited the minimum ambient and shading light, we
 	// don't have to clamp low light, just bright
@@ -521,7 +521,7 @@ void R_AliasProjectFinalVert (finalvert_t *fv, auxvert_t *av)
 // project points
 	zi = 1.0 / av->fv[2];
 
-	fv->v[5] = zi * ziscale;
+	fv->v[5] = rf_mul(zi,ziscale);
 
 	fv->v[0] = rf_mul(rf_mul(av->fv[0], aliasxscale), zi) + aliasxcenter;
 	fv->v[1] = rf_mul(rf_mul(av->fv[1], aliasyscale), zi) + aliasycenter;
