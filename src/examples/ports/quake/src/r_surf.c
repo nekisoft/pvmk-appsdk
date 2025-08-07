@@ -87,28 +87,28 @@ void R_AddDynamicLights (void)
 		minlight = cl_dlights[lnum].minlight;
 		if (rad < minlight)
 			continue;
-		minlight = rad - minlight;
+		minlight = rf_sub(rad, minlight);
 
 		for (i=0 ; i<3 ; i++)
 		{
-			impact[i] = cl_dlights[lnum].origin[i] -
-					surf->plane->normal[i]*dist;
+			impact[i] = rf_sub(cl_dlights[lnum].origin[i],
+					rf_mul(surf->plane->normal[i],dist));
 		}
 
-		local[0] = DotProduct (impact, tex->vecs[0]) + tex->vecs[0][3];
-		local[1] = DotProduct (impact, tex->vecs[1]) + tex->vecs[1][3];
+		local[0] = rf_add(DotProduct_Shitty (impact, tex->vecs[0]), tex->vecs[0][3]);
+		local[1] = rf_add(DotProduct_Shitty (impact, tex->vecs[1]), tex->vecs[1][3]);
 
-		local[0] -= surf->texturemins[0];
-		local[1] -= surf->texturemins[1];
+		local[0] = rf_sub(local[0],surf->texturemins[0]);
+		local[1] = rf_sub(local[1],surf->texturemins[1]);
 		
 		for (t = 0 ; t<tmax ; t++)
 		{
-			td = local[1] - t*16;
+			td = rf_sub(local[1], t*16);
 			if (td < 0)
 				td = -td;
 			for (s=0 ; s<smax ; s++)
 			{
-				sd = local[0] - s*16;
+				sd = rf_sub(local[0], s*16);
 				if (sd < 0)
 					sd = -sd;
 				if (sd > td)

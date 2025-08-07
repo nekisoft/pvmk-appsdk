@@ -109,15 +109,15 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 		lzi0 = 1.0 / transformed[2];
 	
 	// FIXME: build x/yscale into transform?
-		scale = xscale * lzi0;
-		u0 = (xcenter + scale*transformed[0]);
+		scale = rf_mul(xscale, lzi0);
+		u0 = (xcenter + rf_mul(scale,transformed[0]));
 		if (u0 < r_refdef.fvrectx_adj)
 			u0 = r_refdef.fvrectx_adj;
 		if (u0 > r_refdef.fvrectright_adj)
 			u0 = r_refdef.fvrectright_adj;
 	
-		scale = yscale * lzi0;
-		v0 = (ycenter - scale*transformed[1]);
+		scale = rf_mul(yscale, lzi0);
+		v0 = (ycenter - rf_mul(scale,transformed[1]));
 		if (v0 < r_refdef.fvrecty_adj)
 			v0 = r_refdef.fvrecty_adj;
 		if (v0 > r_refdef.fvrectbottom_adj)
@@ -137,15 +137,15 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 
 	r_lzi1 = 1.0 / transformed[2];
 
-	scale = xscale * r_lzi1;
-	r_u1 = (xcenter + scale*transformed[0]);
+	scale = rf_mul(xscale, r_lzi1);
+	r_u1 = (xcenter + rf_mul(scale,transformed[0]));
 	if (r_u1 < r_refdef.fvrectx_adj)
 		r_u1 = r_refdef.fvrectx_adj;
 	if (r_u1 > r_refdef.fvrectright_adj)
 		r_u1 = r_refdef.fvrectright_adj;
 
-	scale = yscale * r_lzi1;
-	r_v1 = (ycenter - scale*transformed[1]);
+	scale = rf_mul(yscale, r_lzi1);
+	r_v1 = (ycenter - rf_mul(scale,transformed[1]));
 	if (r_v1 < r_refdef.fvrecty_adj)
 		r_v1 = r_refdef.fvrecty_adj;
 	if (r_v1 > r_refdef.fvrectbottom_adj)
@@ -265,8 +265,8 @@ void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 	{
 		do
 		{
-			d0 = DotProduct (pv0->position, clip->normal) - clip->dist;
-			d1 = DotProduct (pv1->position, clip->normal) - clip->dist;
+			d0 = rf_sub(DotProduct_Shitty (pv0->position, clip->normal) , clip->dist);
+			d1 = rf_sub(DotProduct_Shitty (pv1->position, clip->normal) , clip->dist);
 
 			if (d0 >= 0)
 			{
@@ -282,13 +282,13 @@ void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 			// we don't cache clipped edges
 				cacheoffset = 0x7FFFFFFF;
 
-				f = d0 / (d0 - d1);
-				clipvert.position[0] = pv0->position[0] +
-						f * (pv1->position[0] - pv0->position[0]);
-				clipvert.position[1] = pv0->position[1] +
-						f * (pv1->position[1] - pv0->position[1]);
-				clipvert.position[2] = pv0->position[2] +
-						f * (pv1->position[2] - pv0->position[2]);
+				f = d0 / rf_sub(d0 , d1);
+				clipvert.position[0] = rf_add(pv0->position[0] ,
+						rf_mul(f , rf_sub(pv1->position[0] , pv0->position[0])));
+				clipvert.position[1] = rf_add(pv0->position[1] ,
+						rf_mul(f , rf_sub(pv1->position[1] , pv0->position[1])));
+				clipvert.position[2] = rf_add(pv0->position[2] ,
+						rf_mul(f , rf_sub(pv1->position[2] , pv0->position[2])));
 
 				if (clip->leftedge)
 				{
@@ -323,13 +323,13 @@ void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 			// we don't cache partially clipped edges
 				cacheoffset = 0x7FFFFFFF;
 
-				f = d0 / (d0 - d1);
-				clipvert.position[0] = pv0->position[0] +
-						f * (pv1->position[0] - pv0->position[0]);
-				clipvert.position[1] = pv0->position[1] +
-						f * (pv1->position[1] - pv0->position[1]);
-				clipvert.position[2] = pv0->position[2] +
-						f * (pv1->position[2] - pv0->position[2]);
+				f = d0 / rf_sub(d0 , d1);
+				clipvert.position[0] = rf_add(pv0->position[0] ,
+						rf_mul(f , rf_sub(pv1->position[0] , pv0->position[0])));
+				clipvert.position[1] = rf_add(pv0->position[1] ,
+						rf_mul(f , rf_sub(pv1->position[1] , pv0->position[1])));
+				clipvert.position[2] = rf_add(pv0->position[2] ,
+						rf_mul(f , rf_sub(pv1->position[2] , pv0->position[2])));
 
 				if (clip->leftedge)
 				{

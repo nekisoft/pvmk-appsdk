@@ -548,32 +548,36 @@ void D_PolysetCalcGradients (int skinwidth)
 // ceil () for light so positive steps are exaggerated, negative steps
 // diminished,  pushing us away from underflow toward overflow. Underflow is
 // very visible, overflow is very unlikely, because of ambient lighting
-	t0 = r_p0[4] - r_p2[4];
-	t1 = r_p1[4] - r_p2[4];
+	t0 = rf_sub(r_p0[4] , r_p2[4]);
+	t1 = rf_sub(r_p1[4] , r_p2[4]);
 	r_lstepx = (int)
-			ceil((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) * xstepdenominv);
+			ceil(
+				rf_mul(rf_sub(rf_mul(t1, p01_minus_p21), rf_mul(t0, p11_minus_p21)), xstepdenominv)
+			);
 	r_lstepy = (int)
-			ceil((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) * ystepdenominv);
+			ceil(
+				rf_mul(rf_sub(rf_mul(t1, p00_minus_p20), rf_mul(t0, p10_minus_p20)), ystepdenominv)
+			);
 
-	t0 = r_p0[2] - r_p2[2];
-	t1 = r_p1[2] - r_p2[2];
-	r_sstepx = (int)((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) *
+	t0 = rf_sub(r_p0[2] , r_p2[2]);
+	t1 = rf_sub(r_p1[2] , r_p2[2]);
+	r_sstepx = (int)rf_mul((rf_sub(rf_mul(t1, p01_minus_p21), rf_mul(t0, p11_minus_p21))),
 			xstepdenominv);
-	r_sstepy = (int)((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) *
+	r_sstepy = (int)rf_mul((rf_sub(rf_mul(t1, p00_minus_p20), rf_mul(t0, p10_minus_p20))),
 			ystepdenominv);
 
-	t0 = r_p0[3] - r_p2[3];
-	t1 = r_p1[3] - r_p2[3];
-	r_tstepx = (int)((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) *
+	t0 = rf_sub(r_p0[3] , r_p2[3]);
+	t1 = rf_sub(r_p1[3] , r_p2[3]);
+	r_tstepx = (int)rf_mul((rf_sub(rf_mul(t1, p01_minus_p21), rf_mul(t0, p11_minus_p21))),
 			xstepdenominv);
-	r_tstepy = (int)((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) *
+	r_tstepy = (int)rf_mul((rf_sub(rf_mul(t1, p00_minus_p20), rf_mul(t0, p10_minus_p20))),
 			ystepdenominv);
 
-	t0 = r_p0[5] - r_p2[5];
-	t1 = r_p1[5] - r_p2[5];
-	r_zistepx = (int)((rf_mul(t1, p01_minus_p21) - rf_mul(t0, p11_minus_p21)) *
+	t0 = rf_sub(r_p0[5] , r_p2[5]);
+	t1 = rf_sub(r_p1[5] , r_p2[5]);
+	r_zistepx = (int)rf_mul((rf_sub(rf_mul(t1, p01_minus_p21), rf_mul(t0, p11_minus_p21))),
 			xstepdenominv);
-	r_zistepy = (int)((rf_mul(t1, p00_minus_p20) - rf_mul(t0, p10_minus_p20)) *
+	r_zistepy = (int)rf_mul((rf_sub(rf_mul(t1, p00_minus_p20), rf_mul(t0, p10_minus_p20))),
 			ystepdenominv);
 
 #if	id386
