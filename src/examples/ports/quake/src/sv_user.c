@@ -27,7 +27,7 @@ extern	cvar_t	sv_friction;
 cvar_t	sv_edgefriction = {"edgefriction", "2"};
 extern	cvar_t	sv_stopspeed;
 
-static	vec3_t		forward, right, up;
+static	vec3_t		forwardu, rightu, upu;
 
 vec3_t	wishdir;
 float	wishspeed;
@@ -253,10 +253,10 @@ void SV_WaterMove (void)
 //
 // user intentions
 //
-	AngleVectors (sv_player->v.v_angle, forward, right, up);
+	AngleVectors (sv_player->v.v_angle, forwardu, rightu, upu);
 
 	for (i=0 ; i<3 ; i++)
-		wishvel[i] = forward[i]*cmd.forwardmove + right[i]*cmd.sidemove;
+		wishvel[i] = forwardu[i]*cmd.forwardmove + rightu[i]*cmd.sidemove;
 
 	if (!cmd.forwardmove && !cmd.sidemove && !cmd.upmove)
 		wishvel[2] -= 60;		// drift towards bottom
@@ -329,7 +329,7 @@ void SV_AirMove (void)
 	vec3_t		wishvel;
 	float		fmove, smove;
 
-	AngleVectors (sv_player->v.angles, forward, right, up);
+	AngleVectors (sv_player->v.angles, forwardu, rightu, upu);
 
 	fmove = cmd.forwardmove;
 	smove = cmd.sidemove;
@@ -339,7 +339,7 @@ void SV_AirMove (void)
 		fmove = 0;
 		
 	for (i=0 ; i<3 ; i++)
-		wishvel[i] = forward[i]*fmove + right[i]*smove;
+		wishvel[i] = forwardu[i]*fmove + rightu[i]*smove;
 
 	if ( (int)sv_player->v.movetype != MOVETYPE_WALK)
 		wishvel[2] = cmd.upmove;

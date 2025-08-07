@@ -267,7 +267,7 @@ int main (int c, char **v)
 	double		time, oldtime, newtime;
 	quakeparms_t parms;
 	extern int vcrFile;
-	extern int recording;
+	extern qboolean recording;
 	int j;
 
 //	static char cwd[1024];

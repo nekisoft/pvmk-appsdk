@@ -66,7 +66,7 @@ cvar_t	gl_cshiftpercent = {"gl_cshiftpercent", "100", false};
 
 float	v_dmg_time, v_dmg_roll, v_dmg_pitch;
 
-extern	int			in_forward, in_forward2, in_back;
+extern	kbutton_t			in_forward, in_forward2, in_back;
 
 
 /*

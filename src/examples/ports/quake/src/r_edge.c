@@ -63,7 +63,7 @@ edge_t	edge_tail;
 edge_t	edge_aftertail;
 edge_t	edge_sentinel;
 
-float	fv;
+float	refv;
 
 void R_GenerateSpans (void);
 void R_GenerateSpansBackward (void);
@@ -488,11 +488,11 @@ void R_LeadingEdge (edge_t *edge)
 			{
 			// must be two bmodels in the same leaf; sort on 1/z
 				fu = rf_mul((float)(edge->u - 0xFFFFF), (1.0 / 0x100000));
-				newzi = surf->d_ziorigin + rf_mul(fv,surf->d_zistepv) +
+				newzi = surf->d_ziorigin + rf_mul(refv,surf->d_zistepv) +
 						rf_mul(fu,surf->d_zistepu);
 				newzibottom = rf_mul(newzi,0.99);
 
-				testzi = surf2->d_ziorigin + rf_mul(fv,surf2->d_zistepv) +
+				testzi = surf2->d_ziorigin + rf_mul(refv,surf2->d_zistepv) +
 						rf_mul(fu,surf2->d_zistepu);
 
 				if (newzibottom >= testzi)
@@ -526,11 +526,11 @@ continue_search:
 
 			// must be two bmodels in the same leaf; sort on 1/z
 				fu = rf_mul((float)(edge->u - 0xFFFFF), (1.0 / 0x100000));
-				newzi = surf->d_ziorigin + rf_mul(fv,surf->d_zistepv) +
+				newzi = surf->d_ziorigin + rf_mul(refv,surf->d_zistepv) +
 						rf_mul(fu,surf->d_zistepu);
 				newzibottom = rf_mul(newzi, 0.99);
 
-				testzi = surf2->d_ziorigin + rf_mul(fv,surf2->d_zistepv) +
+				testzi = surf2->d_ziorigin + rf_mul(refv,surf2->d_zistepv) +
 						rf_mul(fu,surf2->d_zistepu);
 
 				if (newzibottom >= testzi)
@@ -697,7 +697,7 @@ void R_ScanEdges (void)
 	edge_aftertail.prev = &edge_tail;
 
 // FIXME: do we need this now that we clamp x in r_draw.c?
-	edge_sentinel.u = 2000 << 24;		// make sure nothing sorts past this
+	edge_sentinel.u = (unsigned)((2000ll << 24) % (1ll << 32));		// make sure nothing sorts past this
 	edge_sentinel.prev = &edge_aftertail;
 
 //	
@@ -708,7 +708,7 @@ void R_ScanEdges (void)
 	for (iv=r_refdef.vrect.y ; iv<bottom ; iv++)
 	{
 		current_iv = iv;
-		fv = (float)iv;
+		refv = (float)iv;
 
 	// mark that the head (background start) span is pre-included
 		surfaces[1].spanstate = 1;
@@ -754,7 +754,7 @@ void R_ScanEdges (void)
 // do the last scan (no need to step or sort or remove on the last scan)
 
 	current_iv = iv;
-	fv = (float)iv;
+	refv = (float)iv;
 
 // mark that the head (background start) span is pre-included
 	surfaces[1].spanstate = 1;
