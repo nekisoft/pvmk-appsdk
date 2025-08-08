@@ -73,7 +73,7 @@ float	r_avertexnormals[NUMVERTEXNORMALS][3] = {
 };
 
 void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv,
-	stvert_t *pstverts);
+	const stvert_t *pstverts);
 void R_AliasSetUpTransform (int trivial_accept);
 void R_AliasTransformVector (vec3_t in, vec3_t out);
 void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
@@ -453,41 +453,34 @@ void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
 R_AliasTransformAndProjectFinalVerts
 ================
 */
-void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
+void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, const stvert_t *pstverts)
 {
-	int			i;//, temp;
-	float tempf;
-	float		lightcos, *plightnormal, zi;
-	trivertx_t	*pverts;
-
-	pverts = r_apverts;
-
-	for (i=0 ; i<r_anumverts ; i++, fv++, pverts++, pstverts++)
+	//pvmk - restructured more like a normal for-loop, compiler likes it more
+	for (int i=0 ; i<r_anumverts ; i++)
 	{
 	// transform and project
-		zi = 1.0 / rf_add(DotProduct_Shitty(pverts->v, aliastransform[2]),
+		float zi = 1.0 / rf_add(DotProduct_Shitty(r_apverts[i].v, aliastransform[2]),
 				aliastransform[2][3]);
 
 	// x, y, and z are scaled down by 1/2**31 in the transform, so 1/z is
 	// scaled up by 1/2**31, and the scaling cancels out for x and y in the
 	// projection
-		fv->v[5] = zi;
+		fv[i].v[5] = zi;
 
-		fv->v[0] = rf_add(rf_mul(rf_add(DotProduct_Shitty(pverts->v, aliastransform[0]),
+		fv[i].v[0] = rf_add(rf_mul(rf_add(DotProduct_Shitty(r_apverts[i].v, aliastransform[0]),
 				aliastransform[0][3]), zi), aliasxcenter);
-		fv->v[1] = rf_add(rf_mul(rf_add(DotProduct_Shitty(pverts->v, aliastransform[1]),
+		fv[i].v[1] = rf_add(rf_mul(rf_add(DotProduct_Shitty(r_apverts[i].v, aliastransform[1]),
 				aliastransform[1][3]), zi), aliasycenter);
 
-		fv->v[2] = pstverts->s;
-		fv->v[3] = pstverts->t;
-		fv->flags = pstverts->onseam;
+		fv[i].v[2] = pstverts[i].s;
+		fv[i].v[3] = pstverts[i].t;
+		fv[i].flags = pstverts[i].onseam;
 
 	// lighting
-		plightnormal = r_avertexnormals[pverts->lightnormalindex];
-		lightcos = DotProduct_Shitty (plightnormal, r_plightvec);
+		const float *plightnormal = r_avertexnormals[r_apverts[i].lightnormalindex];
+		float lightcos = DotProduct_Shitty (plightnormal, r_plightvec);
 		//temp = r_ambientlight;
-		tempf = r_ambientlight;
-
+		float tempf = r_ambientlight;
 		if (lightcos < 0)
 		{
 			//temp += (int)(rf_mul(r_shadelight,lightcos));
@@ -500,9 +493,9 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, stvert_t *pstverts)
 		}
 
 		if(tempf > 0)
-			fv->v[4] = tempf;
+			fv[i].v[4] = tempf;
 		else
-			fv->v[4] = 0;
+			fv[i].v[4] = 0;
 	}
 }
 
