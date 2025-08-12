@@ -1,0 +1,493 @@
+fuck issue trackers :D
+
+=========== GENERAL ==============
+
+=========== BUGS =================
+
+- another TCC bug: tiny map 4 replay fails
+- camera follow speed depends on FPS, it's slower with low FPS, but this is no
+  big deal, it's only noticable with extremely high/low FPS -- fix or not?
+- replay loading BUG! somehow map2 replay was saves with hash 05ef0ab1 instead
+  of correct 3c5ba5dd once, WTF, check where hash gets modified NEVER HAPPENED
+  AGAIN THO
+
+============ FUTURE ==============
+
+- mods:
+  - bouncy car body with inertia, not affecting physics ofc, just eye candy
+  - advanced replay analyzer, showing e.g.: distance travelled, speed over time,
+    crashes, input stats (number of presses, quickest tap, ...)
+  - TAS mod(s)? ideas:
+    - Just make it so that restarting takes player only N physics ticks back
+      (N can be a setting). Then the player can just drive and attempt sections
+      one by one, possibly in slow motion (using the existing setting).
+      Implement by literally storing exact inputs in RAM, then upon restart
+      quickly replaying everything up to current frame minus N.
+    - kinda bruteforce solver?
+    - export maps as 3D models in OBJ format (just print to console?)
+  - mod allowing to view two replays at once (one normal replay, one ghost?),
+    would be cool for run comparisons
+  - some extra graphic consoomer goodies? like:
+    - leave light trail behind the car (particles?)
+    - postproc effects? render to a buffer in renderer, then draw it again
+    - something like a motion blur by kinda "frameless" rendering?
+  - analog controller support, would just tap arrows in frequency according to
+    analog the analog value; create a new frontend function to implement,
+    something like LCR_getAnalogInput(type) or smt
+    - apply this to mouse lol -- L/R buttons can be up/down, moving the mouse
+    can steer, middle button can restart
+  - car horn?
+  - top-down camera mode?
+  - drunk mode: apply some kinda wave/sin/cos transform to all models to make
+    them swing, maybe even add delay to inputs
+  - weather mods? like lightning (invert colors quickly), rain, snow, sand, ...
+- "AI" driver?
+  - could work like this:
+    - make a function that estimated "how well we are doing", i.e. how close
+      we are to finishing, taking into account number of taken CPs, distance
+      to closest CP, current speed etc.
+    - approx algorithm: maintain N "currently best drivers", in each iteration
+      let each of them drive N times randomly, i.e. we get N * N new drivers,
+      then pick N best of them (by the function) and repeat; if not making
+      any progress for some time we can recursively get back or something
+- 2D renderer? like isometric or top-down or something, could enable the game
+  literally on very weak devices? top down might be nice, the car could be
+  drawn out of circles, getting bigger closer to camera, camera could rotate
+  along with car etc.
+- kinda fancy OpenGL renderer?
+- literal network multiplayer? could even be easy bcz no collisions
+  - map restarts should be synchronized to make the players start
+    simultaneously, this can be done by having a global shared timer ticking and
+    releasing all cars waiting for start every 3 seconds let's say
+- "user friendly" map editor?
+- procedural map generator?
+- frontends:
+  - auto test frontend, with no I/O, that will just internally run a series of
+    inputs and check if the output is as expected
+  - X11
+  - ncurses? yes or no?
+  - try Pokitto
+  - Nibble, should hopefully be powerful enough.
+  - ESPboy?
+  - linux framebuffer?
+- Add Anarch maps? :D
+
+=========== HANDLED ==============
+
+- use other libs than glibc (musl, ...)
+- final tests:
+  - run the test frontend through all the shit (valgrind, different compilers
+    etc.) KINDA DID
+  - check every single setting individually DID 1x
+  - very long replay DID 1x
+  - absence of music file DID
+  - different resolutions KINDA DID 1x
+  - different settings (332, POTATO, ...) DID
+  - crazy shit with physics KINDA DID
+  - replay with input not occuring for more that LCR_SETTING_GHOST_STEP DID
+  - different platforms DID
+  - error handling (bad map format, bad replay format, items in data file, ...)
+  - valgrind, cppcheck, different compilers, optimization levels, ...
+  - play replay from one platform on another KINDA DID
+  - profiling KINDA DID
+  - gigantic map that fails to fit in RAM DID 1x
+  - replay stretching DID 1x
+  - play all maps a lot DOING
+  - correct saving of replays etc.
+  - empty and large data file KINDA DID
+  - FPS on each platform WEEELLL
+  - try to use the racing module by itself BRIEFLY DID, COMPILES
+  - spellcheck comments KINDA DID
+  - test a map without any CPs where the car starts at finish WORKS BUT NOT REP
+  - just read through the code and eyeball it DOING
+- it seems like on arduinos tiny maps can't be loaded (say "FAILED") even if in
+  theory they should (enough block space to load): try to set the exact same
+  settings on PC and see if the maps load or what. IT'S BCS BUILDING THE MAP
+  TEMPORARILY REQUIRES MORE BLOCKS
+- TCC: physics on some maps (tiny2, tiny3, ...) behaves wrong, some replays
+  don't work
+- camera bugs in TCC build, also the auto test fails on checking rendered
+  pixels -- this may be TCC not supporting C99 fully? but dig up what's going
+  on
+- maybe address the jerky rotations? or not?
+- make some kinda repo for world record runs? how will they submit it?
+- LCR_SETTING_TEXTURE_SUBSAMPLE = 0 should turn off texturing completely
+  NO, 0 is normal texturing, 1 skips one pixel etc., very high value will
+  actually turn it off
+- stop playing engine sound when replay finishes
+- add (digital) controller support to SDL and CSFML? NOT NOW, doesn't wanna
+  detect it or something (or either PC)
+- on arduinos for some reason straight triangles (floor, walls, ...) on map
+  don't fucking display, they seem to not be added at all, but maybe it's
+  something with the "instability" due to low memory... HOWEVER on ringo (enough
+  mem) it does the same thing, is some kinda shitbug; LOOKS LIKE CULLING MOST
+  LIKELY; it's condition in renderer:824, most likely either a bug in
+  LooksConvex or CoversTri; lmao, had to change char to int in triangle winding,
+  char signedness is unspecified :D
+- should drifting make a sound? NO NEED
+- menu: key repeat?
+- replay validation? maybe yes?
+- ghost color
+- make reverse maps
+- remake TM maps in the third party repo
+- check again the target times for maps
+- redo the menu effect somehow
+- press forward map??? :-D only when physics is frozen
+- devtest map, internal camera: reversing at start makes the car face completely
+  downwards which bugs the camera rotation! the shadow model too
+- particles in free camera mode are very big if far away from the car (maybe
+  just turn them off in this mode?)
+- make helper header for PC frontends that use stdio for data file, parse
+  arguments etc.
+- make car turned on its back behave nicer? but how? PROLLY NOT
+- Try doing the bouncy car body? Just keep a point and its velocity, change
+  its velocity by a proportion of car's velocity change (this minus prev.
+  frame), then offset car body by this. However we'll also have to transform
+  inbetween world space and model space. LEAVE FOR A MOD
+- add display of inputs on the screen (option in setting? arg?)
+- viewing replay during countdown bugs!
+- sometimes after restart the timer shows not 0:0:0, but something like 0:0:033
+- doxygen documentation
+- immediately after starting the map countdown seems to be lower (seems to
+  perhaps be caused by nextPhysicsFrameTime, look into it)
+- hitting ramps at higher speed still often bugs, try to fiddle with physics
+  again (reshape iterations, tension, ...); seem acceptable now maybe?
+- in tiny resolution the sky jumps when rotating
+- car particles seem too big in low res
+- at high resolution (like 1920) buggy triangles sometimes appeard, tried to
+  fix this in S3L now but needs to be tested
+- shift the car texture a bit to align the wheels? KINDA DOESN'T GETT BETTER NOW
+- c99 may impose limit 4095 chars on str literal, gives warning on internal
+  data file, try to somehow hack around it (maybe just convert it to an array in
+  the end?) Maybe this: make a standalone C file with the string in it that
+  when compiled and run outputs the array.
+- make replays have better names (time etc.)
+- LOD blocks in lower res look too small
+- 640x480 with resolution subdiv has bad sized menu item highlight
+- Map4: fix top bottom corner, making the curve is too hard -- either add ramps
+  on wall or shift the down ramp further. WITH NEW PHYS LOOKS FINE
+- keyboard ghosting is an issue, particularly when initiating drift with brake
+  (arrow keys must be used with S for braking for left drift to work) -- think
+  about what to do about this? or leave as is?
+- fix the ramp map again due to new physics -- NOW it's almost good but it's
+  still possible to reach the finish at first jump, try to do something about it
+- Managed to get the car stuck in non-rotating state, then after a while get
+  it back by crashing. MAY BE FIXED NOW, watch if it still happens
+- try to prevent car getting stuck at extreme speed by may just hard stopping
+  it if it ends up unresolved?
+- car shadow idea: have shadow model, during rendering check each new triangle
+  agains car XY, record height, then set maimum height to shadow
+- seems like there might be a bug in physics env function, despite it being
+  impossible in theory, car gets stuck after fast drive into a wall, with its
+  shape staying OK, but wheel being inside a block somehow, maybe there are
+  tiny spaces between blocks or some blocks are not checked -- resolve
+  [4 4 63] [5 5 64] [5 4 63] [4 5 64] [4 5 63] [5 4 64] [5 5 63] [4 4 64]
+- Managed to get the car stuck in non-rotating state, then after a while get
+  it back by crashing. MAY BE FIXED NOW, watch if it still happens
+- After adding the non-rotating physics feature, the car now gets funny when
+  turned on the roof, once even shot to the ceiling of the map.
+- try to add distance fog?
+- Consider better input handling in SDL? Currently it just detects presses on
+  the exact frame, so a press can be missed. But how tho? LOOKS FINE, it's
+  only an issue with extremely low FPS, at which point it's unplayable anyway
+- use 332 in SDL with potato?
+- option to turn on simple 332 colors?
+- MAP4: one triangle in top section is missing!
+- culling is very slow now, it showed that distance bailout can accelerate it
+  a lot, try to make a more accurate bailaout and see if it's faster (watch
+  out for bugs due to false positives) PROLLY FINE
+- when non-rotating, the car is very fast, allowing uberbugs: find out why and
+  fix
+- allow slowing down in air like in TM?
+- some kinda easteregg in menu or smt
+- make the racing module usable by itself, e.g. to allow making tools for
+  verifying replays etc., i.e. make the module measure time, count checkpoints
+  etc. DONE?
+- add simple particle effects for grass/dirt/drift? Can be just a few squares
+  animated from the projected backwheels.
+- FPS logging for optim
+- the pinch collision test seems to sometimes stop the car e.g. after falling
+  from bigger height or when running into ramp at high speed (or not?) - FIX
+- sometimes during long loading the screen goes black, seems to have appeared
+  after adding LCR_LOADING_COMMAND (seems fixed now)
+- very rarely the near plane overflow bug still happens, maybe shift near plane
+  a bit further still?
+- Unstuck idea: make the body non-rotating for a while?
+- Create a physics test map.
+- Antibug: maybe always simulate the step with non-rotating body AND normal one
+  as well -- if the car ends up bugged, use the non-rotating result?
+- Fix weird reversing.
+- car deglitch idea: deglitch only if the middle joint collided this frame?
+- CP gets often missed, would be cool to increase its radius, but also hard.
+  We would have to be checking 8 cells instead of one, but even then issues
+  would appear with multiple CPs next to each other (returned CP_TAKEN event).
+  Maybe at least make the CP model smaller? (make the diamond diagonal)
+- Try to mess with car weight? (has no effect without any joint-joint coll.)
+- add ifdefs that change car color?
+- Try progressively slower steering?
+- compile time option to choose how many maps to include (for platforms with
+- sometimes the games prints huge long ass number of newlines, WHY (happens
+  when driving on accelerator)
+- add indicator that menu can be scrolled down
+- sometimes getting a SLIGHTLY slower time counts as beating it (prolly
+  conversion fail) (SEEMS FIXED NOW)
+- make a small txt game manual
+- maybe each map could have a target time embedded: when beaten, the map would
+  be marked as such
+- on tiny map 1 maybe add a few block below the first sharp ramp to prevent
+  those nasty piercing bugs
+- replays are bugged, seem to not steer
+- make the U-ramp map taller due to new physics
+- some kind of special map block that would say where 3D triangles don't have
+  to be drawn? could optimize rendering and map loading a lot <-- PROLLY NOT
+- on 1st map the camera is obscured by the wall at the start, fix it somehow
+  (not the best first impression) <-- shifted start pos.
+- improve the car unstucking? maybe we can just keep the position of the car
+  and ONE wheel (other joint positions can be computed)
+- replay format should probably record game version
+  - also there should probably be some version system that says version of
+    physics vs version of everything else; replay could only record physics
+    version (maybe just two or three chars?)
+- player name (modifiable via resource file) <-- prolly not
+- address the bug with driving on curved ramp diagonally, try DECREASING number
+  of reshapes
+- maybe remove setting string from menu (like music: 1) and use popups instead
+  (have just music and show "on" or "off" in popup)
+- add indication when CP is taken: in 1st man view it may be unclear if CP was
+  taken or not otherwise
+- popup messages? would be useful for several things: showing checkpoint times,
+  showing changes in menu etc.
+- allow stopping car rotation in air like in Trackmania
+- countdown and finish text sometimes seem to jump horizontally somehow
+- add argc/argv to gameInit? could be used to quickly start maps, verify
+  replays etc. Options:
+  -sN: sound (0/1)
+  -mN: music (0/1)
+  -cN: set camera
+  -M:  load last map in resource files (good for making maps)
+  -R:  load last replay in resource files (good for making TASes)
+  -P:  load and play against last replay in resource files
+- bug: background horizon position depends on resolution! fix
+- option to disable crash sounds (and so code that detects crashes)
+- drawing dithered transparent objects fills z-buffer in the transparent parts
+  and then the geometry behind it isn't drawn <- PARTIALLY FIXED, LOOKS GOOD
+- starting test replay two twice in a row breaks it
+- ghosts: if the replay for the ghost is too long (too many samples for the
+  preallocated array), we can subdivide the sample resolution (i.e. "stretch"
+  the samples) to cover the whole replay (ofc for the price of worse quality).
+- force chunk reload upon map restart so that there's no blinking at start
+- ghost visible distance -- maybe even car should have this (watching rep with
+  free camera)? maybe generalize setCar/GhostVisibility to
+  setCarGhostVisibilityDistance where 0 means make invisible?
+- add time slow down setting
+- the horizon on background seems too low? maybe add setting to shift it a bit?
+- replay format
+- why does the ghost stop in front of the finish?
+- prevent time overflow! stop incrementing level frame once it's at maximum
+- car shadow? probably would have to be done as screen space effect with
+  z-buffer (shadow as 3D model would require collision detection and would make
+  renderer depend on physics engine). Maybe like this:
+  - project some point below the car to screen
+  - fill a dithered oval around this point, but only as long as the point's
+    Z coord is close to the value in Z-buffer
+  ^ PROBABLY NOT, tried it and looked weird
+- music?
+  - probably just make one long track, literally OGG or something, then make
+    that be played by the frontend just ALL the time (maybe with the option in
+    menu to just turn music off) -- simple frontends can just ignore music
+- sound engine: probably all SFX will be procedurally generated, ok?
+- make a simple rendering setting:
+  - will exclude images and only draw solid colors, let's say only 16, so that
+    memory usage is reduced, CPU rendering is relieved, executable is smaller
+    AND frontend doesn't have to use RGB565 (it can basically choose any mode).
+- drifting: passing some upper threshold on steering force should reduce
+  steering friction until reaching some some lower threshold again probably
+- was able to take a CP without it changing color to gray, try to reproduce
+- Environments: just different textures for a cube inside which the tarck is,
+  the cube won't have the top side, texture can have transparency (sky see
+  through) <-- NO
+  - UPDATE: tho rasterization of the big cube could take whole screen: too slow.
+    Maybe just have a model + texture for each env? (still could allow transp).
+  - OR: environment could just be a sky texture (or just sky color?) plus a
+    floor texture? pretty KISS. SKY DOESN'T HAVE TO BE SPHERICALLY MAPPED, it
+    can simply rotate horizontally and shift vertically (camera will never
+    roll) -- not accurate but good enough. <-- YES
+- asset system:
+  - assets are to be loaded from one BIG string consisting of substrings, each
+    substring adds a map, replay, setting etc.
+  - part of the substring will be hardcoded (default maps)
+  - optionally a frontend can extend this from a file
+  - details:
+    - strings separated by '#'
+    - each string has format:
+      - magic number:
+        - map: LM
+        - replay: LR
+        - record time: LT
+      - name
+      - ';'
+      - string content
+        - map: see map.h
+        - replay:
+          - map name
+          - map hash
+          - data: frame, input state
+        - record time: decimal time in ms
+- maybe allow some more air control, like slowing down with brakes, like in TM
+- map actually in ASCII format? how will humans edit it?
+- racing update step should return events that happened, e.g.:
+  - CP taken
+  - crash (to play sound)
+  - finish
+  - etc.
+- rework the code for special blocks, we have to literally remember the last
+  block, not the pointer, now it won't work e.g. if wanting to repeat an
+  empty block
+- How to visually represent checkpoints (and finish)?
+  - Could be kind of an arrow made of single tri above the block?
+    (try how it looks in Blender)
+  - Probably just a literal block (or pyramid) DRAWN WITH DITHERING and/or
+    blinking <-- PROBABLY THIS
+- EFFICINT MAP DRAWING:
+  - map will be subdivided into subblocks (probably 16x16x16 or 8x8x8), only
+    nearest subblocks (and possibly only those in viewing direction will be
+    drawn)
+  - HERE IS THE BEAUTY: when building the map 3D model from map format, order
+    the triangle indices so that they are grouped by blocks in the index array,
+    i.e. if we draw first N triangles we actually draw the fist subblock, if
+    we draw the next N triangles we draw the second subblocks etc. Then just
+    create a function to draw Nth subblock and use this to only draw the
+    subblocks we want to draw.
+  - THIS??? Draw further blocks in a simplified way, e.g. just splatting literal
+    squares with constant color? See how it looks :)
+- background sky rendering efficiently:
+  - first draw the solid color top and bottom
+  - then render the 3D scene
+  - then iterate over the strip that should have the sky texture and only draw
+    to pixels where depth buffer was not overwritten (this step can be left out
+    in case we have depth buffer or sky turned off)
+- maybe change sticker to fan? could me more fun: TEST and see
+- camera behavior? what if car is riding upside down (on magnet) etc? <- looks cool now
+- allow car to be flipped upside down on start? with start block transform
+- track size: 64x64x64
+- maps to make:
+  - there should be these maps:
+    - compiled in:
+      - standard maps, let's say 5?
+      - additionally a few (5?) extremely simple maps, compile time option to
+        only include these, for very weak devices with limited block/triangle
+        count
+    - bonus maps in the external file (also 5?)
+  - map types:
+    - purely falling map                                      DONE
+    - traveling salesman kind of maze, with fans n shit       KINDA DONE
+    - city map?                                               DONE
+    - some kinda buggy bumpy downhill                         DONE
+    - map where car starts upside down                        DONE
+    - dirt map                                                DONE
+    - ice map
+    - boss map                                                DONE
+    - text or picture from blocks?                            DONE
+    - chessboard from different materials                     KINDA DONE
+    - falling tube map?                                       DONE
+    - grass hills as decoration?                              DONE
+    - something with multiple roads                           DONE
+    - RPG kinda map? could be in bonus maps                   KINDA DONE
+    - some speed map (mostly flat to prevent high speed bugs) DONE
+    - some (at least partially) interior map                  KINDA DONE
+    - something with multiple finishes                        DONE
+    - U-ramp to build speed and jump up to catch a CP (done)  DONE
+    - jump through air ring with CP                           DONE
+- sky images could be just composed of 4x4 normal images? then we only need
+  one type of image
+TOTAL SIZE OF TEXTURES:
+  - 64 x 64 x 2 = 8192, 6 x floor + 2 x wall + 1 x car = 8 * 8192 = 73728
+  - (128 x 128 x 1) x 3 background = 49152
+  - total = 122880
+- OK so materials (final?):
+  - concrete: normal                                           \ 
+  - accelerator: accelerates (adds some constant to speed?)     > same wall texture?
+  - maybe jumppad (big "fan")?                                 /
+  - dirt: a bit slippery (maybe also a bit slows down?)        \ 
+  - magnet: pulls car downwards (allows riding on ceiling etc.) > same wall texture?
+  - ice: extremely slippery (can barely turn)                  /
+- Architecture (modules):
+  - map: loads map n stuff
+  - racing engine (depends on map): handles physics of car with given inputs
+  - rendering engine (depends on map): hanles rendering of the map
+  - game (depends on all): joins it all together
+  - settings, constants etc.
+  - individual frontends
+  - ...?
+- Textures: size? format? They will likely take a lot of mem, weak computers
+  will have to do without them.
+  - possibility of simple procedural textures to save space! <-- SOUNDS NICE
+  - possibility to turn off textures completely <-- MUST HAVE
+  - how to map textures to blocks?
+    - figured out nice procedural mapping in Blender :) <-- DONE
+  - PROBABLY LIKE THIS:
+    - background textures: 128x128 with image-specific 256 color palette,
+      pixel access shouldn't be as time critical here (128x128/256 looks better
+      than 256x256/16/dithering, tried in Blender)
+    - other textures 64x64 with direct 565 values stored
+- Rendering: two pass: 1st pass renders the scaled down background (possibly not
+  rendering floor, can be just pure green for "grass") to prevent overflows,
+  second pass renders the tracks (or the nearest part of it). <-- POSSIBLY NOT
+  CAUSE BACKGROUND WON'T BE A 3D MODEL
+- Track model has to be preprocessed, unseen walls must be removed else would
+  be too slow. <-- OF COURSE
+  - Removing unseen triangles:
+    - make a routine that does the cleaning, call it several times during the
+      model construction (waiting till the very end could run out of memory
+      with too many vertices/triangles, also processing so many of them could
+      even make it slower), it will work like this:
+      - go through all triangles, mark each covered or not (we can't remove
+        them right away, they need to stay to see if they cover other tris)
+      - for each triangle go through all again, mark the checked tri covered if:
+        - the other tri has the same vertices (trivial case), OR
+        - non-trivial case (consider e.g. two covering quads but split
+          differently) not so easy, maybe good enough: if the tris share two
+          vertices AND they're in the same plane (EZ to check for axis aligned)
+          AND the other tri has a neighbor tri that has the non-shared vertex?
+      - remove all marked tris AND vertices that become unused
+- ====== Track/map format: list of map blocks. =======
+  - one block record:
+    - type: 5 bits?
+    - transform: 4 bits (16 possibilities):
+      - top up:
+        - non-mirrored:
+          - none
+          - rotate 90 around vertical
+          - rotate 180 around vertical
+          - rotatae 270 around vertical
+        - mirrored:
+          - same 
+      - top down:
+        - same
+    - material: 3 bits
+    - coords: 18 bits
+  - MAKE SPECIAL KINDS OF BLOCKS that will just e.g. copy the previously
+    specified block 5 times forward, make cube of it etc. These special blocks
+    will be preprocessed out to normal blocks when the map is loaded. This will
+    compress the stored maps.
+  - binary
+- how to do accelerators?
+  - special material? <-- YES
+  - maybe they could simply boost the car in its current direction? YES
+  - just keeps accelerating car in its direction, ok?
+- what color format to use? full RGB is bloat+overkill, 332 is too low for the
+  textures used. Possibilities.
+  - 565 <-- YES
+  - leave choice of colors to frontend (but textures still have to be stored
+    in some format)
+    - maybe just do both? pass to client pixel drawing function both a 565
+      color and a simplified 1 byte color? <-- KINDA? There could be an option
+      to just get simplified texture color in the 565 value that's normally
+      normal color
+- Start and finish blocks will be just the first/last checkpoint blocks (no need
+  for special start, finish and CP). <-- NO
+  - Or maybe not, we would need to somehow mark these with extra vars, plus we
+    dont need to save space for block types really.
+  - Maybe there could be no finish, the player would just have to take all the
+    checkpoints? <--- THO probably not, would rule out "there and back" maps
+  - THIS?: CP and FINISH will just be a special block, that's it?

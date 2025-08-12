@@ -1,0 +1,277 @@
+/** @file frontend_sdl.c
+
+  SDL2 frontend for Licar. This is the number one frontend, most advanced and
+  with most features -- if a platform supports SDL2, this should probably be
+  used.
+*/
+
+#include <stdio.h>
+#include <SDL2/SDL.h>
+
+#define LCR_SETTING_LOG_LEVEL 2
+#define LCR_LOADING_COMMAND SDL_PumpEvents();
+
+#if 0
+#define LCR_FPS_GET_MS SDL_GetTicks() // enabling will log FPS in console
+#endif
+
+#ifdef __EMSCRIPTEN__
+  #define LCR_SETTING_RESOLUTION_X 512
+  #define LCR_SETTING_RESOLUTION_Y 400
+  #define LCR_SETTING_MUSIC 0
+  #define LCR_SETTING_CAR_SHADOW 0
+  #define LCR_SETTING_TEXTURE_SUBSAMPLE 4
+  #define LCR_SETTING_RESOLUTION_SUBDIVIDE 2
+#else
+  #ifndef PRESET_QUALITY
+    #define PRESET_QUALITY 3
+  #endif
+#endif
+
+#include "frontend_helper.h"
+#include "game.h"
+
+SDL_Window *window;
+SDL_Renderer *renderer;
+SDL_Texture *texture;
+SDL_Surface *screenSurface;
+
+uint8_t running = 1, fullscreen = 1;
+
+#if LCR_SETTING_332_COLOR
+uint8_t
+#else
+uint16_t
+#endif
+screen[LCR_SETTING_RESOLUTION_X * LCR_SETTING_RESOLUTION_Y];
+
+FILE *musicFile = 0;
+
+void audioFillCallback(void *userdata, uint8_t *s, int l)
+{
+  if (musicFile && LCR_gameMusicOn())
+  {
+    if (!fread(s,1,l,musicFile))
+      rewind(musicFile);
+  }
+  else
+    for (int i = 0; i < l; ++i)
+      s[i] = 128;
+
+  for (int i = 0; i < l; ++i)
+    s[i] = s[i] / 2 + LCR_gameGetNextAudioSample() / 2;
+}
+
+const uint8_t *keyboardState;
+
+uint8_t LCR_keyPressed(uint8_t key)
+{
+  switch (key)
+  {
+    case LCR_KEY_UP: return
+      keyboardState[SDL_SCANCODE_W] | keyboardState[SDL_SCANCODE_UP]; break;
+
+    case LCR_KEY_RIGHT: return
+      keyboardState[SDL_SCANCODE_D] | keyboardState[SDL_SCANCODE_RIGHT]; break;
+
+    case LCR_KEY_DOWN: return
+      keyboardState[SDL_SCANCODE_S] | keyboardState[SDL_SCANCODE_DOWN] |
+      keyboardState[SDL_SCANCODE_SPACE]; break;
+
+    case LCR_KEY_LEFT: return
+      keyboardState[SDL_SCANCODE_A] | keyboardState[SDL_SCANCODE_LEFT]; break;
+
+    case LCR_KEY_A: return
+      keyboardState[SDL_SCANCODE_K] | keyboardState[SDL_SCANCODE_RETURN]; break;
+
+    case LCR_KEY_B: return
+      keyboardState[SDL_SCANCODE_L] | keyboardState[SDL_SCANCODE_ESCAPE]; break;
+
+    default: break;
+  }
+
+  return 0;
+}
+
+#ifdef __EMSCRIPTEN__
+typedef void (*em_callback_func)(void);
+void emscripten_set_main_loop(
+  em_callback_func func, int fps, int simulate_infinite_loop);
+#endif
+
+void LCR_sleep(uint16_t timeMs)
+{
+#ifndef __EMSCRIPTEN__
+  SDL_Delay(timeMs);
+#endif
+}
+
+void LCR_drawPixel(unsigned long index, uint16_t color)
+{
+  screen[index] = color;
+}
+
+void printHelp(void)
+{
+  printf(
+    "Licar, 3D racing game, v. " LCR_VERSION " (physics v. %c%c),"
+    " SDL frontend, args:\n"
+    "  -h   print help and quit\n"
+    "  -wN  window (N = 1) or fullscreen (N = 0)\n"
+    LCR_ARG_HELP_STR,LCR_RACING_VERSION1,LCR_RACING_VERSION2);
+}
+
+void mainLoopIteration(void)
+{
+  SDL_Event event;
+
+  running = 1;
+
+  while (SDL_PollEvent(&event))
+    if (event.type == SDL_QUIT)
+      running = 0;
+
+  keyboardState = SDL_GetKeyboardState(NULL);
+
+  running &= LCR_gameStep(SDL_GetTicks());
+
+  SDL_UpdateTexture(texture,NULL,screen,
+    LCR_SETTING_RESOLUTION_X * sizeof(
+#if LCR_SETTING_332_COLOR
+    uint8_t
+#else
+    uint16_t
+#endif
+    ));
+
+  SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer,texture,NULL,NULL);
+  SDL_RenderPresent(renderer);
+}
+
+int main(int argc, char *argv[])
+{
+  for (int i = 0; i < argc; ++i)
+    if (argv[i][0] == '-')
+      switch (argv[i][1])
+      {
+        case 'h':
+          printHelp();
+          return 0;
+          break;
+
+        case 'w':
+          fullscreen = argv[i][2] == '0';
+          break;
+
+        default: break;
+      }
+
+#ifdef __EMSCRIPTEN__
+  fullscreen = 0;
+#else
+
+  openDataFile();
+
+  musicFile = fopen("assets/music","rb");
+
+  if (!musicFile)
+    fputs("could not open music file\n",stderr);
+#endif
+
+  puts("initializing game");
+  LCR_gameInit(argc,(const char **) argv);
+
+  puts("initializing SDL");
+  SDL_Init(SDL_INIT_AUDIO);
+
+  puts("initializing audio");
+  SDL_AudioSpec audioSpec;
+  SDL_memset(&audioSpec,0,sizeof(audioSpec));
+  audioSpec.callback = audioFillCallback;
+  audioSpec.channels = 1;
+  audioSpec.freq = 8000;
+  audioSpec.format = AUDIO_U8;
+
+#ifdef __EMSCRIPTEN__
+  audioSpec.samples = 1024;
+#else
+  audioSpec.samples = 64;
+#endif
+
+  if (SDL_OpenAudio(&audioSpec,NULL) < 0)
+    fputs("could not initialize audio\n",stderr);
+
+  SDL_PauseAudio(0);
+
+  window =
+    SDL_CreateWindow("Licar", SDL_WINDOWPOS_UNDEFINED,
+    SDL_WINDOWPOS_UNDEFINED, LCR_SETTING_RESOLUTION_X, LCR_SETTING_RESOLUTION_Y,
+    SDL_WINDOW_SHOWN); 
+
+  if (!window)
+  {
+    fputs("ERROR: couldn't create window\n",stderr);
+    return 1;
+  }
+
+  if (fullscreen)
+    SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN_DESKTOP);
+
+  renderer = SDL_CreateRenderer(window,-1,0);
+
+  if (!renderer)
+  {
+    fputs("ERROR: couldn't create renderer\n",stderr);
+    return 1;
+  }
+
+  texture =
+    SDL_CreateTexture(renderer,
+#if LCR_SETTING_332_COLOR
+    SDL_PIXELFORMAT_RGB332,
+#else
+    SDL_PIXELFORMAT_RGB565,
+#endif
+    SDL_TEXTUREACCESS_STATIC,
+    LCR_SETTING_RESOLUTION_X,LCR_SETTING_RESOLUTION_Y);
+
+  if (!texture)
+  {
+    fputs("ERROR: couldn't create texture\n",stderr);
+    return 1;
+  }
+
+  screenSurface = SDL_GetWindowSurface(window);
+
+  SDL_ShowCursor(0);
+
+  SDL_PumpEvents();
+  keyboardState = SDL_GetKeyboardState(NULL);
+
+  puts("starting game loop");
+
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop(mainLoopIteration,0,1);
+#else
+  while (running)
+    mainLoopIteration();
+#endif
+
+  puts("ending");
+
+  if (musicFile)
+    fclose(musicFile);
+
+  closeDataFile();
+
+  SDL_PauseAudio(1);
+  SDL_CloseAudio();
+  SDL_DestroyTexture(texture);
+  SDL_DestroyRenderer(renderer); 
+  SDL_DestroyWindow(window); 
+
+  LCR_gameEnd();
+
+  return 0;
+}

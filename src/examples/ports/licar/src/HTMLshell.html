@@ -1,0 +1,75 @@
+<!doctype html>
+
+<!--
+  HTML template for the emscripten page. Unlike emscipten's official minimal
+  frontend, this one is really minimal.
+
+  by Miloslav Ciz (drummyfish)
+
+  Released under CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  plus a waiver of all other intellectual property. The goal of this work is
+  be and remain completely in the public domain forever, available for any use
+  whatsoever.
+-->
+
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>game</title>
+
+  <style>
+    table
+    {
+      width: 100%;
+    }
+
+    td
+    {
+      width: 11%;
+      padding: 0;
+      margin: 0;
+    }
+
+    button
+    {
+      width: 100%;
+    }
+
+    canvas
+    {
+      display: block;
+      margin: 10px auto 30px;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+  
+  <script type='text/javascript'>
+    Module = {
+      print:
+        function(what) 
+        {
+          console.log(what);
+        },
+      printErr:
+        function(what)
+        {
+          console.error(what);
+        },
+      canvas:
+        (
+          function()
+          {
+            return document.getElementById('canvas');
+          }
+        )()
+    };
+  </script>
+
+  {{{ SCRIPT }}}
+
+</body>
+</html>

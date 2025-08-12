@@ -1,0 +1,406 @@
+'-._-'"'-_.-'"'-._.-'"'-._.-'"'- LICAR MANUAL -'"'-._.-'"'-._.-'"'-._.-'"'-._.-'
+
+  libre racing video game by drummyfish (drummyfish@disroot.org)
+  released under CC0 1.0, public domain
+
+~~~~~ GENERAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Licar is a relatively simple 3D stunt racing video game inspired by other
+popular games of the genre, such as Trackmania and Stunts. Unlike mainstream
+video games (even indie ones), Licar is completely libre, i.e. free as in
+freedom (meaning its source code and art assets are available for any use
+whatsoever), gratis (free of cost) and its focus lies in being well programmed
+by adhering to minimalism and rejecting harmful "modern" programming practices.
+The game aims to selflessly bring joy and entertainment to all the people that
+might enjoy it, even those who aren't able or willing to pay and/or watch ads,
+those owning very old and weak computers and so on. It was made in whole by a
+single man as a completely non-commercial program, the development was driven
+purely by love of the craft and other living beings whom it might serve. Licar
+is also more than a game, for example it may serve educational purposes or
+become a basis for new projects.
+
+The game runs on many platforms and comes in different flavors depending on
+what the platform allows. Some versions may have more features or visual
+"richness" than others. If anything mentioned in this manual is missing in your
+game, it's probably because of limitations of your platform. On PCs and laptops
+running the SDL version, however, everything should be supported.
+
+~~~~~ RUNNING ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are compiled versions of Licar for many different platforms. If yours is
+among them, running the game should be as simple as running any other program.
+Running the game from command line will provide logs that may be useful for
+troubleshooting.
+
+If there isn't a version for your system or for whatever other reason you can't
+run the precompiled game, you may try to compile the project yourself from the
+source code. This is very simple (unlike with most "modern" software), it
+usually only involves typing a handful of command in the command line, and the
+compilation should only take seconds. For more detail check out the README.
+
+Note that it's also possible to play the game in a web browser or through some
+kind of compatibility layer (Wine, ...) or emulator if there is no native
+executable for your system.
+
+If you know what command line arguments are, you may also check them out by
+running the game with -h argument. This will allow you to for example start the
+game and immediately load a map, which is handy when creating new maps.
+
+~~~~~ GAMEPLAY ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In Licar, unlike in most other racing games, the player always only attempts
+time attacks, i.e. you only race against the clock with no physical opponents on
+the track with you. There is an option to race against a replay ghost, but that
+still cannot collide with your car, so the point remains that your final time
+depends solely on how well you drive, opponents cannot spoil your results by
+crashing with you or blocking your path.
+
+The objective of every map is to drive from start to finish (red octahedron) as
+fast as possible while collecting all the checkpoints (CP, green octahedron)
+along the way (in any order). There is always a target time which you're trying
+to beat in the bottom left of the screen. If you beat the time, you have
+achieved the main goal, your replay is automatically saved and your new time
+becomes the next target time.
+
+On the map you can find several different kinds of surfaces with different
+physics properties: concrete, grass, dirt and ice. Additionally there are two
+special kind of surfaces: an accelerator (a bright yellow/orange one), which
+boosts the car's speed, and a fan, which propels the car upwards.
+
+Your run can be restarted at any time. Typically you will need hundreds of
+attempts to achieve a good time on a map.
+
+During the run the game also displays additional info such as your current
+speed, times at checkpoints etc.
+
+~~~~~ CONTROLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Controls are more than simple: the car is driven with only 4 directional keys:
+up (accelerate), down (brake, reverse), left (steer left) and right (steer
+right). There are two additional keys, A and B (depending on your platform these
+may be e.g. K and L keys, RETURN and ESCAPE etc.), for restarting runs and
+handling menu.
+
+~~~~~ GAMEPLAY TIPS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here are some tips for playing:
+
+- It's possible to stop the car from rotating mid-air by pressing brake.
+- Similarly, holding down brake in air will slow down the car's horizontal
+  velocity in flight. This can help aim for a good landing.
+- Tapping brake while steering triggers drifting (if this doesn't work, you may
+  be experiencing keyboard ghosting: the inability of some keyboards to detect
+  certain simultaneous key presses; using different keys or a different
+  keyboard may help).
+- Look for unconventional shortcuts and tricks, think outside the box, the
+  intended or obvious way is very often not the fastest one. The shortest way
+  may also not be the fastest (taking a wider curve, for example, may result in
+  longer path but more speed at the exit, which usually makes up for the longer
+  path). Sometimes there exist very crazy shortcuts that the map author
+  overlooked, always look for them.
+- Minimizing air time helps, don't jump if you don't have to, maintaining
+  contact with ground allows for acceleration whereas in air you're losing
+  speed.
+- For a more serious grinding it may be good to reduce the initial countdown
+  (in settings.h), it will save a lot of time over many runs.
+- Don't try to drive a perfect time right away -- to drive a good time you
+  first have to drive a bad one. It's best to quickly drive a somewhat decent
+  run and then race against its ghost, beating it and then repeating the process
+  over and over. This allows for a gradual but steady, steap-by-step improvement
+  by discovering exact places where one can improve against the ghost.
+
+~~~~~ DATA FILE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Where supported, the game uses a so called data file to store data such as maps,
+replays, information about map completion etc. On platforms that don't support
+the feature the game still has its own internal data file with very basic maps,
+so that there is still "content" to play, but it won't be possible to add new
+maps or save replays. If the feature IS supported, the game will use a file
+that's usually located in the same directory as the game's executable and which
+is called just "data". It's a single text file, and so it's possible to open it
+with any plain text editor. If you just want to casually play the game, you may
+safely ignore the file. You will need to edit the file if you want to add new
+maps and replays, or if you want to share your replays and maps with others.
+
+The file consists of data items -- an item represents a map, replay and possibly
+other types of data. The items are separated by the '#' (hash) character. Each
+item is stored in plaintext ASCII format, there are no binary data. Each item
+starts with a magic number, which is a single character ('M' for a map, 'R' for
+a replay), then its name follows immediately, terminated by the ';' (semicolon)
+character, and then the item's data follow. Format of this data depends on what
+kind of data it is, so map data of course have a different format than replay
+data. For example a map named "mymap" will start with "Mmymap;". Unknown data
+items are ignored, so comments can be added in the file.
+
+~~~~~ CONFIGURATION ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The game offers a very high level of configuration and customization, and those
+with at least basic programming skills will be able to implement any changes
+imaginable. Very basic settings (such as turning the music off or switching
+between windowed and fullscreen mode) are accessible either in the game menu,
+or as a commandline flag (run the game with -h flag to see the options). All
+other settings, however, are kept at the source code level and so changing them
+requires recompiling the whole game from source code (which is nonetheless very
+simple). All user settings, along with their descriptions, are located in the
+settings.h source file. The game also comes in several precompiled versions with
+different settings.
+
+~~~~~ REPLAYS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your platform supports it, Licar can save and play back recorded runs as
+"replays" (sometimes also called "demos") which are nothing else than exact
+records of game input keys (so that replays, unlike videos, take very little
+space). Replays can also be used to spawn a ghost car to race against. There
+are special tabs in the menu to view a replay or race against a replay ghost.
+
+Replays are saved in the data file (see the section about data file for
+details). The exact format of replay data is described in the source code.
+
+Whenever a map's target time is beaten, replay is automatically saved. It's also
+possible to save a replay manually by opening the menu and selecting
+"save replay" after finishing a map. To share or add replays you can simply copy
+replay strings to/from the data file with any text editor. Similarly to delete a
+replay you just delete it in the data file.
+
+~~~~~ GHOSTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The game supports ghost cars to race against (note that this may be unsupported
+on some weaker platforms). A ghost car is spawned from a replay and will race in
+real time against the player, without being able to collide with him. This is
+very useful when attacking someone else's (or one's own) achieved time, to see
+where exactly time losses against the opponent occur.
+
+~~~~~ MAKING CUSTOM MAPS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Maps are stored in the data file. For its simplicity the original game doesn't
+come with a "user-friendly" GUI map editor (perhaps some will be made over
+time), the maps are hand-written directly in the text format that's stored in
+the data file, however there is a helper file for Blender that facilitates the
+process of designing a map.
+
+In the game a map is represented as a 64x64x64 grid of cells, each of which is
+one unit in width, one unit in depth and HALF a unit in height. Each cell can
+hold a map block. There are several types of blocks such as ramps, walls,
+corners etc. The whole map is composed of these blocks.
+
+Each placed block can additionally be transformed: rotated by multiples of 90
+degrees about vertical axis and/or flipped horizontally/vertically. Additionally
+each block also has a material (concrete, grass, ...). Special kinds of blocks
+are accelerators and fans. The finish, checkpoints and car start position can
+also be seen as a special kind of block. And still, there are yet "more special"
+kinds of (pseudo)blocks that are not real blocks but rather "commands" that do
+something with the blocks (such as duplicating given block certain number of
+times in a row) -- these only appear in the map's text format; they are not
+necessary, but greatly help making maps faster and also keep their code smaller.
+
+The text format of the map is described in the map.h file, refer to it for
+details you won't find here. To start with map making it may be useful to check
+out some of the existing small maps, for example the LCtiny ones. In summary the
+map format is following:
+
+First, if the map is preceded by another data string in the data file, remember
+to start it with the `#` character (to separate it from the previous string).
+Then there must be the letter `M` (for map), and then immediately the map's name
+terminated with `;`. For example a map named "mymap" will in the data file
+start with "#Mmymap;". Then the map string itself follows.
+
+This string starts with a decimal number saying the target time in physics
+ticks, then a space (` `) follows, then a single digit specifying the map
+environment (`0`, `1` or `2`), and then the string of map blocks follows.
+
+Each map block starts with `:`, then immediately follows the type of the block
+(these types are documented in map.h file), then exactly 3 coordinate characters
+follow. Each coordinate is a number 0 to 63 encoded by a single character like
+this:
+
+0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$@
+
+I.e. number 11 will be encoded as `b` etc. After the coordinates an optional
+decimal digit MAY follow, which defines the block material (`0`, `1`, `2` or
+`3`, `0` being default). Finally there MAY follow the transformation string,
+which may consist of characters `|` (flip horizontally), `-` (flip vertically),
+`L` (rotate by 90 degrees), `I` (rotate by 180 degrees and `J` (rotate by 270
+degrees). For example ":^5dA1-L" represents a ramp (`^`) placed at coordinates
+5, 13, 36, having material 1 (grass), flipped vertically (`-`) and rotated by
+180 degrees (`I`).
+
+Note that the blocks may be separated by any characters that aren't `:` so that
+it's possible to format and comment the map code.
+
+Very important is the special "cuboid fill" pseudoblock that's identified by
+type `f`. This will take the previously defined block B (which however MUST be a
+"normal" block) and will create a filled cuboid of blocks B, starting at B's
+position, with the size given by the `f` block's coordinates. For example
+":=123 :f456" will create a 4x5x6 cuboid of full blocks (`=`) whose
+bottom-left-front edge lies at coordinates 1, 2, 3. There are more special block
+blocks like this (see map.h). This is mostly how floors, walls and ceilings are
+made.
+
+Under the asset directory there is a helper file for Blender (a FOSS 3D editor)
+with which a map layout can be comfortably created. But Blender is not required
+for map making, you can easily draw the map layout on a grid paper for example,
+or -- for simpler maps -- it may be possible to just imagine them in one's head.
+
+The "workflow" for making maps is roughly the following:
+
+1. Drawing the map (in Blender, on paper, with Lego, ...).
+2. Rewriting this to the map text format in the data file. The edited map should
+   be the very last item in the data file so that it can be quickly loaded with
+   the -M command line argument.
+3. Testing the map in game. This is easily done by running the game with -M
+   argument (and possibly also other ones, e.g. -c3 to start with free camera)
+   to instantly load the edited map. If something needs changing, we return to
+   1. or 2.
+
+A few tips for making maps:
+
+- Placing "none" blocks deletes previously placed blocks, which can come in
+  handy for making holes etc. Sometimes it's much easier to created by
+  subtracting than adding up smaller parts.
+- The special "end" block can be used to exclude anything written after it. This
+  is useful for temporarily hiding already finished parts of the map to make it
+  load faster while working on other parts.
+- Another way of temporarily disabling blocks is "commenting" them, i.e.
+  replacing the starting `:` character with let's say `_`. Replacing `_` to `:`
+  back again will reenable these blocks.
+- It's very good to format and comment the map code. Group related structures
+  together, separate the groups by empty newlines etc.
+- Mind performance, too many too complex blocks will likely make the map load
+  very slowly and/or decrease FPS and/or even make it not load due to memory
+  constraints. Remember the game is using a simple software renderer (no GPU),
+  so it won't be able to smoothly render 100 thousand triangles. Be especially
+  careful about large structures created with the cuboid fill blocks, as the the
+  volume of such structure grows with the cube of the side length. When a map is
+  loading, the game removes (culls) invisible triangles, but for this it
+  basically has to check every triangle against every other triangle, i.e. the
+  time needed to load the map slows down quadratically with the number of
+  triangles.
+- Triangles can be saved by cleverly using simpler types of blocks where
+  possible, for example walls can be made with rotated ramps rather than full
+  blocks, which for a long wall may reduce triangle count considerably while
+  not even being noticed by the player.
+- There is a special "mirror" block that's very useful for creating
+  8-symmetrical structures.
+- Add more visual detail only where it's worth it, i.e. where the player will
+  see it, for example the near the start instead of a section that just quickly
+  passed at high speed.
+
+~~~~~ COMPILING AND MODIFYING ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mods are highly recommended to be distributed as context-aware diff files that
+will apply changes to the base source code. This is inspired by suckless
+programs. Distributing software in source form (preferably licensed as free
+software), as opposed to compiled binaries, is highly advised, in Licar and
+elsewhere :)
+
+Compiling the code depends on platform, but in general is done by simply
+compiling the platform's front end. For example the SDL2 frontend is compiled
+just by handing frontend_sdl.c to any C99 compiler (of course with appropriate
+flags, e.g. linking the SDL library). There is a Unix script that helps with
+compiling: make.sh. On many systems you can compile the game just by running
+the script. Otherwise read the script to learn about the details (flags etc.).
+
+Understanding the code: the code is highly commented and meant to serve as its
+own documentation, so first read the code. There is also a Doxygen file that can
+help you easily generate reference pages. Otherwise the code is pretty
+straightforward and shouldn't be too hard to understand (there is no OOP, no
+3rd party libraries, ...). It is in some ways unique, but always in a way that
+makes it easier to work with: for example the whole game is implemented solely
+in header files so that you compile only a single file: your frontend. I.e. no
+headaches with linking etc. The code follows the suckless philosophy and also
+what's called LRS (less retarded software): check these out to learn more.
+
+Porting and making your own frontends is quite easy, you just write a program
+in C (or a compatible language such as C++) in which you include the game's
+backend code (literally just #include "game.h") and implement a few basic
+functions such as a function for drawing pixels or reading keyboard. Exact
+details about this are documented in game.h.
+
+~~~~~ CREDITS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Everything was created by drummyfish, down to making own photo textures and
+recording own samples for music in the soundtrack. Special thanks goes to my
+friends Blitz and Ramon for help with testing and providing some ideas <3
+
+~~~~~ FAQ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Q: Is this game really free? Do I have to pay for it? What can I legally do with
+it? Can I use it commercially? What's the catch?
+
+A: This game is public domain, free as in freedom and free as in beer, i.e. it
+is free software (some would say "open source", which is however a very bad
+term), you have its source code and you can do anything with it, without
+having to pay anything. You can play it, study it, modify it, share it, even
+sell it, all without any conditions whatsoever. You don't even have to give
+credit to the original author, although it's always appreciated. This is all
+granted by the CC0 waiver under which the game is released. Practically the only
+thing you "cannot" do is to claim that you made it and that you hold copyright
+on it, preventing others from using it freely. If you liked the game, you may
+thank the author, send him a donation or do whatever you like, but none of can
+be "enforced" legally, and neither are you pressured to it morally. There is no
+catch to this, the project wasn't made as a capitalist product, it's something
+that's meant to help the people.
+
+Q: Can I still voluntarily donate money?
+
+A: Currently it is possible, donation info is somewhere on my website, but I am
+not dependent on donations and am sometimes doubting if it's a good thing to
+accept them, but if you still insist, I'll be very grateful, thank you very
+much.
+
+Q: Why is the physics so buggy?
+
+A: You are correct in the observation that Licar physics is not perfect. This is
+firstly because of the game's aim for simplicity (e.g. avoiding use of floating
+point) combined with the fact that even without such constraints it's one of the
+most difficult tasks to create a flawless physics engine. I apologize for any
+frustration but unless you want to fix this yourself, you'll have to just accept
+it, the game is meant to be a simple entertainment, not physically realistic
+simulator. After the release of the game it's also difficult to make any changes
+to physics because all previous replays will get invalidated by the change, so
+changing anything about physics will be done very, very rarely.
+
+Q: Can I play with a controller?
+
+A: Controllers are not supported as of the game's release, but mods are planned
+to make them work. In any case the game will never truly support analog input,
+but a mod could make analog input sort of work. It is partly for simplicity
+(e.g. to keep replays simple) to only support keyboard, but it also sets the
+same conditions for everyone, keyboard players don't have to feel disadvantaged
+against a more precise analog input -- if analog input is ever supported, it
+will have to just emulate very fast keyboard tapping. For now, you can use a
+program that maps controller inputs to keyboard in order to play with a
+controller.
+
+Q: The graphics looks weird, stuff near camera seems to kind of warp weirdly.
+
+A: It's a feature, this is the software renderer's simplification of handling
+near plane clipping, it's how it was done back in the era of PS1 and similar
+consoles, it has its charm. It should be possible to turn on the "correct",
+non-warping way somewhere in the code (S3L_NEAR_CROSS_STRATEGY) if you really
+want to, but it will cost some FPS.
+
+Q: I see glitching triangles suddenly flashing over the screen.
+
+A: This may be happening in higher resolutions, it's because of overflows in
+integer math. Effort was made to minimize this but it can probably still happen
+at times. Lowering the resolution should generally help, also increasing
+S3L_NEAR in renderer.h should prevent this (but it will have some consequences).
+If it seems real significant, you can report this to me, but don't expect me to
+add support for capitalist 1080K resolutions. 
+
+Q: I found a bug and/or have some other important comment.
+
+A: Send me an email (found on top of this file).
+
+Q: I have some other question (such as "Why is this not written in a modern
+language?", "What inspired you to make the game?" or "Are you a schizo?" etc.)
+
+A: Many questions I often get asked about my life and/or programming philosophy
+can't now be answered in a tl;dr while doing them injustice. I have a website at
+http://www.tastyfish.cz, where I attempt to explain things, but please note you
+will probably not like it. If you still decide to follow the link and don't find
+your answer, feel to ask me anything over email, but please remember I am not
+very social and don't enjoy too much engaging in smalltalk or lengthy
+discussions about worldviews etcetc. I am certainly not interested in having my
+opinions changed or changing someone else's mind by force.
