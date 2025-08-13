@@ -12,21 +12,23 @@
 #define LCR_SETTING_LOG_LEVEL 2
 #define LCR_LOADING_COMMAND {}
 #define LCR_FPS_GET_MS _sc_getticks()
+
 #define LCR_SETTING_RESOLUTION_X 320
 #define LCR_SETTING_RESOLUTION_Y 240
-#define LCR_SETTING_RESOLUTION_SUBDIVIDE 1
-#define LCR_SETTING_CAR_SHADOW 1
-#define LCR_SETTING_CAR_ANIMATION_SUBDIVIDE 1
-#define LCR_SETTING_PARTICLES 1
-#define LCR_SETTING_TEXTURE_SUBSAMPLE 4
+#define LCR_SETTING_POTATO_GRAPHICS 1
+#define LCR_SETTING_FPS 20
+#define LCR_SETTING_CAR_SHADOW 0
+#define LCR_SETTING_CAR_ANIMATION_SUBDIVIDE 0
+#define LCR_SETTING_PARTICLES 0
+#define LCR_SETTING_TEXTURE_SUBSAMPLE 16
 #define LCR_SETTING_FOG 0
-#define LCR_SETTING_FPS 30
-
+  
 #include "frontend_helper.h"
 #include "game.h"
 
 static uint16_t screens[3][LCR_SETTING_RESOLUTION_X * LCR_SETTING_RESOLUTION_Y];
 static int screen_back;
+static uint16_t *screen_back_ptr = &(screens[0][0]);
 
 static FILE *musicFile = 0;
 
@@ -73,7 +75,8 @@ void LCR_sleep(uint16_t timeMs)
 
 void LCR_drawPixel(unsigned long index, uint16_t color)
 {
-	screens[screen_back][index] = color;
+	//screens[screen_back][index] = color;
+	screen_back_ptr[index] = color;
 }
 
 int main(int argc, char *argv[])
@@ -128,20 +131,28 @@ int main(int argc, char *argv[])
 			
 			//Use this one
 			screen_back = bb;
+			screen_back_ptr = &(screens[screen_back][0]);
 			break;
 		}
 		
-		int played = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, audio_buf_hi, sizeof(audio_buf_hi), 3*sizeof(audio_buf_hi));
-		if(played >= 0)
+		while(1)
 		{
-			audioFillCallback(NULL, audio_buf_lo, sizeof(audio_buf_lo));
-			for(int ss = 0; ss < AUDIO_CHUNK; ss++)
+			int played = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, audio_buf_hi, sizeof(audio_buf_hi), 3*sizeof(audio_buf_hi));
+			if(played >= 0)
 			{
-				for(int mm = 0; mm < 6; mm++)
+				audioFillCallback(NULL, audio_buf_lo, sizeof(audio_buf_lo));
+				for(int ss = 0; ss < AUDIO_CHUNK; ss++)
 				{
-					audio_buf_hi[ (ss*6) + mm ][0] = audio_buf_lo[ss];
-					audio_buf_hi[ (ss*6) + mm ][1] = audio_buf_lo[ss];
+					for(int mm = 0; mm < 6; mm++)
+					{
+						audio_buf_hi[ (ss*6) + mm ][0] = 127 * ((int)audio_buf_lo[ss] - 127);
+						audio_buf_hi[ (ss*6) + mm ][1] = 127 * ((int)audio_buf_lo[ss] - 127);
+					}
 				}
+			}
+			else
+			{
+				break;
 			}
 		}
 	}

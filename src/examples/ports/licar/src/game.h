@@ -1890,7 +1890,7 @@ uint8_t LCR_gameStep(uint32_t time)
 
     // handle rendering:
     if (time >= LCR_game.nextRenderFrameTime ||
-      LCR_game.state == LCR_GAME_STATE_LOADING)
+      LCR_game.state == LCR_GAME_STATE_LOADING || 1 /*pvmk*/)
     {
       LCR_LOG2("rendering next frame");
 
