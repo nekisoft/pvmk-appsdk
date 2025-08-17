@@ -493,6 +493,14 @@ Each program starts with the audio-visual and input peripherals ready to use.
 
 \subsection{Data access}
 
+These system-calls allow access to the game card and the Neki32 nonvolatile memory system. 
+Implicitly, a game is running from a game card and always has access to the card.
+If communication with the card is disrupted, the game should simply retry until it succeeds.
+If the user removes the game card, the system turns off.
+Similarly, the game can assume that nonvolatile memory is configured correctly.
+It can access its nonvolatile memory record without concern for space or data integrity.
+
+
 \SysCall{disk{\Undie}read2k}{0x91}
 {
 	Reads 2048-byte sectors from the disk into the given buffer.
@@ -550,6 +558,10 @@ Each program starts with the audio-visual and input peripherals ready to use.
 }
 
 \subsection{Process setup}
+
+The game process can replace itself with a new, fresh executable at its discretion.
+The new executable is loaded into a pending process image, kept by the kernel.
+When the new executable is ready, it is swapped in-place over the old one.
 
 \SysCall{mexec{\Undie}append}{0xA1}
 {
