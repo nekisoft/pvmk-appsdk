@@ -1037,8 +1037,8 @@ int execv(const char *path, char *const argv[])
 	while(nloaded < argenv_start)
 	{
 		int to_append = argenv_start - nloaded;
-		if(to_append > 16384)
-			to_append = 16384;
+		if(to_append > 1048576)
+			to_append = 1048576;
 		
 		int appended = _sc_mexec_append(NULL, to_append); //append zeroes
 		if(appended > 0)
@@ -1053,7 +1053,7 @@ int execv(const char *path, char *const argv[])
 	while(nloaded < argenv_end)
 	{
 		const char *string_to_append = "";
-		if(*argv_next != NULL)
+		if(argv_next != NULL && *argv_next != NULL)
 		{
 			string_to_append = *argv_next;
 			argv_next++;
@@ -1063,7 +1063,7 @@ int execv(const char *path, char *const argv[])
 			string_to_append = "";
 			argv_next = NULL;
 		}
-		else if(*envp_next != NULL)
+		else if(envp_next != NULL && *envp_next != NULL)
 		{
 			string_to_append = *envp_next;
 			envp_next++;
@@ -1094,8 +1094,8 @@ int execv(const char *path, char *const argv[])
 	while(nloaded < total)
 	{		
 		int to_append = total - nloaded;
-		if(to_append > 16384)
-			to_append = 16384;
+		if(to_append > 1048576)
+			to_append = 1048576;
 		
 		int appended = _sc_mexec_append(NULL, to_append); //append zeroes
 		if(appended > 0)
