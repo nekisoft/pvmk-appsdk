@@ -10,6 +10,16 @@
 _header:
 	.ascii "NNEARM32" //Signature
 	.word  _start //Entry point
+	.balign 16
+	
+	.ascii "ARGENVST" //arg/env buffer start
+	.word _argenv_start
+	.balign 16
+	
+	.ascii "ARGENVED", //arg/env buffer end
+	.word _argenv_end
+	.balign 16
+	
 	.balign 4096 //Consume the rest of the first page
 	_header.end:
 
@@ -153,6 +163,14 @@ __aeabi_read_tp:
 .ltorg
 
 .section .bss
+	
+//Space for argument/environment buffer, to be loaded by the process exec-ing us
+.balign 65536
+.global _argenv_start
+.global _argenv_end
+_argenv_start:
+	.space 65536
+_argenv_end:
 	
 //Space for stack... need anything more complex?
 .balign 65536

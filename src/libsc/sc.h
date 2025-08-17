@@ -65,12 +65,6 @@ SYSCALL_DECL __INTPTR_TYPE__ _sc(_SYSTYPE num, _SYSTYPE p1, _SYSTYPE p2, _SYSTYP
 //2. System calls usable by games.
 //===
 
-// _sc_none //
-//Does nothing.
-SYSCALL_DECL void _sc_none(void)
-	#define  _SC_NONE_N 0x00
-	{ _SC(_SC_NONE_N, 0, 0, 0, 0, 0); }
-
 // _sc_pause //
 //Waits until anything happens to the calling process, or has happened since the last call returned.
 //This is the only way to actually "block" your process at the kernel level.
@@ -86,33 +80,6 @@ SYSCALL_DECL void _sc_pause(void)
 SYSCALL_DECL int _sc_getticks(void)
 	#define _SC_GETTICKS_N 0x02
 	{ return _SC(_SC_GETTICKS_N, 0, 0, 0, 0, 0); }
-
-// _sc_exit //
-//Generally obliterates the calling process.
-//Optionally reports a signal that was responsible for its demise.
-SYSCALL_DECL _NORETURN void _sc_exit(int exitcode, int signal)
-	#define  _SC_EXIT_N 0x07
-	{ _SC(_SC_EXIT_N, exitcode, signal, 0, 0, 0); _DONTRETURN; }
-
-// _sc_env_save //
-//Appends the given data to the kernel's argument/environment buffer for the calling process.
-//Subsequent calls append to the buffer; call with buf=len=0 to reset the buffer.
-//This buffer is preserved across calls to exec() and mexec_apply().
-//Conventionally it should contain a series of NUL-terminated argument strings,
-//then an extra NUL, then a series of NUL-terminated environment strings.
-//Returns the number of bytes written or a negative error number.
-SYSCALL_DECL int _sc_env_save(const void *buf, int len)
-	#define _SC_ENV_SAVE_N 0x08
-	{ return _SC(_SC_ENV_SAVE_N, buf, len, 0, 0, 0); }
-
-// _sc_env_load //
-//Reads from the kernel's argument/environment buffer for the calling process.
-//Writes the result into the calling process's user memory, usually after an exec() or mexec_apply().
-//Unlike _sc_env_save, starts from the beginning each time it's called.
-//Returns the number of bytes copied or a negative error number.
-SYSCALL_DECL int _sc_env_load(void *buf, int len)
-	#define _SC_ENV_LOAD_N 0x09
-	{ return _SC(_SC_ENV_LOAD_N, buf, len, 0, 0, 0); }
 
 // _sc_print //
 //Prints output to the text-mode screen.

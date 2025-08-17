@@ -156,7 +156,7 @@ static int _openatm(int fd, const char *path, int flags, mode_t mode)
 
 
 //argenv buffer - aligned enough to refer to a char*, but ultimately storing strings
-static char *argenv_buffer[4096 / sizeof(void*)];
+//static char *argenv_buffer[4096 / sizeof(void*)];
 
 //Called from crt0 to call main
 void _pvmk_callmain(void)
@@ -175,21 +175,33 @@ void _pvmk_callmain(void)
 	//Default arguments/environments if something goes wrong
 	int argc = 1;
 	char **argv = (char*[]){ "argv0",         NULL };
-	char **envp = (char*[]){ "PVMK=external", NULL };
+	char **envp = (char*[]){ "PVMK=external", "HOME=/", "PWD=/", NULL };
 	
 	//Try to load arguments/environment
-	int nread = _sc_env_load(argenv_buffer, sizeof(argenv_buffer));
+	//int nread = _sc_env_load(argenv_buffer, sizeof(argenv_buffer));
+	//SDK update - our linker makes a buffer, and whoever loads us can fill it up.
+	//Separate arg/env syscalls have been eliminated.
+	extern char _argenv_start[];
+	extern char _argenv_end[];
+	
+	_argenv_end[-1] = '\0'; //Make sure they didn't overrun us
+	
+	//Still need to build pointers at the end
+	char **argenv_buffer = (char**)_argenv_start;
+	
+	//Simulate the "nread" return value - count how many bytes are filled before the rest is NULs.
+	int nread = (intptr_t)_argenv_end - (intptr_t)_argenv_start;
+	while(nread > 0 && _argenv_start[nread-1] == '\0')
+		nread--;
+	
 	if(nread > 0)
 	{
-		//Ensure we're NUL-terminated
-		((char*)argenv_buffer)[sizeof(argenv_buffer)-1] = 0;
-		
 		//Run through the strings we read. Count them and make sure there's room to build pointer arrays.
 		//Each of the two pointer arrays ends, when a zero-length string is encountered.
 		int nstrings = 0;
 		int zerolen = 0;
-		char *remaining = (char*)argenv_buffer;
-		char *stop = ((char*)argenv_buffer) + sizeof(argenv_buffer);
+		char *remaining = _argenv_start;
+		char *stop = _argenv_end; 
 		while(zerolen < 2 && remaining < stop)
 		{
 			if(strlen(remaining) == 0)
@@ -201,11 +213,11 @@ void _pvmk_callmain(void)
 		
 		//See if we have enough room...
 		int ptr_idx = (nread + (sizeof(void*)) - 1) / sizeof(void*); //Array index
-		int ptr_capacity = sizeof(argenv_buffer) / sizeof(argenv_buffer[0]);
+		int ptr_capacity = ((intptr_t)_argenv_end - (intptr_t)_argenv_start) / sizeof(void*);
 		if(ptr_idx + nstrings < ptr_capacity)
 		{
 			//Alright, have room for the pointers
-			remaining = (char*)argenv_buffer;
+			remaining = _argenv_start;
 			argv = &(argenv_buffer[ptr_idx]);
 			argc = 0;
 			while(remaining < stop)
@@ -921,6 +933,7 @@ int execl(const char *path, const char *arg, ...)
 	return execv(path, ptrs);
 }
 
+
 int execv(const char *path, char *const argv[])
 {
 	//Reset arg/env buffer
@@ -937,22 +950,57 @@ int execv(const char *path, char *const argv[])
 		return -1;
 	}
 	
-	//Save arguments
-	for(int aa = 0; argv[aa] != NULL; aa++)
+	//Read the 4kbyte header
+	static uint8_t first4k[4096];
+	memset(first4k, 0, sizeof(first4k));
+	int first4k_read = 0;
+	while(1)
 	{
-		_sc_env_save(argv[aa], strlen(argv[aa])+1);
+		int nread = read(fd, first4k + first4k_read, sizeof(first4k) - first4k_read);
+		if(nread <= 0)
+		{
+			//Failed to read the first 4KBytes (header)
+			errno = ENOEXEC;
+			return -1;
+		}
+
+		first4k_read += nread;
+		if(first4k_read >= 4096)
+			break;
 	}
-	_sc_env_save("", 1);
 	
-	//Save environment
-	for(int ee = 0; environ[ee] != NULL; ee++)
+	//Look through the header for the fields we expect
+	int entry = 0;
+	int argenv_start = 0;
+	int argenv_end = 0;
+	for(int ff = 0; ff < 4096/16; ff++)
 	{
-		_sc_env_save(environ[ee], strlen(environ[ee])+1);
+		char field_name[8] = {0};
+		uint64_t field_val = 0;
+		memcpy(field_name, first4k + (ff*16) + 0, 8);
+		memcpy(&field_val, first4k + (ff*16) + 8, 8);
+		
+		if(!memcmp(field_name, "NNEARM32", 8))
+			entry = field_val;
+		
+		if(!memcmp(field_name, "ARGENVST", 8))
+			argenv_start = field_val;
+		
+		if(!memcmp(field_name, "ARGENVED", 8))
+			argenv_end = field_val;
 	}
-	_sc_env_save("", 1);
 	
-	//Execute the file
-	int nloaded = 0;
+	if(entry != 0x1000)
+	{
+		errno = ENOEXEC;
+		return -1;
+	}
+	
+	//Append the header to the pending process image (just takes up space)
+	_sc_mexec_append(first4k, sizeof(first4k));
+	
+	//Load the rest of the file
+	int nloaded = sizeof(first4k);
 	uint8_t buf[256];
 	while(1)
 	{
@@ -971,6 +1019,65 @@ int execv(const char *path, char *const argv[])
 		}
 	}
 	
+	//Stuff in the arguments/environments and BSS...
+	
+	//Zeroes before the arg/env buffer
+	while(nloaded < argenv_start)
+	{
+		int to_append = argenv_start - nloaded;
+		if(to_append > 16384)
+			to_append = 16384;
+		
+		int appended = _sc_mexec_append(NULL, to_append); //append zeroes
+		if(appended > 0)
+			nloaded += appended;
+		else
+			break;
+	}
+	
+	//The arg/env buffer itself
+	char *const * argv_next = argv;
+	char *const * envp_next = environ;
+	while(nloaded < argenv_end)
+	{
+		const char *string_to_append = "";
+		if(*argv_next != NULL)
+		{
+			string_to_append = *argv_next;
+			argv_next++;
+		}
+		else if(argv_next != NULL)
+		{
+			string_to_append = "";
+			argv_next = NULL;
+		}
+		else if(*envp_next != NULL)
+		{
+			string_to_append = *envp_next;
+			envp_next++;
+		}
+		else if(envp_next != NULL)
+		{
+			string_to_append = "";
+			envp_next = NULL;
+		}
+		else
+		{
+			break;
+		}
+		
+		int to_append = strlen(string_to_append) + 1;
+		if(nloaded + to_append > argenv_end)
+			to_append = argenv_end - nloaded;
+		
+		int appended = _sc_mexec_append(string_to_append, to_append);
+		if(appended > 0)
+			nloaded += appended;
+		else
+			break;
+	}
+	
+	//Zeroes after the arg/env buffer
 	const int total = 24*1024*1024;
 	while(nloaded < total)
 	{		
@@ -978,9 +1085,9 @@ int execv(const char *path, char *const argv[])
 		if(to_append > 16384)
 			to_append = 16384;
 		
-		int appended = _sc_mexec_append(NULL, 16384); //append zeroes
+		int appended = _sc_mexec_append(NULL, to_append); //append zeroes
 		if(appended > 0)
-			to_append += appended;
+			nloaded += appended;
 		else
 			break;
 	}

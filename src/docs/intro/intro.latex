@@ -315,7 +315,7 @@ A newly allocated savegame will contain 0 bytes when read back.
 \section{System calls}
 
 System-calls are used to access hardware features in a backward- and forward-compatible way.
-A total of 16 different system-calls are available to Neki32 games.
+A total of 12 different system-calls are available to Neki32 games.
 
 To run a system call, first place its inputs in CPU registers. The call number is passed in register \Reg{r0}.
 Parameters, if any, are passed in registers \Reg{r1} to \Reg{r5}. Then, use the \Instr{udf 0x92} instruction.
@@ -340,15 +340,6 @@ while(_sc_input(mybuf, sizeof(mybuf[0]), sizeof(mybuf)) == -_SC_EAGAIN)
 \subsection{Basics}
 
 These system-calls relate to the general usage of the system-call interface.
-
-\SysCall{none}{0x00}
-{
-	Does nothing. This enters and exits the kernel as usual but does nothing else.
-}
-{
-	\SysParmNone
-	\SysRetnNone
-}
 
 \SysCall{pause}{0x01}
 {
@@ -560,34 +551,6 @@ Each program starts with the audio-visual and input peripherals ready to use.
 
 \subsection{Process setup}
 
-\SysCall{env{\Undie}save}{0x08}
-{
-	Appends the given data to the kernel's argument/environment buffer for the calling process.
-	Subsequent calls append to the buffer; call with buf=len=0 to reset the buffer.
-	This buffer is preserved across calls to exec() and mexec{\Undie}apply().
-	Conventionally it should contain a series of NUL-terminated argument strings,
-	then an extra NUL, then a series of NUL-terminated environment strings.
-	Returns the number of bytes written or a negative error number.
-}
-{
-	\SysParm{r1}{const void *}{buf}{The data in memory to store to the environment buffer.}
-	\SysParm{r2}{int}{len}{How many bytes to store.}
-	\SysRetn{int}{The number of bytes written or a negative error number.}	
-}
-
-\SysCall{env{\Undie}load}{0x09}
-{
-	Reads from the kernel's argument/environment buffer for the calling process.
-	Writes the result into the calling process's user memory, usually after an exec() or mexec{\Undie}apply().
-	Unlike {\Undie}sc{\Undie}env{\Undie}save, starts from the beginning each time it's called.
-	Returns the number of bytes copied or a negative error number.
-}
-{
-	\SysParm{r1}{void *}{buf}{The location in memory to put the data from the environment buffer.}
-	\SysParm{r2}{int}{len}{How many bytes to load.}
-	\SysRetn{int}{The number of bytes read or a negative error number.}
-}
-
 \SysCall{mexec{\Undie}append}{0xA1}
 {
 	Appends the given data to the kernel's pending memory image for the calling process.
@@ -611,17 +574,6 @@ Each program starts with the audio-visual and input peripherals ready to use.
 }
 {
 	\SysParmNone
-	\SysRetnDead
-}
-
-\SysCall{exit}{0x07}
-{
-	Generally obliterates the calling process.
-	Optionally reports a signal that was responsible for its demise.
-}
-{
-	\SysParm{r1}{int}{exitcode}{The return value to report to the parent process.}
-	\SysParm{r2}{int}{signal}{The signal number responsible for the exit, if any. Zero otherwise.}
 	\SysRetnDead
 }
 
@@ -658,12 +610,8 @@ The following table lists all system-calls usable by a game, sorted by call numb
 \\
 \begin{tabular}{l l}
 Number & Name\\
-\Const{0x00} &\VarName{{\Undie}sc{\Undie}none}\\
 \Const{0x01} &\VarName{{\Undie}sc{\Undie}pause}\\
 \Const{0x02} &\VarName{{\Undie}sc{\Undie}getticks}\\
-\Const{0x07} &\VarName{{\Undie}sc{\Undie}exit}\\
-\Const{0x08} &\VarName{{\Undie}sc{\Undie}env{\Undie}save}\\
-\Const{0x09} &\VarName{{\Undie}sc{\Undie}env{\Undie}load}\\
 \Const{0x30} &\VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}\\
 \Const{0x50} &\VarName{{\Undie}sc{\Undie}input}\\
 \Const{0x60} &\VarName{{\Undie}sc{\Undie}snd{\Undie}play}\\
@@ -959,10 +907,6 @@ Unexpected failures are rare due to the restricted nature of the environment.
 An enumeration of system-calls and potential failures follows.
 \\
 
-\subsubsection{\Const{0x00} \VarName{{\Undie}sc{\Undie}none}}
-\BL This call cannot fail.
-\BL In some sense, it also cannot succeed.
-
 \subsubsection{\Const{0x01} \VarName{{\Undie}sc{\Undie}pause}}
 \BL This call cannot fail.
 \BL Note that this call may return spuriously for a number of reasons. A previous system-call may have triggered an unpause which has been ignored. Or, the timing of a following system-call may not be predictable.
@@ -973,24 +917,6 @@ An enumeration of system-calls and potential failures follows.
 \BL Note that this returns ticks since the system booted, not since the program began executing. 
 \BL When using the debugger, this may also show discontinuities. 
 \BL The units are milliseconds. As the value is 32-bit, the tick count may overflow if the user leaves the console running for 25 days. Games do not need to handle this, but may choose to handle the overflow or to crash.
-
-\subsubsection{\Const{0x07} \VarName{{\Undie}sc{\Undie}exit}}
-\BL This call cannot fail. 
-\BL The system may try to re-launch a game that exits, up to 3 times.
-
-\subsubsection{\Const{0x08} \VarName{{\Undie}sc{\Undie}env{\Undie}save}}
-\BL This call can fail if the buffer is not in valid memory. 
-\BL This call can fail if the environment buffer is already full. 
-\BL This call can fail if the pointer is NULL but the length is nonzero. 
-\BL This call can fail if the length is zero but the pointer is non-NULL. 
-\BL This call can fail if the length is too large for the environment at all. 
-\BL Note that subsequent calls append to the buffer, not starting again. 
-
-\subsubsection{\Const{0x09} \VarName{{\Undie}sc{\Undie}env{\Undie}load}}
-\BL This call can fail if no data is in the environment buffer already. 
-\BL This call can fail if the buffer is not in valid memory. 
-\BL This call can fail if the given buffer is too small for the environment stored. 
-\BL Note that subsequent calls do not continue reading from the buffer, instead starting again. 
 
 \subsubsection{\Const{0x30} \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip}}
 \BL This call can fail if an invalid buffer pointer is given. 
