@@ -90,6 +90,8 @@ void prepnvm(const char *nvmname)
 				
 				lastbuttons = input.buttons;
 			}
+			
+			_sc_pause();
 		}
 	}
 }
