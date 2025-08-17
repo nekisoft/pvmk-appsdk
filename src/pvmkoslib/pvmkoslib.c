@@ -499,7 +499,22 @@ off_t lseek(int fd, off_t offset, int whence)
 
 void _exit(int status)
 {
-	_sc_exit(status, 0);
+	//System update - _sc_exit is now a private call, games shouldn't use it.
+	//Reset the process instead of exiting.
+	//_sc_exit(status, 0);
+	(void)status;
+	while(1)
+	{
+		extern char _BSS_START[];
+		extern char _BSS_END[];
+		for(char *ii = _BSS_START; ii < _BSS_END; ii++)
+		{
+			*ii = 0x00;
+		}
+		
+		extern void _start(void);
+		_start();
+	}
 }
 
 //Implementation of sbrk allowing growing the process from the size as-linked up to 24MBytes in total
@@ -936,9 +951,6 @@ int execl(const char *path, const char *arg, ...)
 
 int execv(const char *path, char *const argv[])
 {
-	//Reset arg/env buffer
-	_sc_env_save(NULL, 0);
-	
 	//Reset pending process image
 	_sc_mexec_append(NULL, 0);
 	
