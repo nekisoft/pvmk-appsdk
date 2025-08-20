@@ -175,7 +175,7 @@ Input is delivered as a stream of events tagged with these characters as the fir
 
 A feature like \VarName{exec()} is available for replacing the running program with another.
 The kernel keeps a separate address space ready for a process to load, and then move into place.
-Arguments and environment variables can be preserved in a kernel-side buffer during this process.
+Arguments and environment variables are loaded into place by the calling process.
 
 Nonvolatile memory is available inside the console for savegames.
 4MBytes are dedicated to the NVM savegame system, split into records of 128KBytes.
