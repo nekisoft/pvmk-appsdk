@@ -1,0 +1,6 @@
+*.xcf filter=lfs diff=lfs merge=lfs -text
+leagueload/leagueload.xcf filter=lfs diff=lfs merge=lfs -text
+mainmenu/mainmenu.xcf filter=lfs diff=lfs merge=lfs -text
+padteams/padteams.xcf filter=lfs diff=lfs merge=lfs -text
+teamselect/teamselect.xcf filter=lfs diff=lfs merge=lfs -text
+title/title.xcf filter=lfs diff=lfs merge=lfs -text
