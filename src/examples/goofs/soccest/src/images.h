@@ -1,0 +1,46 @@
+//images.h
+//Loading of images in soccer game
+//Bryan E. Topp <betopp@betopp.com> 2025
+#ifndef IMAGES_H
+#define IMAGES_H
+
+//Names of all images
+typedef enum images_file_e
+{
+	IMF_NONE = 0,
+	
+	IMF_TITLE_AAA,
+		IMF_TITLE_BG,
+		IMF_TITLE_LOGO,
+		IMF_TITLE_START,
+		IMF_TITLE_BALL,
+	IMF_TITLE_ZZZ,
+	
+	IMF_MAINMENU_AAA,
+		IMF_MAINMENU_BG,
+		IMF_MAINMENU_BALL,
+		IMF_MAINMENU_ITEM1,
+		IMF_MAINMENU_ITEM2,
+		IMF_MAINMENU_ITEM3,
+		IMF_MAINMENU_ITEMBG,
+		IMF_MAINMENU_TITLE,
+	IMF_MAINMENU_ZZZ,
+	
+	IMF_MAX
+	
+} images_file_t;
+	
+//Purges all loaded images
+void images_purge(void);
+
+//Loads an image
+void images_load(images_file_t fn);
+
+//Loads a range of images
+void images_loadrange(images_file_t min, images_file_t max);
+
+//Blends an image onto the screen
+void images_draw(images_file_t fn, int x, int y);
+
+#endif //IMAGES_H
+
