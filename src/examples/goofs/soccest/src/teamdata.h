@@ -15,6 +15,7 @@
 //Max teams tracked in a game
 #define TEAMDATA_MAXTEAMS 16
 
+//Stats about one player on a team
 typedef struct persondata_s
 {
 	char name[2][TEAMDATA_NAMEBUF]; //given and family name
@@ -37,6 +38,7 @@ typedef struct persondata_s
 	int salary; //How much they are paid each season
 } persondata_t;
 
+//Stats about a team
 typedef struct teamdata_s
 {
 	//Identity
@@ -60,6 +62,7 @@ typedef struct teamdata_s
 	
 } teamdata_t;
 
+//Stats about a league (i.e. a saved game)
 typedef struct leaguedata_s
 {
 	//Name of savegame
@@ -73,10 +76,16 @@ typedef struct leaguedata_s
 	
 } leaguedata_t;
 
+//Structure of savegame
 typedef struct nvm_s
 {
 	leaguedata_t leagues[4];
 } nvm_t;
 
+//Basically-constant phony savegame used for quick matches
+extern leaguedata_t leaguedata_quick;
+
+//Generates fresh league data for starting a new game
+void leaguedata_generate(leaguedata_t *out);
 
 #endif //TEAMDATA_H

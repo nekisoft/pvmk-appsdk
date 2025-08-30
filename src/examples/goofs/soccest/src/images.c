@@ -24,6 +24,11 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_MAINMENU_ITEM3] = "screens/mainmenu/item3.png",
 	[IMF_MAINMENU_ITEMBG] = "screens/mainmenu/itembg.png",
 	[IMF_MAINMENU_TITLE] = "screens/mainmenu/title.png",
+	
+	[IMF_TEAMSELECT_BG] = "screens/teamselect/bg.png",
+	[IMF_TEAMSELECT_HEADERS] = "screens/teamselect/headers.png",
+	[IMF_TEAMSELECT_LOGO] = "screens/teamselect/logo.png",
+	[IMF_TEAMSELECT_SHIRTS] = "screens/teamselect/shirts.png",
 };
 
 //Information about each file if loaded
@@ -72,9 +77,9 @@ void images_load(images_file_t fn)
 	for(int pp = 0; pp < (xx*yy); pp++)
 	{
 		uint16_t rgb565 = 0;
-		rgb565 |= ((data[ (pp*4) + 0 ]) >> 3) <<  0;
+		rgb565 |= ((data[ (pp*4) + 2 ]) >> 3) <<  0;
 		rgb565 |= ((data[ (pp*4) + 1 ]) >> 2) <<  5;
-		rgb565 |= ((data[ (pp*4) + 2 ]) >> 3) << 11;
+		rgb565 |= ((data[ (pp*4) + 0 ]) >> 3) << 11;
 		if(data[ (pp*4) + 3 ] < 127)
 			rgb565 = 0;
 		else if(rgb565 == 0)

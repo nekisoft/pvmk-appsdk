@@ -5,6 +5,7 @@
 #include "screen_title.h"
 #include "images.h"
 #include "fbs.h"
+#include "pads.h"
 
 void screen_title(void)
 {
@@ -18,5 +19,8 @@ void screen_title(void)
 		images_draw(IMF_TITLE_START, 300, 300);
 		images_draw(IMF_TITLE_BALL, 64, 300);
 		fbs_flip();
+		
+		if(pads_edge(PAD_ANY) & BTNBIT_START)
+			break;
 	}
 }

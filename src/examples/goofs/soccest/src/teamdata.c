@@ -169,3 +169,5 @@ void leaguedata_generate(leaguedata_t *output)
 	(void)output;
 	
 }
+
+leaguedata_t leaguedata_quick;
