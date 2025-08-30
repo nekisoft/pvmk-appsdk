@@ -22,9 +22,9 @@ typedef struct persondata_s
 	uint8_t look; //Some bits of appearance
 	uint8_t height; //Height, cm
 	uint8_t mass; //Mass, kg
-	uint8_t runspeed; //Normal running speed m/s
-	uint8_t sprintspeed; //Sprinting speed m/s
-	uint8_t ballspeed; //Dribbling speed m/s
+	uint8_t runspeed; //Normal running speed cm/s
+	uint8_t sprintspeed; //Sprinting speed cm/s
+	uint8_t ballspeed; //Dribbling speed cm/s
 	uint8_t staminamax; //Max stamina amount
 	uint8_t staminarecover; //How quickly stamina recovers
 	uint8_t kickpower; //How strong they kick the ball/players

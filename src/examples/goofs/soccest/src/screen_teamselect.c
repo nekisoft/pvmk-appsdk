@@ -18,6 +18,7 @@ void screen_teamselect(const leaguedata_t *league)
 	images_purge();
 	images_loadrange(IMF_TEAMSELECT_AAA, IMF_TEAMSELECT_ZZZ);
 	
+	int select_side = 0;
 	while(1)
 	{
 		images_draw(IMF_TEAMSELECT_BG, 0, 0);
@@ -25,14 +26,32 @@ void screen_teamselect(const leaguedata_t *league)
 		images_draw(IMF_TEAMSELECT_LOGO, 200, 10);
 		images_draw(IMF_TEAMSELECT_SHIRTS, 10, 10);
 		
-		font_draw("Bullsbrook", 0xBEEF, 60, 240);
-		font_draw("Bin-Chickens", 0xBEEF, 60, 270);
+		uint16_t throb_table[16] = 
+		{
+			0x1082 *  8, 0x1082 *  9, 0x1082 * 10, 0x1082 * 11,
+			0x1082 * 12, 0x1082 * 13, 0x1082 * 14, 0x1082 * 15,
+			0x1082 * 15, 0x1082 * 14, 0x1082 * 13, 0x1082 * 12,
+			0x1082 * 11, 0x1082 * 10, 0x1082 *  9, 0x1082 *  8,
+		};
+		uint16_t throb_color = throb_table[((_sc_getticks() / 16) % 16)];
+		uint16_t plain_color = 0xBEEF;
 		
-		font_draw("Cockburn", 0xBEEF, 410, 240);
-		font_draw("Cockatoos", 0xBEEF, 410, 270);
+		uint16_t leftcolor = (select_side == 0) ? throb_color : plain_color;
+		uint16_t rightcolor = (select_side == 1) ? throb_color : plain_color;
+		
+		font_draw("Bullsbrook", leftcolor, 60, 240);
+		font_draw("Bin-Chickens", leftcolor, 60, 270);
+		
+		font_draw("Cockburn", rightcolor, 410, 240);
+		font_draw("Cockatoos", rightcolor, 410, 270);
 		
 		fbs_flip();
 		
+		uint16_t presses = pads_edge(PAD_ANY);
+		if(presses & BTNBIT_LEFT)
+			select_side = 0;
+		if(presses & BTNBIT_RIGHT)
+			select_side = 1;
 	}
 	
 	(void)league;

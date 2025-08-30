@@ -2,6 +2,115 @@
 //Generates team data
 
 #include "teamdata.h"
+#include "statfunc.h"
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+
+const char *names_forename[] = 
+{
+	"Aaron", "Adam", "Adrian", "Alan", "Alana", "Albert", "Alex", "Alexander", "Alexandra", "Ali", "Alice", 
+	"Alicia", "Alison", "Alistair", "Allan", "Allen", "Allison", "Amanda", "Amber", "Amy", "Andre", "Andrea",
+	"Andrew", "Angela", "Angie", "Anita", "Ann", "Anna", "Anne", "Annette", "Annie", "Anthony", "Anton", 
+	"Antonio", "Arthur", "Ashleigh", "Ashley", "Audrey", "Barbara", "Barry", "Belinda", "Benjamin", "Bernadette",
+	"Bernard", "Bernie", "Beth", "Betty", "Bev", "Beverley", "Bianca", "Bill", "Blake", "Bob", "Boer", "Brad",
+	"Bradley", "Brenda", "Brendan", "Brendon", "Brent", "Brett", "Brian", "Bridget", "Bronwyn", "Brooke", "Bruce",
+	"Bryan", "Caitlin", "Cameron", "Carl", "Carly", "Carmel", "Carol", "Carole", "Caroline", "Carolyn", "Casey",
+	"Cassandra", "Catherine", "Cathy", "Chad", "Charles", "Charlie", "Charlotte", "Charmaine", "Cherie", "Cheryl",
+	"Chloe", "Chris", "Christian", "Christina", "Christine", "Christopher", "Cindy", "Claire", "Clare", "Clayton",
+	"Cliff", "Clint", "Clinton", "Clive", "Colin", "Colleen", "Corey", "Courtney", "Craig", "Cynthia", "Dale", 
+	"Damian", "Damien", "Dan", "Daniel", "Danielle", "Danny", "Darren", "Darryl", "Daryl", "David", "Dawn",
+	"Dean", "Deb", "Debbie", "Deborah", "Debra", "Dee", "Denis", "Denise", "Dennis", "Derek", "Des", "Diana", 
+	"Diane", "Dianne", "Dominic", "Don", "Donald", "Donna", "Donne", "Dorothy", "Doug", "Douglas", "Drew", 
+	"Duncan", "Dylan", "Eddie", "Edward", "Eileen", "Elaine", "Elizabeth", "Emily", "Emma", "Eric", "Erica", 
+	"Erin", "Eugene", "Eva", "Evan", "Felicity", "Fiona", "Fran", "Frances", "Francis", "Frank", "Fred", "Gail", 
+	"Gareth", "Garry", "Gary", "Gavin", "Gemma", "Geoff", "Geoffrey", "George", "Georgia", "Georgina", 
+	"Geraldine", "Gerard", "Gerry", "Gillian", "Gina", "Glen", "Glenda", "Glenn", "Gordon", "Grace", "Graeme", 
+	"Graham", "Grant", "Greg", "Gregory", "Guy", "Hannah", "Hans", "Harry", "Hayden", "Hayley", "Hazel", 
+	"Heather", "Heidi", "Helen", "Henry", "Holly", "Hugh", "Iain", "Ian", "Ingrid", "Irene", "Ivan", "Jack", 
+	"Jackie", "Jacob", "Jacqueline", "Jacqui", "Jade", "Jake", "James", "Jamie", "Jan", "Jane", "Janelle",
+	"Janet", "Janice", "Janine", "Jared", "Jarrad", "Jasmine", "Jason", "Jay", "Jayne", "Jean", "Jeanette", 
+	"Jeff", "Jeffrey", "Jen", "Jenni", "Jennifer", "Jenny", "Jeremy", "Jess", "Jesse", "Jessica", "Jessie", 
+	"Jill", "Jim", "Jo", "Joan", "Joanna", "Joanne", "Jodi", "Jodie", "Jody", "Joe", "Joel", "John", "Jon", 
+	"Jonathan", "Jones", "Jordan", "Joseph", "Josephine", "Josh", "Joshua", "Joy", "Joyce", "Judith", "Judy",
+	"Julia", "Julian", "Julie", "June", "Justin", "Justine", "Karen", "Karl", "Kate", "Katherine", "Kathleen",
+	"Kathryn", "Kathy", "Katie", "Katrina", "Kay", "Kaye", "Keith", "Kellie", "Kelly", "Kelvin", "Ken", "Kenneth",
+	"Kerry", "Kevin", "Kieran", "Kim", "Kimberley", "Kirsten", "Kirsty", "Kris", "Kristy", "Kyle", "Kylie", "Kym", 
+	"Lance", "Lara", "Larry", "Laura", "Lauren", "Laurie", "Lawrence", "Leah", "Leanne", "Leao", "Lee", "Leigh", 
+	"Len", "Leon", "Leonie", "Les", "Lesley", "Leslie", "Liam", "Libby", "Linda", "Lindsay", "Lisa", "Lloyd",
+	"Lorna", "Lorraine", "Louis", "Louise", "Lucy", "Luke", "Lyn", "Lynda", "Lynette", "Lynn", "Lynne", "Maggie",
+	"Mal", "Malcolm", "Mandy", "Marc", "Marcus", "Maree", "Margaret", "Maria", "Marie", "Marilyn", "Marina", 
+	"Mario", "Marion", "Mark", "Martin", "Mary", "Mathew", "Matt", "Matthew", "Maureen", "Maurice", "Max", 
+	"Megan", "Mel", "Melanie", "Melinda", "Melissa", "Michael", "Michele", "Michelle", "Mick", "Mitch", 
+	"Mitchell", "Mohammad", "Monica", "Monique", "Murray", "Nadia", "Nadine", "Naomi", "Narelle", "Natalie", 
+	"Natasha", "Nathan", "Neil", "Neville", "Nic", "Nicholas", "Nick", "Nicky", "Nicola", "Nicole", "Nigel", 
+	"Nikki", "Nina", "Noel", "Norman", "Oliver", "Olivia", "Owen", "Pam", "Pamela", "Pat", "Patrica", "Patricia",
+	"Patrick", "Paul", "Paula", "Pauline", "Penny", "Peta", "Peter", "Phil", "Philip", "Phillip", "Rachael", 
+	"Rachel", "Ralph", "Ray", "Raymond", "Rebecca", "Renae", "Renee", "Rex", "Rhonda", "Rhys", "Ric", "Richard",
+	"Rick", "Ricky", "Rita", "Robert", "Robin", "Robyn", "Rod", "Rodney", "Roger", "Ron", "Ronald", "Rory", 
+	"Rosa", "Rose", "Rosemary", "Ross", "Roy", "Russell", "Ruth", "Ryan", "Sally", "Sam", "Samantha", "Samuel",
+	"Sandra", "Sandy", "Sara", "Sarah", "Scott", "Sean", "Shane", "Shannon", "Sharon", "Shaun", "Shelley", 
+	"Shirley", "Simon", "Simone", "Smith", "Sonia", "Sophie", "Stacey", "Stefan", "Stephanie", "Stephen", 
+	"Steven", "Stewart", "Stuart", "Sue", "Susan", "Suzanne", "Sylvia", "Tamara", "Tammy", "Tania", "Tanya", 
+	"Tara", "Ted", "Teresa", "Terri", "Terry", "Thomas", "Tim", "Timothy", "Tina", "Todd", "Toni", "Tony", 
+	"Tracey", "Tracy", "Travis", "Trent", "Trevor", "Trish", "Tristan", "Troy", "Val", "Valerie", "Vanessa", 
+	"Veronica", "Vicki", "Vicky", "Victor", "Victoria", "Vince", "Vincent", "Wade", "Walter", "Warren", "Wayne",
+	"Wendy", "Will", "William", "Yvonne", "Zoe", 
+};
+
+
+const char *names_surname[] = 
+{
+	"Abbott", "Adams", "Aitken", "Alexander", "Allan", "Allen", "Anderson", "Andrew", "Andrews", "Anthony", 
+	"Archer", "Armstrong", "Arnold", "Ashworth", "Atkins", "Atkinson", "Austin", "Bailey", "Baker", "Ball", 
+	"Banks", "Barber", "Barker", "Barnes", "Barnett", "Barr", "Barrett", "Barry", "Bartlett", "Barton", "Bates",
+	"Baxter", "Beard", "Bell", "Bennett", "Benson", "Bentley", "Berry", "Best", "Birch", "Bird", "Bishop",
+	"Black", "Blair", "Blake", "Bolton", "Bond", "Booth", "Bowden", "Bowen", "Bowman", "Boyd", "Boyle", "Bradley",
+	"Bradshaw", "Brady", "Bray", "Brennan", "Briggs", "Brooks", "Brown", "Browne", "Bruce", "Bryant", "Buchanan",
+	"Buckley", "Bull", "Burgess", "Burke", "Burnett", "Burns", "Burrows", "Burton", "Butcher", "Butler", "Byrne",
+	"Cahill", "Cameron", "Campbell", "Carey", "Carr", "Carroll", "Carter", "Casey", "Chambers", "Chan", 
+	"Chandler", "Chapman", "Chen", "Chin", "Chong", "Christie", "Clark", "Clarke", "Clayton", "Clements",
+	"Clifford", "Clifton", "Cole", "Coleman", "Coles", "Collins", "Connolly", "Connor", "Cook", "Cooke",
+	"Cooper", "Cox", "Craig", "Crane", "Crawford", "Cross", "Cullen", "Cunningham", "Currie", "Curtis",
+	"Dale", "Daly", "Daniel", "Daniels", "Davey", "Davidson", "Davies", "Davis", "Dawson", "Day", "Dean", 
+	"Dennis", "Dickson", "Dillon", "Dixon", "Dodd", "Doherty", "Donaldson", "Donnelly", "Donovan", "Douglas", 
+	"Dowling", "Doyle", "Duffy", "Duncan", "Dunn", "Dwyer", "Dyer", "Dyson", "Eaton", "Edmonds", "Edwards", 
+	"Egan", "Elliott", "Ellis", "Emery", "English", "Evans", "Farmer", "Farrell", "Faulkner", "Ferguson", "Field",
+	"Fisher", "FitzGerald", "FitzPatrick", "Fleay", "Fleming", "Fletcher", "Flynn", "Foley", "Forbes", "Ford", 
+	"Forrest", "Foster", "Fowler", "Fox", "Francis", "Franklin", "Fraser", "Freeman", "French", "Frost", "Fry",
+	"Fuller", "Gale", "Gallagher", "Gardiner", "Gardner", "George", "Gibbs", "Gibson", "Gilbert", "Giles", "Gill",
+	"Gillespie", "Goddard", "Godfrey", "Goh", "Goodwin", "Gordon", "Gould", "Graham", "Grant", "Gray", "Green", 
+	"Gregory", "Griffin", "Griffiths", "Hall", "Hamilton", "Hammond", "Hancock", "Hansen", "Hanson", "Harding",
+	"Hardy", "Harper", "Harris", "Harrison", "Hart", "Hartley", "Harvey", "Harwood", "Hawkins", "Hay", "Hayes",
+	"Haynes", "Hayward", "Healy", "Heath", "Henderson", "Henry", "Herbert", "Hewitt", "Hicks", "Higgins", "Hill",
+	"Hills", "Ho", "Hobbs", "Hodges", "Hodgson", "Hogan", "Holland", "Holmes", "Holt", "Hooper", "Hopkins", 
+	"Horton", "Howard", "Howe", "Howell", "Hudson", "Hughes", "Hunt", "Hunter", "Hutchinson", "Hutton", "Hyde",
+	"Ingram", "Ireland", "Italiano", "Jackson", "Jacobs", "James", "Jamieson", "Jarvis", "Jeffery", "Jenkins",
+	"Jennings", "Jensen", "John", "Johns", "Johnson", "Johnston", "Johnstone", "Jones", "Jordan", "Joyce", 
+	"Kay", "Keenan", "Kelly", "Kemp", "Kennedy", "Kenny", "Kent", "Kerr", "Kim", "King", "Kirk", "Knight", 
+	"Kumar", "Lam", "Lamb", "Lambert", "Lane", "Lang", "Law", "Lawrence", "Lawson", "Le", "Leach", "Lee", 
+	"Lewis", "Li", "Lim", "Lin", "Lindsay", "Little", "Liu", "Lloyd", "Logan", "Long", "Love", "Low", "Lowe", 
+	"Lucas", "Lynch", "Lyons", "MacDonald", "MacKay", "MacKenzie", "Maher", "Mann", "Manning", "Marsh", 
+	"Marshall", "Martin", "Mason", "Masters", "Matthews", "Maxwell", "May", "McCarthy", "McDonald", "McGrath",
+	"McGregor", "McKay", "McKenna", "McKenzie", "McLean", "McLeod", "McMahon", "McNamara", "Middleton", "Miles",
+	"Millar", "Miller", "Mills", "Milne", "Mitchell", "Moore", "Morgan", "Morris", "Morrison", "Morton", "Moss",
+	"Muir", "Munro", "Murphy", "Murray", "Nash", "Nelson", "Newman", "Newton", "Ng", "Nguyen", "Nicholas", 
+	"Nicholls", "Nichols", "Nicholson", "Noble", "Norman", "Norris", "O'Brien", "O'Connor", "O'Donnell", 
+	"O'Neill", "O'Sullivan", "Oliver", "Ong", "Osborne", "Owen", "Page", "Palmer", "Park", "Parker", "Parry",
+	"Parsons", "Pascoe", "Patel", "Paterson", "Patterson", "Paul", "Payne", "Pearce", "Pearson", "Pereira", 
+	"Perkins", "Perry", "Peters", "Phillips", "Pike", "Pollard", "Poole", "Porter", "Potter", "Powell", "Power",
+	"Pratt", "Price", "Pritchard", "Quinn", "Read", "Reed", "Rees", "Reeves", "Reid", "Reynolds", "Rhodes", 
+	"Rice", "Richards", "Richardson", "Riley", "Ritchie", "Roberts", "Robertson", "Robinson", "Robson", 
+	"Rodgers", "Rogers", "Rose", "Ross", "Rowe", "Russell", "Ryan", "Sanders", "Saunders", "Savage", "Scott",
+	"Shah", "Sharp", "Sharpe", "Shaw", "Shepherd", "Simmons", "Simpson", "Sims", "Sinclair", "Singh", "Skinner",
+	"Slater", "Smart", "Smith", "Spencer", "Stanley", "Steele", "Stephens", "Stevens", "Stevenson", "Stewart", 
+	"Stokes", "Stone", "Stuart", "Sullivan", "Sutherland", "Sutton", "Tan", "Taylor", "Thomas", "Thompson", 
+	"Thomson", "Thornton", "Todd", "Townsend", "Tran", "Tucker", "Turner", "Vincent", "Walker", "Wall", 
+	"Wallace", "Wallis", "Walsh", "Walters", "Walton", "Wang", "Ward", "Warner", "Warren", "Waters", 
+	"Watkins", "Watson", "Watt", "Watts", "Webb", "Webster", "Weir", "Wells", "West", "Weston", "Wheeler",
+	"White", "Whyte", "Wilkins", "Wilkinson", "Williams", "Williamson", "Willis", "Wilson", "Winter", "Wong",
+	"Wood", "Woods", "Woodward", "Wright", "Yates", "Young", "Zhang"
+};
 
 const char *names_mammal[] = 
 {
@@ -163,11 +272,69 @@ const char *names_city[] =
 	"YOUNDEGIN", "YOUNGS SIDING", "YUNA"
 };
 
+void persondata_generate(persondata_t *output)
+{
+	memset(output,0, sizeof(*output));
+	
+	int fore = statfunc_rand_32b() % (sizeof(names_forename)/sizeof(names_forename[0]));
+	int sur = statfunc_rand_32b() % (sizeof(names_surname)/sizeof(names_surname[0]));
+	snprintf(output->name[0], sizeof(output->name[0])-1, "%s", names_forename[fore]);
+	snprintf(output->name[1], sizeof(output->name[1])-1, "%s", names_surname[sur]);
+	
+	output->height = statfunc_gauss_8b(170, 8);
+	output->mass = statfunc_gauss_8b(65, 10);
+
+	output->runspeed = statfunc_gauss_8b(106, 40);
+	output->sprintspeed = statfunc_gauss_8b(160, 43);
+	output->ballspeed = statfunc_gauss_8b(100, 40);	
+	if(output->ballspeed + 5 > output->runspeed)
+		output->ballspeed = output->runspeed - 5;
+	if(output->sprintspeed - 5 < output->runspeed)
+		output->sprintspeed = output->runspeed + 5;
+
+	output->staminamax = statfunc_gauss_8b(100, 10);
+	output->staminarecover = statfunc_gauss_8b(100, 10);
+	
+	output->kickpower = statfunc_gauss_8b(100, 10);
+	output->accuracy = statfunc_gauss_8b(100, 10);
+	output->throwpower = statfunc_gauss_8b(100, 10);
+	
+	output->dive = statfunc_gauss_8b(100, 10);
+	output->eyesight = statfunc_gauss_8b(100, 10);
+	output->reaction = statfunc_gauss_8b(100, 10);
+	
+	output->hpmax = statfunc_gauss_8b(100, 10);
+	output->hprecover = statfunc_gauss_8b(100, 10);
+	
+	output->salary = 0;
+	output->salary += output->height * output->mass;
+	output->salary += output->kickpower * output->accuracy;
+	output->salary += output->hpmax * output->staminamax;
+	output->salary += statfunc_gauss_8b(100, 100);
+	
+	output->look = statfunc_rand_8b();
+	
+}
+
+void teamdata_generate(teamdata_t *output)
+{
+	memset(output, 0, sizeof(*output));
+	
+	for(unsigned pp = 0; pp < sizeof(output->persons)/sizeof(output->persons[0]); pp++)
+	{
+		persondata_generate(&(output->persons[pp]));
+	}
+}
+
 
 void leaguedata_generate(leaguedata_t *output)
 {
-	(void)output;
+	memset(output, 0, sizeof(*output));
 	
+	for(unsigned tt = 0; tt < sizeof(output->teams)/sizeof(output->teams[0]); tt++)
+	{
+		teamdata_generate(&(output->teams[tt]));
+	}
 }
 
 leaguedata_t leaguedata_quick;
