@@ -9,6 +9,7 @@ typedef enum screen_mainmenu_result_e
 	SCREEN_MAINMENU_RESULT_QUICK,
 	SCREEN_MAINMENU_RESULT_LEAGUE,
 	SCREEN_MAINMENU_RESULT_SCORES,
+	SCREEN_MAINMENU_RESULT_TITLE,
 } screen_mainmenu_result_t;
 screen_mainmenu_result_t screen_mainmenu(void);
 

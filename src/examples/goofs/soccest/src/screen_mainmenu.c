@@ -66,5 +66,7 @@ screen_mainmenu_result_t screen_mainmenu(void)
 			if(selected == 3)
 				return SCREEN_MAINMENU_RESULT_SCORES;
 		}
+		if(presses & BTNBIT_B)
+			return SCREEN_MAINMENU_RESULT_TITLE;
 	}
 }
