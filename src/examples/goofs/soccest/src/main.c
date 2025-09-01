@@ -5,6 +5,7 @@
 #include "screen_title.h"
 #include "screen_mainmenu.h"
 #include "screen_teamselect.h"
+#include "screen_padteams.h"
 
 #include "teamdata.h"
 
@@ -22,7 +23,13 @@ int main(int argc, const char **argv)
 		screen_mainmenu_result_t mainmenu_result = screen_mainmenu();
 		if(mainmenu_result == SCREEN_MAINMENU_RESULT_QUICK)
 		{
-			screen_teamselect(&leaguedata_quick);
+			if(screen_teamselect(&leaguedata_quick))
+			{
+				if(screen_padteams())
+				{
+					
+				}
+			}
 		}
 		else if(mainmenu_result == SCREEN_MAINMENU_RESULT_LEAGUE)
 		{

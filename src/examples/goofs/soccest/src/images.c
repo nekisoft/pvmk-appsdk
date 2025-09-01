@@ -12,23 +12,31 @@
 //Filenames for each image
 static const char *images_file_names[IMF_MAX] = 
 {
-	[IMF_TITLE_BG] = "screens/title/bg.png",
-	[IMF_TITLE_LOGO] = "screens/title/logo.png",
+	[IMF_TITLE_BG]    = "screens/title/bg.png",
+	[IMF_TITLE_LOGO]  = "screens/title/logo.png",
 	[IMF_TITLE_START] = "screens/title/start.png",
-	[IMF_TITLE_BALL] = "screens/title/ball.png",
+	[IMF_TITLE_BALL]  = "screens/title/ball.png",
 	
-	[IMF_MAINMENU_BG] = "screens/mainmenu/bg.png",
-	[IMF_MAINMENU_BALL] = "screens/mainmenu/ball.png",
-	[IMF_MAINMENU_ITEM1] = "screens/mainmenu/item1.png",
-	[IMF_MAINMENU_ITEM2] = "screens/mainmenu/item2.png",
-	[IMF_MAINMENU_ITEM3] = "screens/mainmenu/item3.png",
+	[IMF_MAINMENU_BG]     = "screens/mainmenu/bg.png",
+	[IMF_MAINMENU_BALL]   = "screens/mainmenu/ball.png",
+	[IMF_MAINMENU_ITEM1]  = "screens/mainmenu/item1.png",
+	[IMF_MAINMENU_ITEM2]  = "screens/mainmenu/item2.png",
+	[IMF_MAINMENU_ITEM3]  = "screens/mainmenu/item3.png",
 	[IMF_MAINMENU_ITEMBG] = "screens/mainmenu/itembg.png",
-	[IMF_MAINMENU_TITLE] = "screens/mainmenu/title.png",
+	[IMF_MAINMENU_TITLE]  = "screens/mainmenu/title.png",
 	
-	[IMF_TEAMSELECT_BG] = "screens/teamselect/bg.png",
+	[IMF_TEAMSELECT_BG]      = "screens/teamselect/bg.png",
 	[IMF_TEAMSELECT_HEADERS] = "screens/teamselect/headers.png",
-	[IMF_TEAMSELECT_LOGO] = "screens/teamselect/logo.png",
-	[IMF_TEAMSELECT_SHIRTS] = "screens/teamselect/shirts.png",
+	[IMF_TEAMSELECT_LOGO]    = "screens/teamselect/logo.png",
+	[IMF_TEAMSELECT_SHIRTS]  = "screens/teamselect/shirts.png",
+	
+	[IMF_PADTEAMS_BG]      = "screens/padteams/bg.png",
+	[IMF_PADTEAMS_RED]     = "screens/padteams/red.png",
+	[IMF_PADTEAMS_BLUE]    = "screens/padteams/blue.png",
+	[IMF_PADTEAMS_TEAMS]   = "screens/padteams/teams.png",
+	[IMF_PADTEAMS_LETTERS] = "screens/padteams/letters.png",
+	[IMF_PADTEAMS_HEAD]    = "screens/padteams/head.png",
+	[IMF_PADTEAMS_PAD]     = "screens/padteams/pad.png",
 };
 
 //Information about each file if loaded
