@@ -40,7 +40,7 @@ int font_draw(const char *str, uint16_t color, int x, int y)
 	{
 		int ww = font_draw_char(*str, color, x, y);
 		if(str[0] == ' ' && str[1] != '\0')
-			ww = 16;
+			ww = 12;
 		
 		str++;
 		x += ww;

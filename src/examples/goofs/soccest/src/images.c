@@ -37,6 +37,12 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_PADTEAMS_LETTERS] = "screens/padteams/letters.png",
 	[IMF_PADTEAMS_HEAD]    = "screens/padteams/head.png",
 	[IMF_PADTEAMS_PAD]     = "screens/padteams/pad.png",
+	
+	[IMF_MATCHOPT_BG]     = "screens/matchopt/bg.png",
+	[IMF_MATCHOPT_CHALK]  = "screens/matchopt/chalk.png",
+	[IMF_MATCHOPT_ERASER] = "screens/matchopt/eraser.png",
+	[IMF_MATCHOPT_TITLE]  = "screens/matchopt/title.png",
+	[IMF_MATCHOPT_VUVU]   = "screens/matchopt/vuvu.png",
 };
 
 //Information about each file if loaded

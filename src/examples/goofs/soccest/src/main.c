@@ -6,6 +6,7 @@
 #include "screen_mainmenu.h"
 #include "screen_teamselect.h"
 #include "screen_padteams.h"
+#include "screen_matchopt.h"
 
 #include "teamdata.h"
 
@@ -17,6 +18,7 @@ typedef enum nextscreen_e
 	NS_TEAMSELECT,
 	NS_PADTEAMS,
 	NS_MATCHOPT,
+	NS_MATCH,
 	NS_MAX
 } nextscreen_t;
 nextscreen_t nextscreen = 0;
@@ -83,6 +85,20 @@ int main(int argc, const char **argv)
 				else
 				{
 					nextscreen = NS_TEAMSELECT;
+				}
+			}
+			break;
+			case NS_MATCHOPT:
+			{
+				int tl = screen_teamselect_getteam(0);
+				int tr = screen_teamselect_getteam(1);
+				if(screen_matchopt(&leaguedata_quick, tl, tr))
+				{
+					nextscreen = NS_MATCH;
+				}
+				else
+				{
+					nextscreen = NS_PADTEAMS;
 				}
 			}
 			break;

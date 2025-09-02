@@ -44,6 +44,8 @@ bool screen_padteams(void)
 		uint16_t presses = pads_edge(PAD_ANY);
 		if(presses & BTNBIT_B)
 			return false;
+		if(presses & BTNBIT_START)
+			return true;
 		
 		for(int pp = 0; pp < 4; pp++)
 		{
