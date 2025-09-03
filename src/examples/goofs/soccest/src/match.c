@@ -4,8 +4,12 @@
 
 #include <sc.h>
 
+#include "match.h"
+
 #include "teamdata.h"
 #include "fbs.h"
+#include "pads.h"
+#include "font.h"
 
 #include "stb_image.h"
 #include <string.h>
@@ -58,28 +62,48 @@ void drawpitch(void)
 {
 	for(int yy = 0; yy < 480; yy++)
 	{
-		int32_t ycoord = cam_radius * PITCHTEX_DIM/16 * (yy) / (1024 - yy);
-		//ycoord += cam_center[1] + (cam_radius * PITCHTEX_DIM);
+		uint16_t *fbrow = &(fbs[fbs_next][yy][0]);
+		
+		int32_t dy = 240 - yy;
+		int32_t depth = 1024 + yy;
+		int32_t texy = cam_radius * (PITCHTEX_DIM/16) * dy / depth;
+		texy += cam_center[1] ;
+		
+		uint32_t ycoord = texy + (PITCHTEX_DIM*128);
+		
+		if(ycoord < 0 || ycoord >= (PITCHTEX_DIM<<8))
+		{
+			memset(fbrow, 0, 640*2);
+			continue;
+		}
 		
 		uint16_t *texrow = &(pitchtex[ (ycoord >> 8) % PITCHTEX_DIM ][0]);
-		uint16_t *fbrow = &(fbs[fbs_next][479-yy][0]);
+		
 		int32_t texfrac = ((PITCHTEX_DIM/2)*256) + cam_center[0];
 		int32_t texstep = cam_radius * PITCHTEX_DIM / 65536;
 		texstep *= 1024;
-		texstep /= (1024 - yy);
+		texstep /= depth;
 		texfrac -= texstep * 320;
 		for(int xx = 0; xx < 640; xx++)
 		{
-			fbrow[xx] = texrow[ (texfrac >> 8) % PITCHTEX_DIM];
+			if(texfrac < 0 || texfrac >= (PITCHTEX_DIM<<8))
+				fbrow[xx] = 0;
+			else
+				fbrow[xx] = texrow[ (texfrac >> 8) % PITCHTEX_DIM];
+		
 			texfrac += texstep;
+			
+			//if((texfrac>>8)==((PITCHTEX_DIM/2)+(cam_center[0]>>8)))
+			//	fbrow[xx] = 0xFFFF;
+			
+			//if((ycoord>>8)==((PITCHTEX_DIM/2)+(cam_center[1]>>8)))
+			//	fbrow[xx] = 0xFFFF;
 		}
 	}
 }
 
-int match(int argc, const char **argv)
+void match(void)
 {
-	(void)argc;
-	(void)argv;
 
 	printf("nvm size %d\n", (int)sizeof(nvm_t));
 	
@@ -88,26 +112,36 @@ int match(int argc, const char **argv)
 	cam_center[0] = 0;
 	cam_center[1] = 0;
 	
-	cam_radius = 8 * 256;
+	cam_radius = 8192;
 	
 	
 	while(1)
 	{
 		drawpitch();
+		
+		char txtbuf[256];
+		snprintf(txtbuf, sizeof(txtbuf)-1, "%8d %8d", cam_radius,cam_center[1]);
+		font_draw(txtbuf, 0x8000,0,0);
+		
+		
+		
 		fbs_flip();
 		
-		int buttons = 0;
-		_sc_input_t ii = {0};
-		while(_sc_input(&ii, sizeof(ii), sizeof(ii)) > 0)
-		{
-			if(ii.format == 'A')
-				buttons = ii.buttons;
-		}
 		
-		if(buttons & _SC_BTNBIT_UP)
-			cam_radius++;
-		if(buttons & _SC_BTNBIT_DOWN)
-			cam_radius--;
+		if(pads[PAD_A] & _SC_BTNBIT_UP)
+			cam_center[1] += 640;
+		if(pads[PAD_A] & _SC_BTNBIT_DOWN)
+			cam_center[1] -= 640;
+		if(pads[PAD_A] & _SC_BTNBIT_LEFT)
+			cam_center[0] -= 640;
+		if(pads[PAD_A] & _SC_BTNBIT_RIGHT)
+			cam_center[0] += 640;
+		if(pads[PAD_A] & BTNBIT_A)
+			cam_radius += 10;
+		if(pads[PAD_A] & BTNBIT_B)
+			cam_radius -= 10;
+		if(pads[PAD_A] & BTNBIT_MODE)
+			return;
 	}
 	
 }

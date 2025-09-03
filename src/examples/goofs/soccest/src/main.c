@@ -8,6 +8,8 @@
 #include "screen_padteams.h"
 #include "screen_matchopt.h"
 
+#include "match.h"
+
 #include "teamdata.h"
 
 typedef enum nextscreen_e
@@ -102,6 +104,12 @@ int main(int argc, const char **argv)
 				}
 			}
 			break;
+			case NS_MATCH:
+			{
+				match();
+				nextscreen = NS_MAINMENU;
+				break;
+			}
 			default:
 			{
 				nextscreen = NS_TITLE;
