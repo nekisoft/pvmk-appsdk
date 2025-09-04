@@ -43,6 +43,8 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_MATCHOPT_ERASER] = "screens/matchopt/eraser.png",
 	[IMF_MATCHOPT_TITLE]  = "screens/matchopt/title.png",
 	[IMF_MATCHOPT_VUVU]   = "screens/matchopt/vuvu.png",
+	
+	[IMF_CARD_CONE]       = "cards/cone.png",
 };
 
 //Information about each file if loaded
@@ -155,3 +157,51 @@ void images_draw(images_file_t fn, int x, int y)
 	
 }
 
+void images_card(images_file_t fn, int x, int y, int height)
+{
+	if(images_info[fn].pixels == NULL)
+		return;
+	
+	//Assume image scales 1:1 - compute width given desired height
+	int image_height = images_info[fn].y;
+	int image_width = images_info[fn].x;
+	int width = image_width * height / image_height;
+	
+	//2D bresenham to scale the image
+	int yfrac = 0;
+	uint16_t *image_line = images_info[fn].pixels;
+	for(int yy = y - height; yy < y; yy++)
+	{
+		yfrac += image_height;
+		while(yfrac > height)
+		{
+			image_line += images_info[fn].x;
+			yfrac -= height;
+		}
+		
+		if(yy < 0)
+			continue;
+		if(yy >= SCREENY)
+			break;
+		
+		int xfrac = 0;
+		uint16_t *image_pixel = image_line;
+		for(int xx = x - (width/2); xx < x + (width/2); xx++)
+		{
+			xfrac += image_width;
+			while(xfrac > width)
+			{
+				image_pixel++;
+				xfrac -= width;
+			}
+			
+			if(xx < 0)
+				continue;
+			if(xx >= SCREENX)
+				break;
+			
+			if(*image_pixel)
+				BACKBUF[yy][xx] = *image_pixel;
+		}
+	}
+}

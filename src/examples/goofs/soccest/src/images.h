@@ -51,6 +51,10 @@ typedef enum images_file_e
 		IMF_MATCHOPT_VUVU,
 	IMF_MATCHOPT_ZZZ,
 	
+	IMF_CARD_AAA,
+		IMF_CARD_CONE,
+	IMF_CARD_ZZZ,
+	
 	IMF_MAX
 	
 } images_file_t;
@@ -66,6 +70,9 @@ void images_loadrange(images_file_t min, images_file_t max);
 
 //Blends an image onto the screen
 void images_draw(images_file_t fn, int x, int y);
+
+//Draws a scaled image, x and y specifying bottom-center
+void images_card(images_file_t fn, int x, int y, int height);
 
 #endif //IMAGES_H
 

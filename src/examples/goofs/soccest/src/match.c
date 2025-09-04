@@ -10,6 +10,7 @@
 #include "fbs.h"
 #include "pads.h"
 #include "font.h"
+#include "images.h"
 
 #include "stb_image.h"
 #include <string.h>
@@ -66,8 +67,8 @@ void drawpitch(void)
 		
 		int32_t dy = 240 - yy;
 		int32_t depth = 1024 + yy;
-		int32_t texy = cam_radius * (PITCHTEX_DIM/16) * dy / depth;
-		texy += cam_center[1] ;
+		int32_t texy = cam_radius * (PITCHTEX_DIM/4) * dy / depth;
+		texy += cam_center[1] / 3;
 		
 		uint32_t ycoord = texy + (PITCHTEX_DIM*128);
 		
@@ -79,8 +80,8 @@ void drawpitch(void)
 		
 		uint16_t *texrow = &(pitchtex[ (ycoord >> 8) % PITCHTEX_DIM ][0]);
 		
-		int32_t texfrac = ((PITCHTEX_DIM/2)*256) + cam_center[0];
-		int32_t texstep = cam_radius * PITCHTEX_DIM / 65536;
+		int32_t texfrac = ((PITCHTEX_DIM/2)*256) + (cam_center[0]/4);
+		int32_t texstep = cam_radius * PITCHTEX_DIM / 8192;
 		texstep *= 1024;
 		texstep /= depth;
 		texfrac -= texstep * 320;
@@ -93,13 +94,25 @@ void drawpitch(void)
 		
 			texfrac += texstep;
 			
-			//if((texfrac>>8)==((PITCHTEX_DIM/2)+(cam_center[0]>>8)))
-			//	fbrow[xx] = 0xFFFF;
+			if((texfrac>>8)==((PITCHTEX_DIM/2)+(cam_center[0]>>10)))
+				fbrow[xx] = 0xFFFF;
 			
-			//if((ycoord>>8)==((PITCHTEX_DIM/2)+(cam_center[1]>>8)))
-			//	fbrow[xx] = 0xFFFF;
+			if((ycoord>>8)==((PITCHTEX_DIM/2)+((cam_center[1]/3)>>8)))
+				fbrow[xx] = 0xFFFF;
 		}
 	}
+}
+
+//Draws sprite with the given virtual (worldspace) x, y, height
+//x and y are center-of-bottom coordinates
+//vx, vy, vh in 24.8 fixed-point centimeters (meters * 100 * 256)
+void drawcard(images_file_t imf, int vx, int vy, int vh)
+{	
+	int sy = ((cam_radius * (PITCHTEX_DIM/4) * 240) - (vy * 1024 / 3) + (1024 * cam_center[1] / 3) ) / ((cam_radius * (PITCHTEX_DIM/4)) + (vy/3)  + (-cam_center[1] / 3));
+	int sx = 320 +  (((vx - cam_center[0]) / cam_radius) * (1024+sy) / (1024));
+	int sh = vh * (1024 + sy) / cam_radius / 256;
+	sy+=(sh/8);	
+	images_card(imf, sx, sy, sh);
 }
 
 void match(void)
@@ -109,11 +122,13 @@ void match(void)
 	
 	pitchtex_load();
 	
-	cam_center[0] = 0;
-	cam_center[1] = 0;
+	cam_center[0] = 0;//800*256; //cm 24.8
+	cam_center[1] = 0;//800*256; //cm 24.8
 	
-	cam_radius = 8192;
+	cam_radius = 800; //cm
 	
+	images_purge();
+	images_loadrange(IMF_CARD_AAA, IMF_CARD_ZZZ);
 	
 	while(1)
 	{
@@ -123,6 +138,12 @@ void match(void)
 		snprintf(txtbuf, sizeof(txtbuf)-1, "%8d %8d", cam_radius,cam_center[1]);
 		font_draw(txtbuf, 0x8000,0,0);
 		
+		
+		drawcard(IMF_CARD_CONE, 0, 0, 50*256);
+		drawcard(IMF_CARD_CONE, 800*256, 0, 50*256);
+		drawcard(IMF_CARD_CONE, -800*256, 0, 50*256);
+		drawcard(IMF_CARD_CONE, 0, 800*256, 50*256);
+		drawcard(IMF_CARD_CONE, 0, -800*256, 50*256);
 		
 		
 		fbs_flip();
