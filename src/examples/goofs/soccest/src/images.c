@@ -45,6 +45,11 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_MATCHOPT_VUVU]   = "screens/matchopt/vuvu.png",
 	
 	[IMF_CARD_CONE]       = "cards/cone.png",
+	[IMF_CARD_BALL0]       = "cards/ball0.png",
+	[IMF_CARD_BALL1]       = "cards/ball1.png",
+	[IMF_CARD_BALL2]       = "cards/ball2.png",
+	[IMF_CARD_BALL3]       = "cards/ball3.png",
+	[IMF_CARD_BALLSH]      = "cards/ballsh.png",
 };
 
 //Information about each file if loaded

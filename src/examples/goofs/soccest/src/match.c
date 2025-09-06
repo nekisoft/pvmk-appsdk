@@ -15,6 +15,27 @@
 #include "stb_image.h"
 #include <string.h>
 
+
+//Pitch-space (0,0 at center of pitch) where camera looks - centimeters 24.8
+int32_t cam_center[2];
+
+//Horizontal extent of camera at center of screen - centimeters 24.8
+int32_t cam_radius;
+
+//Velocity of camera
+int32_t cam_vel[2];
+
+
+//Position of ball on pitch - centimeters 24.8
+int32_t ball_pos[3];
+
+//Velocity of ball - cm/s 24.8
+int32_t ball_vel[3];
+
+//Ball animation with fraction towards the next frame - xx.8
+int32_t ball_frame;
+
+
 #define PITCHTEX_DIM 2048
 #define PITCHTEX_DIM_LOG2 11
 uint16_t pitchtex[PITCHTEX_DIM][PITCHTEX_DIM];
@@ -45,19 +66,6 @@ void pitchtex_load(void)
 	}
 }
 
-
-//int32_t cam_scroll[2];
-//int32_t cam_zoom;
-//void cam_project(int32_t *out2, int32_t *in3)
-//{
-//	
-//}
-
-//Pitch-space (0,0 at center of pitch) where camera looks
-int32_t cam_center[2];
-
-//Horizontal extent of camera at center of screen - .8
-int32_t cam_radius;
 
 void drawpitch(void)
 {
@@ -91,14 +99,14 @@ void drawpitch(void)
 				fbrow[xx] = 0;
 			else
 				fbrow[xx] = texrow[ (texfrac >> 8) % PITCHTEX_DIM];
-		
+			
 			texfrac += texstep;
 			
-			if((texfrac>>8)==((PITCHTEX_DIM/2)+(cam_center[0]>>10)))
-				fbrow[xx] = 0xFFFF;
+			//if((texfrac>>8)==((PITCHTEX_DIM/2)+(cam_center[0]>>10)))
+			//	fbrow[xx] = 0xFFFF;
 			
-			if((ycoord>>8)==((PITCHTEX_DIM/2)+((cam_center[1]/3)>>8)))
-				fbrow[xx] = 0xFFFF;
+			//if((ycoord>>8)==((PITCHTEX_DIM/2)+((cam_center[1]/3)>>8)))
+			//	fbrow[xx] = 0xFFFF;
 		}
 	}
 }
@@ -106,13 +114,126 @@ void drawpitch(void)
 //Draws sprite with the given virtual (worldspace) x, y, height
 //x and y are center-of-bottom coordinates
 //vx, vy, vh in 24.8 fixed-point centimeters (meters * 100 * 256)
-void drawcard(images_file_t imf, int vx, int vy, int vh)
+void drawcard(images_file_t imf, int vx, int vy, int vz, int vh)
 {	
-	int sy = ((cam_radius * (PITCHTEX_DIM/4) * 240) - (vy * 1024 / 3) + (1024 * cam_center[1] / 3) ) / ((cam_radius * (PITCHTEX_DIM/4)) + (vy/3)  + (-cam_center[1] / 3));
-	int sx = 320 +  (((vx - cam_center[0]) / cam_radius) * (1024+sy) / (1024));
-	int sh = vh * (1024 + sy) / cam_radius / 256;
+	int vy_rel = vy - cam_center[1];
+	int vx_rel = vx - cam_center[0];
+	int vz_rel = vz;
+	
+	int sy = 1024 * ((cam_radius * 360) - vy_rel ) / ((cam_radius * 1536) + vy_rel);	
+	int sx = 320 +  (vx_rel * (1024 + sy) / (cam_radius * 1024));
+	int sh =        (    vh * (1024 + sy) / (cam_radius * 1024));
+	
+	sy -= vz_rel * 100 / (141*256); //not really correct but whatever
+	
 	sy+=(sh/8);	
 	images_card(imf, sx, sy, sh);
+}
+
+//Runs at 100hz to simulate match
+void match_tick(void)
+{
+	//Temp - let player slap that ball around
+	if(pads[PAD_A] & _SC_BTNBIT_UP)
+		ball_vel[1] += 1000;
+	if(pads[PAD_A] & _SC_BTNBIT_DOWN)
+		ball_vel[1] -= 1000;
+	if(pads[PAD_A] & _SC_BTNBIT_LEFT)
+		ball_vel[0] -= 1000;
+	if(pads[PAD_A] & _SC_BTNBIT_RIGHT)
+		ball_vel[0] += 1000;
+	if(pads[PAD_A] & BTNBIT_A)
+		cam_radius += 10;
+	if(pads[PAD_A] & BTNBIT_B)
+		cam_radius -= 10;
+	if(pads[PAD_A] & BTNBIT_C)
+		ball_vel[2] = 20000;
+	
+	
+	
+	//Add gravity to ball velocity
+	ball_vel[2] -= (980 * 256) / 100;
+	
+	//Decay horizontal ball velocity if on ground
+	if(ball_pos[2] < 256)
+	{
+		ball_vel[0] *= 255;
+		ball_vel[0] /= 256;
+		ball_vel[1] *= 255;
+		ball_vel[1] /= 256;
+	}
+	
+	//Accumulate ball velocity into ball position
+	ball_pos[0] += ball_vel[0] / 100;
+	ball_pos[1] += ball_vel[1] / 100;
+	ball_pos[2] += ball_vel[2] / 100;
+	
+	//Animate ball spinning
+	ball_frame += ball_vel[0] / 1000;
+	ball_frame += ball_vel[1] / 1000;
+	
+	//Bounce ball off sides of pitch
+	for(int dd = 0; dd < 2; dd++)
+	{
+		int32_t pitch_extents[2] = 
+		{
+			(105 * 100 * 256) / 2,
+			(68 * 100 * 256) / 2,
+		};
+		
+		if(ball_pos[dd] < -pitch_extents[dd])
+		{
+			ball_pos[dd] = -pitch_extents[dd];
+			if(ball_vel[dd] < 0)
+				ball_vel[dd] *= -1;
+		}
+		if(ball_pos[dd] > pitch_extents[dd])
+		{
+			ball_pos[dd] = pitch_extents[dd];
+			if(ball_vel[dd] > 0)
+				ball_vel[dd] *= -1;
+		}
+	}
+	
+	//Bounce ball off the floor
+	if(ball_pos[2] < 0)
+	{
+		ball_pos[2] = 0;
+		if(ball_vel[2] < 0)
+		{
+			if(ball_vel[2] < -100)
+			{
+				ball_vel[2] *= -1;
+				ball_vel[2] *= 7;
+				ball_vel[2] /= 8;
+				ball_vel[2] *= 7;
+				ball_vel[2] /= 8;
+			}
+			else
+			{
+				ball_vel[2] = 0;
+			}
+		}
+	}
+	
+	//Accelerate camera movement towards ball
+	for(int dd = 0; dd < 2; dd++)
+	{
+		int veldiff = ball_vel[dd] - cam_vel[dd];
+		int posdiff = ball_pos[dd] - cam_center[dd];
+		
+		cam_vel[dd] += veldiff / 100;
+		cam_vel[dd] += posdiff / 100;
+	}
+	
+	//Accumulate camera
+	cam_center[0] += cam_vel[0] / 100;
+	cam_center[1] += cam_vel[1] / 100;
+	
+	//Todo - camera radius feedback... maybe track multiple points?
+	if(cam_radius < 100)
+		cam_radius = 100;
+	
 }
 
 void match(void)
@@ -130,39 +251,45 @@ void match(void)
 	images_purge();
 	images_loadrange(IMF_CARD_AAA, IMF_CARD_ZZZ);
 	
+	int last_sim = _sc_getticks();
 	while(1)
 	{
+		//Draw the world
 		drawpitch();
 		
 		char txtbuf[256];
 		snprintf(txtbuf, sizeof(txtbuf)-1, "%8d %8d", cam_radius,cam_center[1]);
 		font_draw(txtbuf, 0x8000,0,0);
 		
+		//Draw cones to test scale of projection
+		drawcard(IMF_CARD_CONE, 0, 0, 0, 100*256);
+		drawcard(IMF_CARD_CONE, 800*256, 0, 0, 100*256);
+		drawcard(IMF_CARD_CONE, -800*256, 0, 0, 100*256);
+		drawcard(IMF_CARD_CONE, 0, 800*256, 0, 100*256);
+		drawcard(IMF_CARD_CONE, 0, -800*256, 0, 100*256);
 		
-		drawcard(IMF_CARD_CONE, 0, 0, 50*256);
-		drawcard(IMF_CARD_CONE, 800*256, 0, 50*256);
-		drawcard(IMF_CARD_CONE, -800*256, 0, 50*256);
-		drawcard(IMF_CARD_CONE, 0, 800*256, 50*256);
-		drawcard(IMF_CARD_CONE, 0, -800*256, 50*256);
-		
+		//Draw ball shadow + ball
+		drawcard(IMF_CARD_BALLSH, ball_pos[0], ball_pos[1], -256*5, 16*256);
+		drawcard(IMF_CARD_BALL0 + ((ball_frame >> 8) & 0x3u), ball_pos[0], ball_pos[1], ball_pos[2], 24*256);
 		
 		fbs_flip();
 		
-		
-		if(pads[PAD_A] & _SC_BTNBIT_UP)
-			cam_center[1] += 640;
-		if(pads[PAD_A] & _SC_BTNBIT_DOWN)
-			cam_center[1] -= 640;
-		if(pads[PAD_A] & _SC_BTNBIT_LEFT)
-			cam_center[0] -= 640;
-		if(pads[PAD_A] & _SC_BTNBIT_RIGHT)
-			cam_center[0] += 640;
-		if(pads[PAD_A] & BTNBIT_A)
-			cam_radius += 10;
-		if(pads[PAD_A] & BTNBIT_B)
-			cam_radius -= 10;
+		//Allow quitting (temp)
 		if(pads[PAD_A] & BTNBIT_MODE)
 			return;
+		
+		//Simulate at 100hz
+		int ticknow = _sc_getticks();
+		if( ticknow < (last_sim - 10) || ticknow > (last_sim + 1000) )
+		{
+			//Reset timing, something bad happened
+			last_sim = ticknow - 1;
+		}
+		while(last_sim < ticknow)
+		{
+			match_tick();
+			last_sim += 10;
+		}
 	}
 	
 }
