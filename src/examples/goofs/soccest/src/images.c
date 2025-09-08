@@ -44,6 +44,12 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_MATCHOPT_TITLE]  = "screens/matchopt/title.png",
 	[IMF_MATCHOPT_VUVU]   = "screens/matchopt/vuvu.png",
 	
+	[IMF_MATCH_READY]     = "screens/match/ready.png",
+	[IMF_MATCH_GOAL0]     = "screens/match/goal0.png",
+	[IMF_MATCH_GOAL1]     = "screens/match/goal1.png",
+	[IMF_MATCH_GOAL2]     = "screens/match/goal2.png",
+	[IMF_MATCH_GOAL3]     = "screens/match/goal3.png",
+	
 	[IMF_CARD_CONE]        = "cards/cone.png",
 	[IMF_CARD_BALL0]       = "cards/ball0.png",
 	[IMF_CARD_BALL1]       = "cards/ball1.png",
