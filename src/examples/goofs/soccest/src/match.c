@@ -35,6 +35,9 @@ int32_t ball_vel[3];
 //Ball animation with fraction towards the next frame - xx.8
 int32_t ball_frame;
 
+//Location of goalposts
+int32_t goalpost_pos[4][3];
+
 
 #define PITCHTEX_DIM 2048
 #define PITCHTEX_DIM_LOG2 11
@@ -124,7 +127,7 @@ void drawcard(images_file_t imf, int vx, int vy, int vz, int vh)
 	int sx = 320 +  (vx_rel * (1024 + sy) / (cam_radius * 1024));
 	int sh =        (    vh * (1024 + sy) / (cam_radius * 1024));
 	
-	sy -= vz_rel * 100 / (141*256); //not really correct but whatever
+	sy -=           (vz_rel * (1024 + sy) / (cam_radius * (1024))); //not really correct but whatever
 	
 	sy+=(sh/8);	
 	images_card(imf, sx, sy, sh);
@@ -241,12 +244,38 @@ void match(void)
 
 	printf("nvm size %d\n", (int)sizeof(nvm_t));
 	
-	pitchtex_load();
-	
 	cam_center[0] = 0;//800*256; //cm 24.8
 	cam_center[1] = 0;//800*256; //cm 24.8
 	
 	cam_radius = 800; //cm
+	
+	ball_pos[0] = 0;
+	ball_pos[1] = 0;
+	ball_pos[2] = 0;
+	
+	int goalwidth = 732 * 256; //Spacing between goal posts
+	int goalheight = 244 * 256; //Height of goal top beam
+	int goaldist = 39*100*256; //Distance from center of field to goal line
+	
+	goalpost_pos[0][0] = goaldist;
+	goalpost_pos[0][1] = goalwidth / 2;
+	goalpost_pos[0][2] = 0;
+	
+	goalpost_pos[1][0] = goaldist;
+	goalpost_pos[1][1] = -goalwidth / 2;
+	goalpost_pos[1][2] = 0;
+	
+	goalpost_pos[2][0] = -goaldist;
+	goalpost_pos[2][1] = -goalwidth / 2;
+	goalpost_pos[2][2] = 0;
+	
+	goalpost_pos[3][0] = -goaldist;
+	goalpost_pos[3][1] = goalwidth / 2;
+	goalpost_pos[3][2] = 0;
+	
+	
+	
+	pitchtex_load();
 	
 	images_purge();
 	images_loadrange(IMF_CARD_AAA, IMF_CARD_ZZZ);
@@ -271,6 +300,43 @@ void match(void)
 		//Draw ball shadow + ball
 		drawcard(IMF_CARD_BALLSH, ball_pos[0], ball_pos[1], -256*5, 16*256);
 		drawcard(IMF_CARD_BALL0 + ((ball_frame >> 8) & 0x3u), ball_pos[0], ball_pos[1], ball_pos[2], 24*256);
+		
+		//Draw goalposts
+		for(int pp = 0; pp < 4; pp++)
+		{
+			drawcard(IMF_CARD_GOALPOST, 
+				goalpost_pos[pp][0], goalpost_pos[pp][1], goalpost_pos[pp][2], 
+				goalheight);
+			
+			int bump = 100 * ((goalpost_pos[pp][0] > 0) ? 256 : -256);
+			
+			drawcard(IMF_CARD_GOALSIDE,
+				goalpost_pos[pp][0] + bump, goalpost_pos[pp][1], goalpost_pos[pp][2], 
+				goalheight);
+		}
+		
+		//Draw goal crossbeams
+		for(int gg = 0; gg < 2; gg++)
+		{
+			int pos[3];
+			int step[3];
+			pos[0] = goalpost_pos[ (gg*2) + 0 ][0];
+			pos[1] = goalpost_pos[ (gg*2) + 0 ][1];
+			pos[2] = goalpost_pos[ (gg*2) + 0 ][2] + goalheight;
+			step[0] = (goalpost_pos[ (gg*2) + 1 ][0] - pos[0]) / 16;
+			step[1] = (goalpost_pos[ (gg*2) + 1 ][1] - pos[1]) / 16;
+			step[2] = (goalpost_pos[ (gg*2) + 1 ][2] + goalheight - pos[2]) / 16;
+			
+			pos[2] -= 64*256;
+			
+			for(int ss = 0; ss <= 16; ss++)
+			{
+				drawcard(IMF_CARD_GOALTOP, pos[0], pos[1], pos[2], 32*256);
+				pos[0] += step[0];
+				pos[1] += step[1];
+				pos[2] += step[2];
+			}
+		}
 		
 		fbs_flip();
 		
