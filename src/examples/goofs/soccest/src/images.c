@@ -59,6 +59,7 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_CARD_GOALPOST]    = "cards/goalpost.png",
 	[IMF_CARD_GOALTOP]     = "cards/goaltop.png",
 	[IMF_CARD_GOALSIDE]    = "cards/goalside.png",
+	[IMF_CARD_SPHERE]      = "cards/sphere.png",
 };
 
 //Information about each file if loaded

@@ -73,6 +73,84 @@ static void hideall(void)
 	memset(match_uipart_visible, 0, sizeof(match_uipart_visible));
 }
 
+//Parts of person graphic
+typedef enum part_idx_e
+{
+	PA_NONE = 0,
+	PA_HEAD,
+	PA_SHOULDERS,
+	PA_TORSO,
+	PA_HIPS,
+	PA_LEGL0,
+	PA_LEGL1,
+	PA_LEGR0,
+	PA_LEGR1,
+	PA_FOOTL,
+	PA_FOOTR,
+	PA_ARML0,
+	PA_ARML1,
+	PA_ARMR0,
+	PA_ARMR1,
+	PA_MAX
+} part_idx_t;
+typedef struct part_s
+{
+	images_file_t imf; //Image file index
+	int vh; //Virtual height, cm 24.8
+	//todo - maybe alternates/rotations/whatever
+} part_t;
+static const part_t part_table[PA_MAX] = 
+{
+	[PA_HEAD]      = { .imf = IMF_CARD_SPHERE, .vh = 18*256 },
+	[PA_SHOULDERS] = { .imf = IMF_CARD_SPHERE, .vh = 45*256 },
+	[PA_TORSO]     = { .imf = IMF_CARD_SPHERE, .vh = 48*256 },
+	[PA_HIPS]      = { .imf = IMF_CARD_SPHERE, .vh = 32*256 },
+	[PA_LEGL0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+	[PA_LEGL1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+	[PA_LEGR0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+	[PA_LEGR1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+	[PA_FOOTL]     = { .imf = IMF_CARD_SPHERE, .vh = 10*256 },
+	[PA_FOOTR]     = { .imf = IMF_CARD_SPHERE, .vh = 10*256 },
+	[PA_ARML0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+	[PA_ARML1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+	[PA_ARMR0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+	[PA_ARMR1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
+};
+
+//Frames of animation that persons can be in
+typedef enum anim_idx_e
+{
+	AN_NONE = 0,
+	AN_STAND,
+	AN_MAX
+} anim_idx_t;
+typedef struct anim_s
+{
+	part_idx_t rel;
+	int32_t pos[3];
+} anim_t;
+static anim_t anim_table[AN_MAX][PA_MAX] = 
+{
+	[AN_STAND] = 
+	{
+		[PA_HEAD]      = { .rel = PA_SHOULDERS, .pos = { 0,       0,  19*256 } },
+		[PA_SHOULDERS] = { .rel = PA_TORSO,     .pos = { 0,       0,  24*256 } },
+		[PA_TORSO]     = { .rel = 0,            .pos = { 0,       0, 120*256 } },
+		[PA_HIPS]      = { .rel = PA_TORSO,     .pos = { 0,       0, -24*256 } },
+		[PA_LEGL0]     = { .rel = PA_HIPS,      .pos = { 0,  10*256, -24*256 } },
+		[PA_LEGL1]     = { .rel = PA_LEGL0,     .pos = { 0,       0, -48*256 } },
+		[PA_LEGR0]     = { .rel = PA_HIPS,      .pos = { 0, -10*256, -24*256 } },
+		[PA_LEGR1]     = { .rel = PA_LEGR0,     .pos = { 0,       0, -48*256 } },
+		[PA_FOOTL]     = { .rel = PA_LEGL1,     .pos = { 0,       0, -48*256 } },
+		[PA_FOOTR]     = { .rel = PA_LEGR1,     .pos = { 0,       0, -48*256 } },
+		[PA_ARML0]     = { .rel = PA_SHOULDERS, .pos = { 0,   8*256, -24*256 } },
+		[PA_ARML1]     = { .rel = PA_ARML0,     .pos = { 0,       0, -24*256 } },
+		[PA_ARMR0]     = { .rel = PA_SHOULDERS, .pos = { 0,  -8*256, -24*256 } },
+		[PA_ARMR1]     = { .rel = PA_ARMR0,     .pos = { 0,       0, -24*256 } },
+	},
+	
+};
+
 //Pitch-space (0,0 at center of pitch) where camera looks - centimeters 24.8
 static int32_t cam_center[2];
 
@@ -99,6 +177,22 @@ static const int goaldist = 39*100*256; //Distance from center of field to goal 
 
 //Location of goalposts
 static int32_t goalpost_pos[4][3];
+
+//Information about a player on the field
+typedef struct person_s
+{
+	int32_t pos[3];
+	int32_t vel[3];
+	anim_idx_t anim;
+	int animticks;
+} person_t;
+person_t person_table[2][11];
+
+//Which team each gamepad belongs to
+int pad_team[4];
+
+//Which person on the team each gamepad is controlling
+int pad_person[4];
 
 //Loads pitch (grass) texture
 #define PITCHTEX_DIM 2048
@@ -195,6 +289,22 @@ static void drawcard(images_file_t imf, int vx, int vy, int vz, int vh)
 	images_card(imf, sx, sy, sh);
 }
 
+//Draws person composed of many cards
+static void drawperson(anim_idx_t anim, int facing, int vx, int vy, int vz)
+{
+	for(int pp = 0; pp < PA_MAX; pp++)
+	{
+		int32_t partpos[3] = { vx, vy, vz };
+		
+		(void)facing;
+		partpos[0] += anim_table[anim][pp].pos[0];
+		partpos[1] += anim_table[anim][pp].pos[1];
+		partpos[2] += anim_table[anim][pp].pos[2];
+		
+		drawcard(part_table[pp].imf, partpos[0], partpos[1], partpos[2], part_table[pp].vh);
+	}
+}
+
 //Draws UI element - "GOAL" overlay
 static void match_uipart_draw_goal(void)
 {
@@ -229,6 +339,7 @@ match_uipart_drawfn_t match_uipart_drawfns[UI_MAX] =
 	[UI_GOAL] = &match_uipart_draw_goal,
 	[UI_READY] = &match_uipart_draw_ready,
 };
+
 
 //Draws all the "3d view" elements at the current camera position.
 void drawworld(void)
@@ -289,6 +400,16 @@ void drawworld(void)
 			pos[2] += step[2];
 		}
 	}	
+	
+	//Draw players
+	for(int tt = 0; tt < 2; tt++)
+	{
+		for(int pp = 0; pp < 11; pp++)
+		{
+			const person_t *pptr = &(person_table[tt][pp]);
+			drawperson(AN_STAND, 0, pptr->pos[0], pptr->pos[1], pptr->pos[2]);
+		}
+	}
 }
 
 //Triggers a goal
@@ -389,6 +510,31 @@ void sim_cam_toball(void)
 		cam_radius = 100;
 }
 
+//Simulates closeup camera for a single gamepad's person
+void sim_cam_topad(int pad)
+{
+	person_t *pptr = &(person_table[pad_team[pad]][pad_person[pad]]);
+	
+	//Accelerate camera movement towards ball
+	for(int dd = 0; dd < 2; dd++)
+	{
+		int veldiff = pptr->vel[dd] - cam_vel[dd];
+		int posdiff = pptr->pos[dd] - cam_center[dd];
+		
+		cam_vel[dd] += veldiff / 100;
+		cam_vel[dd] += posdiff / 100;
+	}
+	
+	//Accumulate camera
+	cam_center[0] += cam_vel[0] / 100;
+	cam_center[1] += cam_vel[1] / 100;
+	
+	//Todo - camera radius feedback... maybe track multiple points?
+	if(cam_radius < 100)
+		cam_radius = 100;	
+	
+}
+
 //Simulates goals for one tick, checking if a goal was scored
 void sim_goals(void)
 {
@@ -404,6 +550,105 @@ void sim_goals(void)
 			goal(1);
 		}
 	}
+}
+
+//Simulates a person using gamepad input
+void sim_person_pad(int team, int person, int pad)
+{
+	person_t *pptr = &(person_table[team][person]);
+	
+	if(pads[pad] & BTNBIT_LEFT)
+		pptr->vel[0] -= 200;
+	if(pads[pad] & BTNBIT_RIGHT)
+		pptr->vel[0] += 200;
+	if(pads[pad] & BTNBIT_UP)
+		pptr->vel[1] += 200;
+	if(pads[pad] & BTNBIT_DOWN)
+		pptr->vel[1] -= 200;
+	
+}
+
+//Simulates a person using CPU behaviour
+void sim_person_cpu(int team, int person)
+{
+	(void)team;
+	(void)person;
+}
+
+//Simulates all persons on the field
+void sim_persons(void)
+{
+	//Don't let two gamepads control the same person
+	for(int ii = 0; ii < 4; ii++)
+	{
+		for(int jj = ii + 1; jj < 4; jj++)
+		{
+			if(pad_team[ii] == pad_team[jj])
+			{
+				if(pad_person[ii] == pad_person[jj])
+				{
+					pad_person[jj] = pad_person[jj] + 1;
+					if(pad_person[jj] >= 11)
+						pad_person[jj] = 0;
+				}
+			}
+		}
+	}
+	
+	//Iterate through all and either let the gamepad control them or run their AI, then advance physics
+	for(int tt = 0; tt < 2; tt++)
+	{
+		for(int pp = 0; pp < 11; pp++)
+		{
+			//Check if a gamepad is controlling this person
+			int controlling_pad = -1;
+			for(int pad = 0; pad < 4; pad++)
+			{
+				if(pad_team[pad] == tt && pad_person[pad] == pp)
+					controlling_pad = pad;
+			}
+			if(controlling_pad == -1)
+			{
+				//CPU controlled. Run CPU behaviour.
+				sim_person_cpu(tt, pp);
+			}
+			else
+			{
+				//Gamepad controlled. Run input handler.
+				sim_person_pad(tt, pp, controlling_pad);
+			}
+			
+			//Run common updates...
+			person_t *pptr = &(person_table[tt][pp]);
+			
+			//Apply gravity
+			pptr->vel[2] -= (980*256) / 100;
+			
+			//Accumulate velocity into position
+			pptr->pos[0] += pptr->vel[0] / 100;
+			pptr->pos[1] += pptr->vel[1] / 100;
+			pptr->pos[2] += pptr->vel[2] / 100;
+			
+			//Land firm on ground
+			if(pptr->pos[2] < 0)
+			{
+				pptr->pos[2] = 0;
+				pptr->vel[2] = 0;
+			}
+			
+			//Decay velocity while on ground
+			if(pptr->pos[2] < 256)
+			{
+				pptr->vel[0] *= 1023;
+				pptr->vel[0] /= 1024;
+				pptr->vel[1] *= 1023;
+				pptr->vel[1] /= 1024;
+			}
+			
+		}
+	}
+	
+	
 }
 
 //Match tick function - introduction sequence
@@ -423,8 +668,10 @@ void match_tick_intro(void)
 //Match tick function - playing
 void match_tick_play(void)
 {
+	sim_persons();
 	sim_ball();
-	sim_cam_toball();
+	//sim_cam_toball();
+	sim_cam_topad(0);
 	sim_goals();
 }
 
@@ -454,6 +701,7 @@ match_state_tickfn_t match_state_tickfns[MS_MAX] =
 //Runs at 100hz to simulate match
 void match_tick(void)
 {
+	//Bail out if we end up in an invalid state
 	if(match_state < 0 || match_state >= MS_MAX)
 	{
 		match_state = MS_DONE;
@@ -464,6 +712,8 @@ void match_tick(void)
 		match_state = MS_DONE;
 		return;
 	}
+	
+	//Run the tick function for the state we're in
 	match_state_ticks++;
 	(*(match_state_tickfns[match_state]))();
 }
@@ -475,6 +725,21 @@ void match(void)
 	images_loadrange(IMF_CARD_AAA, IMF_CARD_ZZZ);
 	images_loadrange(IMF_MATCH_AAA, IMF_MATCH_ZZZ);
 	pitchtex_load();
+	
+	//Flatten animation data so everything is just relative to the model root
+	for(int aa = 0; aa < AN_MAX; aa++)
+	{
+		for(int pass = 0; pass < PA_MAX; pass++)
+		{
+			for(int pp = 0; pp < PA_MAX; pp++)
+			{
+				anim_table[aa][pp].pos[0] += anim_table[aa][anim_table[aa][pp].rel].pos[0];
+				anim_table[aa][pp].pos[1] += anim_table[aa][anim_table[aa][pp].rel].pos[1];
+				anim_table[aa][pp].pos[2] += anim_table[aa][anim_table[aa][pp].rel].pos[2];
+				anim_table[aa][pp].rel = anim_table[aa][anim_table[aa][pp].rel].rel;
+			}
+		}
+	}
 	
 	//Set up match initial state
 	match_state = MS_INTRO;
@@ -503,6 +768,30 @@ void match(void)
 	goalpost_pos[3][0] = -goaldist;
 	goalpost_pos[3][1] = goalwidth / 2;
 	goalpost_pos[3][2] = 0;
+	
+	//Set up all player positions
+	memset(person_table, 0, sizeof(person_table));
+	for(int tt = 0; tt < 2; tt++)
+	{
+		int role = 0;
+		int order = 0;
+		int formation[5] = { 1, 3, 4, 3 };
+		for(int pp = 0; pp < 11; pp++)
+		{
+			person_table[tt][pp].pos[0] = (40 - (role * 10)) * 100 * 256;
+			person_table[tt][pp].pos[1] = ( (2 * order) - formation[role] ) * 5 * 100 * 256;
+			
+			if(tt == 0)
+				person_table[tt][pp].pos[0] *= -1;
+			
+			order++;
+			if(order >= formation[role])
+			{
+				order = 0;
+				role++;
+			}
+		}
+	}
 
 	//Simulate until the match state-machine arrives at DONE...
 	int last_sim = _sc_getticks();

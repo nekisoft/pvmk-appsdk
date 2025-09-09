@@ -69,6 +69,7 @@ typedef enum images_file_e
 		IMF_CARD_GOALPOST,
 		IMF_CARD_GOALTOP,
 		IMF_CARD_GOALSIDE,
+		IMF_CARD_SPHERE,
 	IMF_CARD_ZZZ,
 	
 	IMF_MAX
