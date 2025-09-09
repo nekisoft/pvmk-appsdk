@@ -73,6 +73,12 @@ static int _openatm(int fd, const char *path, int flags, mode_t mode)
 {		
 	(void)flags;
 	
+	if(path == NULL)
+	{
+		errno = EINVAL;
+		return -1;
+	}
+	
 	//If they didn't specify a type of file, default to a "regular file" mode.
 	if((mode & S_IFMT) == 0)
 		mode |= S_IFREG;
