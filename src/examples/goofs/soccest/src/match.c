@@ -12,6 +12,8 @@
 #include "pads.h"
 #include "font.h"
 #include "images.h"
+#include "proj.h"
+#include "chanim.h"
 
 #include "stb_image.h"
 #include <string.h>
@@ -73,83 +75,7 @@ static void hideall(void)
 	memset(match_uipart_visible, 0, sizeof(match_uipart_visible));
 }
 
-//Parts of person graphic
-typedef enum part_idx_e
-{
-	PA_NONE = 0,
-	PA_HEAD,
-	PA_SHOULDERS,
-	PA_TORSO,
-	PA_HIPS,
-	PA_LEGL0,
-	PA_LEGL1,
-	PA_LEGR0,
-	PA_LEGR1,
-	PA_FOOTL,
-	PA_FOOTR,
-	PA_ARML0,
-	PA_ARML1,
-	PA_ARMR0,
-	PA_ARMR1,
-	PA_MAX
-} part_idx_t;
-typedef struct part_s
-{
-	images_file_t imf; //Image file index
-	int vh; //Virtual height, cm 24.8
-	//todo - maybe alternates/rotations/whatever
-} part_t;
-static const part_t part_table[PA_MAX] = 
-{
-	[PA_HEAD]      = { .imf = IMF_CARD_SPHERE, .vh = 18*256 },
-	[PA_SHOULDERS] = { .imf = IMF_CARD_SPHERE, .vh = 45*256 },
-	[PA_TORSO]     = { .imf = IMF_CARD_SPHERE, .vh = 48*256 },
-	[PA_HIPS]      = { .imf = IMF_CARD_SPHERE, .vh = 32*256 },
-	[PA_LEGL0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-	[PA_LEGL1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-	[PA_LEGR0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-	[PA_LEGR1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-	[PA_FOOTL]     = { .imf = IMF_CARD_SPHERE, .vh = 10*256 },
-	[PA_FOOTR]     = { .imf = IMF_CARD_SPHERE, .vh = 10*256 },
-	[PA_ARML0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-	[PA_ARML1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-	[PA_ARMR0]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-	[PA_ARMR1]     = { .imf = IMF_CARD_SPHERE, .vh = 12*256 },
-};
 
-//Frames of animation that persons can be in
-typedef enum anim_idx_e
-{
-	AN_NONE = 0,
-	AN_STAND,
-	AN_MAX
-} anim_idx_t;
-typedef struct anim_s
-{
-	part_idx_t rel;
-	int32_t pos[3];
-} anim_t;
-static anim_t anim_table[AN_MAX][PA_MAX] = 
-{
-	[AN_STAND] = 
-	{
-		[PA_HEAD]      = { .rel = PA_SHOULDERS, .pos = { 0,       0,  19*256 } },
-		[PA_SHOULDERS] = { .rel = PA_TORSO,     .pos = { 0,       0,  24*256 } },
-		[PA_TORSO]     = { .rel = 0,            .pos = { 0,       0, 120*256 } },
-		[PA_HIPS]      = { .rel = PA_TORSO,     .pos = { 0,       0, -24*256 } },
-		[PA_LEGL0]     = { .rel = PA_HIPS,      .pos = { 0,  10*256, -24*256 } },
-		[PA_LEGL1]     = { .rel = PA_LEGL0,     .pos = { 0,       0, -48*256 } },
-		[PA_LEGR0]     = { .rel = PA_HIPS,      .pos = { 0, -10*256, -24*256 } },
-		[PA_LEGR1]     = { .rel = PA_LEGR0,     .pos = { 0,       0, -48*256 } },
-		[PA_FOOTL]     = { .rel = PA_LEGL1,     .pos = { 0,       0, -48*256 } },
-		[PA_FOOTR]     = { .rel = PA_LEGR1,     .pos = { 0,       0, -48*256 } },
-		[PA_ARML0]     = { .rel = PA_SHOULDERS, .pos = { 0,   8*256, -24*256 } },
-		[PA_ARML1]     = { .rel = PA_ARML0,     .pos = { 0,       0, -24*256 } },
-		[PA_ARMR0]     = { .rel = PA_SHOULDERS, .pos = { 0,  -8*256, -24*256 } },
-		[PA_ARMR1]     = { .rel = PA_ARMR0,     .pos = { 0,       0, -24*256 } },
-	},
-	
-};
 
 //Pitch-space (0,0 at center of pitch) where camera looks - centimeters 24.8
 static int32_t cam_center[2];
@@ -183,7 +109,8 @@ typedef struct person_s
 {
 	int32_t pos[3];
 	int32_t vel[3];
-	anim_idx_t anim;
+	int32_t dir;
+	chanim_idx_t anim;
 	int animticks;
 } person_t;
 person_t person_table[2][11];
@@ -270,41 +197,6 @@ static void drawpitch(void)
 	}
 }
 
-//Draws sprite with the given virtual (worldspace) x, y, height
-//x and y are center-of-bottom coordinates
-//vx, vy, vh in 24.8 fixed-point centimeters (meters * 100 * 256)
-static void drawcard(images_file_t imf, int vx, int vy, int vz, int vh)
-{	
-	int vy_rel = vy - cam_center[1];
-	int vx_rel = vx - cam_center[0];
-	int vz_rel = vz;
-	
-	int sy = 1024 * ((cam_radius * 360) - vy_rel ) / ((cam_radius * 1536) + vy_rel);	
-	int sx = 320 +  (vx_rel * (1024 + sy) / (cam_radius * 1024));
-	int sh =        (    vh * (1024 + sy) / (cam_radius * 1024));
-	
-	sy -=           (vz_rel * (1024 + sy) / (cam_radius * (1024))); //not really correct but whatever
-	
-	sy+=(sh/8);	
-	images_card(imf, sx, sy, sh);
-}
-
-//Draws person composed of many cards
-static void drawperson(anim_idx_t anim, int facing, int vx, int vy, int vz)
-{
-	for(int pp = 0; pp < PA_MAX; pp++)
-	{
-		int32_t partpos[3] = { vx, vy, vz };
-		
-		(void)facing;
-		partpos[0] += anim_table[anim][pp].pos[0];
-		partpos[1] += anim_table[anim][pp].pos[1];
-		partpos[2] += anim_table[anim][pp].pos[2];
-		
-		drawcard(part_table[pp].imf, partpos[0], partpos[1], partpos[2], part_table[pp].vh);
-	}
-}
-
 //Draws UI element - "GOAL" overlay
 static void match_uipart_draw_goal(void)
 {
@@ -344,41 +236,38 @@ match_uipart_drawfn_t match_uipart_drawfns[UI_MAX] =
 //Draws all the "3d view" elements at the current camera position.
 void drawworld(void)
 {
+	//Set up projection for projected drawing calls
+	proj_cam(cam_center[0], cam_center[1], 0, cam_radius);
+	
+	//Draw texture-mapped floor
 	drawpitch();
 	
-	char txtbuf[256];
-	//snprintf(txtbuf, sizeof(txtbuf)-1, "%8d %8d", cam_radius,cam_center[1]);
-	//font_draw(txtbuf, 0x8000,0,0);
+	//Project cones to test scale of projection
+	proj_card(IMF_CARD_CONE, 0, 0, 0, 100*256);
+	proj_card(IMF_CARD_CONE, 800*256, 0, 0, 100*256);
+	proj_card(IMF_CARD_CONE, -800*256, 0, 0, 100*256);
+	proj_card(IMF_CARD_CONE, 0, 800*256, 0, 100*256);
+	proj_card(IMF_CARD_CONE, 0, -800*256, 0, 100*256);
 	
-	snprintf(txtbuf, sizeof(txtbuf)-1, "%s: %d", match_state_names[match_state], match_state_ticks);
-	font_draw(txtbuf, 0x8000, 16, 0);
+	//Project ball shadow + ball
+	proj_card(IMF_CARD_BALLSH, ball_pos[0], ball_pos[1], -256*5, 16*256);
+	proj_card(IMF_CARD_BALL0 + ((ball_frame >> 8) & 0x3u), ball_pos[0], ball_pos[1], ball_pos[2], 24*256);
 	
-	//Draw cones to test scale of projection
-	drawcard(IMF_CARD_CONE, 0, 0, 0, 100*256);
-	drawcard(IMF_CARD_CONE, 800*256, 0, 0, 100*256);
-	drawcard(IMF_CARD_CONE, -800*256, 0, 0, 100*256);
-	drawcard(IMF_CARD_CONE, 0, 800*256, 0, 100*256);
-	drawcard(IMF_CARD_CONE, 0, -800*256, 0, 100*256);
-	
-	//Draw ball shadow + ball
-	drawcard(IMF_CARD_BALLSH, ball_pos[0], ball_pos[1], -256*5, 16*256);
-	drawcard(IMF_CARD_BALL0 + ((ball_frame >> 8) & 0x3u), ball_pos[0], ball_pos[1], ball_pos[2], 24*256);
-	
-	//Draw goalposts
+	//Project goalposts
 	for(int pp = 0; pp < 4; pp++)
 	{
-		drawcard(IMF_CARD_GOALPOST, 
+		proj_card(IMF_CARD_GOALPOST, 
 			goalpost_pos[pp][0], goalpost_pos[pp][1], goalpost_pos[pp][2], 
 			goalheight);
 		
 		int bump = 100 * ((goalpost_pos[pp][0] > 0) ? 256 : -256);
 		
-		drawcard(IMF_CARD_GOALSIDE,
+		proj_card(IMF_CARD_GOALSIDE,
 			goalpost_pos[pp][0] + bump, goalpost_pos[pp][1], goalpost_pos[pp][2], 
 			goalheight);
 	}
 	
-	//Draw goal crossbeams
+	//Project goal crossbeams
 	for(int gg = 0; gg < 2; gg++)
 	{
 		int pos[3];
@@ -394,22 +283,34 @@ void drawworld(void)
 		
 		for(int ss = 0; ss <= 16; ss++)
 		{
-			drawcard(IMF_CARD_GOALTOP, pos[0], pos[1], pos[2], 32*256);
+			proj_card(IMF_CARD_GOALTOP, pos[0], pos[1], pos[2], 32*256);
 			pos[0] += step[0];
 			pos[1] += step[1];
 			pos[2] += step[2];
 		}
 	}	
 	
-	//Draw players
+	//Project players
 	for(int tt = 0; tt < 2; tt++)
 	{
 		for(int pp = 0; pp < 11; pp++)
 		{
 			const person_t *pptr = &(person_table[tt][pp]);
-			drawperson(AN_STAND, 0, pptr->pos[0], pptr->pos[1], pptr->pos[2]);
+			chanim(AN_STAND, pptr->dir, pptr->pos[0], pptr->pos[1], pptr->pos[2]);
 		}
 	}
+	
+	//Draw all projected cards
+	proj_draw();
+	
+	
+	//Draw debug text on top
+	char txtbuf[256];
+	//snprintf(txtbuf, sizeof(txtbuf)-1, "%8d %8d", cam_radius,cam_center[1]);
+	//font_draw(txtbuf, 0x8000,0,0);
+	
+	snprintf(txtbuf, sizeof(txtbuf)-1, "%s: %d", match_state_names[match_state], match_state_ticks);
+	font_draw(txtbuf, 0x8000, 16, 0);
 }
 
 //Triggers a goal
@@ -557,6 +458,7 @@ void sim_person_pad(int team, int person, int pad)
 {
 	person_t *pptr = &(person_table[team][person]);
 	
+	//Adjust velocity based on direction input
 	if(pads[pad] & BTNBIT_LEFT)
 		pptr->vel[0] -= 200;
 	if(pads[pad] & BTNBIT_RIGHT)
@@ -566,6 +468,32 @@ void sim_person_pad(int team, int person, int pad)
 	if(pads[pad] & BTNBIT_DOWN)
 		pptr->vel[1] -= 200;
 	
+	//Adjust facing based on direction input
+	int wantangle = pptr->dir;
+	switch(pads[pad] & (BTNBIT_UP | BTNBIT_DOWN | BTNBIT_LEFT | BTNBIT_RIGHT))
+	{
+		case BTNBIT_RIGHT:               wantangle = 8192 * 0; break;
+		case BTNBIT_RIGHT | BTNBIT_UP:   wantangle = 8192 * 1; break;
+		case BTNBIT_UP:                  wantangle = 8192 * 2; break;
+		case BTNBIT_UP | BTNBIT_LEFT:    wantangle = 8192 * 3; break;
+		case BTNBIT_LEFT:                wantangle = 8192 * 4; break;
+		case BTNBIT_LEFT | BTNBIT_DOWN:  wantangle = 8192 * 5; break;
+		case BTNBIT_DOWN:                wantangle = 8192 * 6; break;
+		case BTNBIT_DOWN | BTNBIT_RIGHT: wantangle = 8192 * 7; break;
+		default: break;
+	}
+	
+	int angdiff = ((wantangle - pptr->dir) + 65536) % 65536;
+	if(angdiff > 32768)
+		angdiff = angdiff - 65536;
+
+	pptr->dir += angdiff / 16;
+	
+	//Cap angle
+	if(pptr->dir < 0)
+		pptr->dir += 65536;
+	if(pptr->dir > 65536)
+		pptr->dir -= 65536;
 }
 
 //Simulates a person using CPU behaviour
@@ -644,6 +572,7 @@ void sim_persons(void)
 				pptr->vel[1] *= 1023;
 				pptr->vel[1] /= 1024;
 			}
+			
 			
 		}
 	}
@@ -726,20 +655,6 @@ void match(void)
 	images_loadrange(IMF_MATCH_AAA, IMF_MATCH_ZZZ);
 	pitchtex_load();
 	
-	//Flatten animation data so everything is just relative to the model root
-	for(int aa = 0; aa < AN_MAX; aa++)
-	{
-		for(int pass = 0; pass < PA_MAX; pass++)
-		{
-			for(int pp = 0; pp < PA_MAX; pp++)
-			{
-				anim_table[aa][pp].pos[0] += anim_table[aa][anim_table[aa][pp].rel].pos[0];
-				anim_table[aa][pp].pos[1] += anim_table[aa][anim_table[aa][pp].rel].pos[1];
-				anim_table[aa][pp].pos[2] += anim_table[aa][anim_table[aa][pp].rel].pos[2];
-				anim_table[aa][pp].rel = anim_table[aa][anim_table[aa][pp].rel].rel;
-			}
-		}
-	}
 	
 	//Set up match initial state
 	match_state = MS_INTRO;
@@ -792,6 +707,10 @@ void match(void)
 			}
 		}
 	}
+	
+	//Temphack
+	person_table[0][0].pos[0] = 0;
+	person_table[0][0].pos[1] = 0;
 
 	//Simulate until the match state-machine arrives at DONE...
 	int last_sim = _sc_getticks();

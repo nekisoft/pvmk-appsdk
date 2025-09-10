@@ -135,6 +135,7 @@ void images_loadrange(images_file_t min, images_file_t max)
 
 void images_draw(images_file_t fn, int x, int y)
 {
+	images_load(fn);
 	if(images_info[fn].pixels == NULL)
 		return;
 	
@@ -174,6 +175,7 @@ void images_draw(images_file_t fn, int x, int y)
 
 void images_card(images_file_t fn, int x, int y, int height)
 {
+	images_load(fn);
 	if(images_info[fn].pixels == NULL)
 		return;
 	
