@@ -3,6 +3,7 @@
 //Bryan E. Topp <betopp@betopp.com> 2025
 
 #include "proj.h"
+#include "fbs.h"
 #include <stdlib.h>
 
 //Currently set camera position
@@ -60,7 +61,7 @@ void proj_card(images_file_t imf, int32_t vx8, int32_t vy8, int32_t vz8, int32_t
 	int sx = 320 +  (vx_rel * (1024 + sy) / (proj_camrad * 1024));
 	int sh =        (   vh8 * (1024 + sy) / (proj_camrad * 1024));
 	
-	sy -=           (vz_rel * (1024 + sy) / (proj_camrad * (1024))); //not really correct but whatever
+	sy -=           (vz_rel * (1024 + sy) / (proj_camrad * 1024)); //not really correct but whatever
 	
 	sy+=(sh/8);
 	
@@ -69,6 +70,15 @@ void proj_card(images_file_t imf, int32_t vx8, int32_t vy8, int32_t vz8, int32_t
 		//Whoopsie doodle
 		return;
 	}
+	
+	if(sx < -200)
+		return;
+	if(sx > SCREENX+200)
+		return;
+	if(sy < 0)
+		return;
+	if(sy > SCREENY + sh)
+		return;
 	
 	proj_element_t *eptr = &(proj_element_table[proj_element_used]);
 	eptr->imf = imf;
