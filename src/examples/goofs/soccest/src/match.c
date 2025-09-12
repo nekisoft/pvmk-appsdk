@@ -7,6 +7,7 @@
 
 #include "match.h"
 #include "statfunc.h"
+#include "trigfunc.h"
 #include "teamdata.h"
 #include "fbs.h"
 #include "pads.h"
@@ -296,7 +297,7 @@ void drawworld(void)
 		for(int pp = 0; pp < 11; pp++)
 		{
 			const person_t *pptr = &(person_table[tt][pp]);
-			chanim(AN_STAND, pptr->dir, pptr->pos[0], pptr->pos[1], pptr->pos[2]);
+			chanim(pptr->anim, pptr->dir, pptr->pos[0], pptr->pos[1], pptr->pos[2]);
 		}
 	}
 	
@@ -431,6 +432,9 @@ void sim_cam_topad(int pad)
 	cam_center[1] += cam_vel[1] / 100;
 	
 	//Todo - camera radius feedback... maybe track multiple points?
+	if(cam_radius > 800)
+		cam_radius--;
+	
 	if(cam_radius < 100)
 		cam_radius = 100;	
 	
@@ -459,14 +463,31 @@ void sim_person_pad(int team, int person, int pad)
 	person_t *pptr = &(person_table[team][person]);
 	
 	//Adjust velocity based on direction input
-	if(pads[pad] & BTNBIT_LEFT)
-		pptr->vel[0] -= 200;
-	if(pads[pad] & BTNBIT_RIGHT)
-		pptr->vel[0] += 200;
-	if(pads[pad] & BTNBIT_UP)
-		pptr->vel[1] += 200;
-	if(pads[pad] & BTNBIT_DOWN)
-		pptr->vel[1] -= 200;
+	//Quake-style wishvel system
+	int32_t wishvel[2] = {0, 0};
+	int plspeed = 200;
+	switch(pads[pad] & (BTNBIT_UP | BTNBIT_DOWN | BTNBIT_LEFT | BTNBIT_RIGHT))
+	{
+		case BTNBIT_RIGHT:               wishvel[0] = plspeed *  256; wishvel[1] = plspeed *    0; break;
+		case BTNBIT_RIGHT | BTNBIT_UP:   wishvel[0] = plspeed *  181; wishvel[1] = plspeed *  181; break;
+		case BTNBIT_UP:                  wishvel[0] = plspeed *    0; wishvel[1] = plspeed *  256; break;
+		case BTNBIT_UP | BTNBIT_LEFT:    wishvel[0] = plspeed * -181; wishvel[1] = plspeed *  181; break;
+		case BTNBIT_LEFT:                wishvel[0] = plspeed * -256; wishvel[1] = plspeed *    0; break;
+		case BTNBIT_LEFT | BTNBIT_DOWN:  wishvel[0] = plspeed * -181; wishvel[1] = plspeed * -181; break;
+		case BTNBIT_DOWN:                wishvel[0] = plspeed *    0; wishvel[1] = plspeed * -256; break;
+		case BTNBIT_DOWN | BTNBIT_RIGHT: wishvel[0] = plspeed *  181; wishvel[1] = plspeed * -181; break;
+		default: break;
+	}
+	int64_t wishvel_magsq = (wishvel[0]*wishvel[0])+(wishvel[1]*wishvel[1]);
+	
+	pptr->vel[0] *= 7;
+	pptr->vel[0] += wishvel[0];
+	pptr->vel[0] /= 8;
+	pptr->vel[1] *= 7;
+	pptr->vel[1] += wishvel[1];
+	pptr->vel[1] /= 8;
+	//int64_t vel_magsq = (pptr->vel[0] * pptr->vel[0]) + (pptr->vel[1] * pptr->vel[1]);
+	
 	
 	//Adjust facing based on direction input
 	int wantangle = pptr->dir;
@@ -494,6 +515,37 @@ void sim_person_pad(int team, int person, int pad)
 		pptr->dir += 65536;
 	if(pptr->dir > 65536)
 		pptr->dir -= 65536;
+	
+	//Update animation
+	pptr->animticks++;
+	
+	if(pptr->anim >= AN_RUN0 && pptr->anim <= AN_RUN3)
+	{
+		//In the run cycle, continue based on speed
+		if( pptr->animticks > 10)
+		{
+			pptr->animticks = 0;
+			pptr->anim++;
+			if(pptr->anim > AN_RUN3)
+				pptr->anim = AN_RUN0;
+		}
+		
+		//Drop back to standing if too slow
+		if(wishvel_magsq < 100)
+		{
+			pptr->anim = AN_STAND;
+		}
+		
+	}
+	
+	if(pptr->anim == AN_STAND)
+	{
+		//Standing - start to run?
+		if(wishvel_magsq > 100)
+		{
+			pptr->anim = AN_RUN0;
+		}
+	}
 }
 
 //Simulates a person using CPU behaviour
@@ -562,15 +614,6 @@ void sim_persons(void)
 			{
 				pptr->pos[2] = 0;
 				pptr->vel[2] = 0;
-			}
-			
-			//Decay velocity while on ground
-			if(pptr->pos[2] < 256)
-			{
-				pptr->vel[0] *= 1023;
-				pptr->vel[0] /= 1024;
-				pptr->vel[1] *= 1023;
-				pptr->vel[1] /= 1024;
 			}
 			
 			
@@ -695,6 +738,7 @@ void match(void)
 		{
 			person_table[tt][pp].pos[0] = (40 - (role * 10)) * 100 * 256;
 			person_table[tt][pp].pos[1] = ( (2 * order) - formation[role] ) * 5 * 100 * 256;
+			person_table[tt][pp].anim = AN_STAND;
 			
 			if(tt == 0)
 				person_table[tt][pp].pos[0] *= -1;

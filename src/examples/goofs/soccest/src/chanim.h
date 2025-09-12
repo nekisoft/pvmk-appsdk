@@ -9,6 +9,10 @@ typedef enum chanim_idx_e
 {
 	AN_NONE = 0,
 	AN_STAND,
+	AN_RUN0,
+	AN_RUN1,
+	AN_RUN2,
+	AN_RUN3,
 	AN_MAX
 } chanim_idx_t;
 

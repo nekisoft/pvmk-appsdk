@@ -41,19 +41,19 @@ int32_t trigfunc_sin8(int32_t input_ang16)
 	//Use the sine table flipped around for each quadrant
 	if(input_ang16 < 16384*1)
 	{
-		return  (trigfunc_sintab24[ (input_ang16 -     0) / 256] / 65536);
+		return  (trigfunc_sintab24[ (input_ang16 -     0) / 64] / 65536);
 	}
 	else if(input_ang16 < 16384*2)
 	{
-		return  (trigfunc_sintab24[ (32768 - input_ang16) / 256 ] / 65536);
+		return  (trigfunc_sintab24[ (32767 - input_ang16) / 64 ] / 65536);
 	}
 	else if(input_ang16 < 16384*3)
 	{
-		return -(trigfunc_sintab24[ (input_ang16 - 32768) / 256] / 65536);
+		return -(trigfunc_sintab24[ (input_ang16 - 32768) / 64 ] / 65536);
 	}
 	else
 	{
-		return -(trigfunc_sintab24[ (65536 - input_ang16) / 256] / 65536);
+		return -(trigfunc_sintab24[ (65535 - input_ang16) / 64 ] / 65536);
 	}
 }
 
