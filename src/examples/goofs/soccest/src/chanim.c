@@ -34,7 +34,7 @@ typedef struct chanim_part_s
 {
 	images_file_t imf; //Image file index
 	int vh; //Virtual height, cm 24.8
-	//todo - maybe alternates/rotations/whatever
+	int nrots; //How many rotations are present (in subsequent image numbers)
 } chanim_part_t;
 static const chanim_part_t chanim_part_table[PA_MAX] = 
 {
@@ -46,8 +46,8 @@ static const chanim_part_t chanim_part_table[PA_MAX] =
 	[PA_LEGL1]     = { .imf = IMF_CARD_SPHERE, .vh = 16*256 },
 	[PA_LEGR0]     = { .imf = IMF_CARD_SPHERE, .vh = 20*256 },
 	[PA_LEGR1]     = { .imf = IMF_CARD_SPHERE, .vh = 16*256 },
-	[PA_FOOTL]     = { .imf = IMF_CARD_SPHERE, .vh = 13*256 },
-	[PA_FOOTR]     = { .imf = IMF_CARD_SPHERE, .vh = 13*256 },
+	[PA_FOOTL]     = { .imf = IMF_CARD_SHOE0,  .vh = 32*256, .nrots = 8 },
+	[PA_FOOTR]     = { .imf = IMF_CARD_SHOE0,  .vh = 32*256, .nrots = 8 },
 	[PA_ARML0]     = { .imf = IMF_CARD_SPHERE, .vh = 18*256 },
 	[PA_ARML1]     = { .imf = IMF_CARD_SPHERE, .vh = 14*256 },
 	[PA_ARMR0]     = { .imf = IMF_CARD_SPHERE, .vh = 18*256 },
@@ -208,6 +208,14 @@ void chanim(chanim_idx_t anim, int facing, int vx, int vy, int vz)
 		partpos[1] /= 256;
 		partpos[2] /= 256;
 		
-		proj_card(chanim_part_table[pp].imf, partpos[0], partpos[1], partpos[2], chanim_part_table[pp].vh);
+		//Figure out rotation index to use (added to image number)
+		int rotidx = 0;
+		switch(chanim_part_table[pp].nrots)
+		{
+			case 8: rotidx = ((facing + 4096) % 65536) / 8192; break;
+			default: rotidx = 0; break;
+		}
+		
+		proj_card(chanim_part_table[pp].imf + rotidx, partpos[0], partpos[1], partpos[2], chanim_part_table[pp].vh);
 	}
 }

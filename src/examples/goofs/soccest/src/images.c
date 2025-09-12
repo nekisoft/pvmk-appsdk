@@ -60,6 +60,15 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_CARD_GOALTOP]     = "cards/goaltop.png",
 	[IMF_CARD_GOALSIDE]    = "cards/goalside.png",
 	[IMF_CARD_SPHERE]      = "cards/sphere.png",
+	[IMF_CARD_SHOE0]       = "cards/shoe0.png",
+	[IMF_CARD_SHOE1]       = "cards/shoe1.png",
+	[IMF_CARD_SHOE2]       = "cards/shoe2.png",
+	[IMF_CARD_SHOE3]       = "cards/shoe3.png",
+	[IMF_CARD_SHOE4]       = "cards/shoe4.png",
+	[IMF_CARD_SHOE5]       = "cards/shoe5.png",
+	[IMF_CARD_SHOE6]       = "cards/shoe6.png",
+	[IMF_CARD_SHOE7]       = "cards/shoe7.png",
+	
 };
 
 //Information about each file if loaded

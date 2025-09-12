@@ -97,6 +97,15 @@ static int32_t ball_vel[3];
 //Ball animation with fraction towards the next frame - xx.8
 static int32_t ball_frame;
 
+//Team in possession of the ball
+static int32_t ball_team;
+
+//Player on the team in possession of the ball
+static int32_t ball_person;
+
+//How close to the ball to contest or maintain possession, 24.8 cm
+static const int32_t ball_stick_extent = 256 * 150;
+
 //Location of goal
 static const int goalwidth = 732 * 256; //Spacing between goal posts
 static const int goalheight = 244 * 256; //Height of goal top beam
@@ -108,11 +117,12 @@ static int32_t goalpost_pos[4][3];
 //Information about a player on the field
 typedef struct person_s
 {
-	int32_t pos[3];
-	int32_t vel[3];
-	int32_t dir;
-	chanim_idx_t anim;
-	int animticks;
+	int32_t pos[3]; //Virtual position 24.8 cm
+	int32_t vel[3]; //Virtual velocity 24.8 cm/s
+	int32_t dir; //Angle 0=east 16384=north 32768=west 49152=south
+	chanim_idx_t anim; //Frame of animation displayed
+	int animticks; //How many ticks has the frame been displayed
+	int sticky; //Ball possession score, higher = holds onto ball better, negative = loses ball alwayss
 } person_t;
 person_t person_table[2][11];
 
@@ -387,6 +397,63 @@ void sim_ball(void)
 				ball_vel[2] = 0;
 			}
 		}
+	}
+	
+	//Update player stickiness scores ( = who is best at possessing the ball)
+	//todo
+	
+	
+	//Check if the ball changes possession
+	int best_team = -1;
+	int best_person = -1;
+	int best_stick = 0;
+	for(int tt = 0; tt < 2; tt++)
+	{
+		for(int pp = 0; pp < 11; pp++)
+		{
+			int32_t dx = person_table[tt][pp].pos[0] - ball_pos[0];
+			int32_t dy = person_table[tt][pp].pos[1] - ball_pos[1];
+			int32_t dz = person_table[tt][pp].pos[2] - ball_pos[2];
+			int32_t distsq = (dx*dx)+(dy*dy)+(dz*dz);
+			if(distsq > (ball_stick_extent * ball_stick_extent))
+			{
+				//Person is too far from the ball to possess it
+				continue;
+			}
+			
+			if(person_table[tt][pp].sticky < best_stick)
+			{
+				//Someone else is already holding it harder
+				continue;
+			}
+			
+			//This person is a candidate to possess the ball...
+			best_stick = person_table[tt][pp].sticky;
+			best_team = tt;
+			best_person = pp;
+		}
+	}
+	
+	//See if the most-sticky player is the same as it was last time
+	if(best_team != ball_team || best_person != ball_person)
+	{
+		//Ball changes possession.
+		
+		//Someone who has the ball taken gets most of their stickyness taken away (hysteresis)
+		if(ball_team != -1 && ball_person != -1)
+		{
+			person_table[ball_team][ball_person].sticky -= 50;
+		}
+		
+		//Someone gaining possession gets a bonus (hysteresis)
+		if(best_team != -1 && best_person != -1)
+		{
+			person_table[best_team][best_person].sticky += 50;
+		}
+		
+		//Ball has changed possession
+		ball_team = best_team;
+		ball_person = best_person;
 	}
 }
 
