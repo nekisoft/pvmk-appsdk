@@ -60,6 +60,7 @@ typedef enum match_uipart_e
 	UI_GOAL,
 	UI_READY,
 	UI_SCORES,
+	UI_PADINFO,
 	UI_MAX
 } match_uipart_t;
 static bool match_uipart_visible[UI_MAX];
@@ -262,6 +263,25 @@ static void match_uipart_draw_scores(void)
 	images_draw(IMF_MATCH_SCOREAWAY, 312 + 50, 464);
 }
 
+//Draws UI element - gamepad/player info
+static void match_uipart_draw_padinfo(void)
+{
+	for(int pp = 0; pp < 4; pp++)
+	{
+		if(pad_team[pp] == -1)
+			continue; //Pad not playing
+		
+		const person_t *pptr = &(person_table[pad_team[pp]][pad_person[pp]]);
+		
+		int basex = pp * 160;
+		int basey = 0;
+		
+		font_draw(&("A:\0B:\0C:\0D:\0"[3*pp]), 0x4E46, basex+16, basey);
+		font_draw(pptr->data->name[1], 0x4E46, basex+48, basey);
+		
+	}
+}
+
 //Table of draw functions for each UI element
 typedef void (*match_uipart_drawfn_t)(void);
 match_uipart_drawfn_t match_uipart_drawfns[UI_MAX] =
@@ -269,6 +289,7 @@ match_uipart_drawfn_t match_uipart_drawfns[UI_MAX] =
 	[UI_GOAL] = &match_uipart_draw_goal,
 	[UI_READY] = &match_uipart_draw_ready,
 	[UI_SCORES] = &match_uipart_draw_scores,
+	[UI_PADINFO] = &match_uipart_draw_padinfo,
 };
 
 
@@ -336,6 +357,14 @@ void drawworld(void)
 		{
 			const person_t *pptr = &(person_table[tt][pp]);
 			chanim(pptr->anim, pptr->dir, pptr->pos[0], pptr->pos[1], pptr->pos[2]);
+			
+			for(int pad = 0; pad < 4; pad++)
+			{
+				if(pad_team[pad] == tt && pad_person[pad] == pp)
+				{
+					proj_card(IMF_CARD_SELECTION, pptr->pos[0], pptr->pos[1], pptr->pos[2]-(32*256), 96*256);
+				}
+			}
 		}
 	}
 	
@@ -424,8 +453,8 @@ void sim_ball(void)
 	ball_pos[2] += ball_vel[2] / 100;
 	
 	//Animate ball spinning
-	ball_frame += ball_vel[0] / 1000;
-	ball_frame += ball_vel[1] / 1000;
+	ball_frame += ((ball_vel[0] < 0)?-1:1) * ball_vel[0] / 1000;
+	ball_frame += ((ball_vel[1] < 0)?-1:1) * ball_vel[1] / 1000;
 	
 	//Bounce ball off sides of pitch
 	for(int dd = 0; dd < 2; dd++)
@@ -832,6 +861,7 @@ void match_tick_play(void)
 {
 	hideall();
 	show(UI_SCORES);
+	show(UI_PADINFO);
 	
 	sim_persons();
 	sim_ball();

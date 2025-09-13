@@ -81,6 +81,7 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_CARD_SHOE5]       = "cards/shoe5.png",
 	[IMF_CARD_SHOE6]       = "cards/shoe6.png",
 	[IMF_CARD_SHOE7]       = "cards/shoe7.png",
+	[IMF_CARD_SELECTION]   = "cards/selection.png",
 	
 };
 

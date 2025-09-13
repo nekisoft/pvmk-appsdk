@@ -91,6 +91,7 @@ typedef enum images_file_e
 		IMF_CARD_SHOE5,
 		IMF_CARD_SHOE6,
 		IMF_CARD_SHOE7,
+		IMF_CARD_SELECTION,
 	IMF_CARD_ZZZ,
 	
 	IMF_MAX
