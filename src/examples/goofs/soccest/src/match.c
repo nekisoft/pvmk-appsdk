@@ -59,6 +59,7 @@ typedef enum match_uipart_e
 	UI_NONE = 0,
 	UI_GOAL,
 	UI_READY,
+	UI_SCORES,
 	UI_MAX
 } match_uipart_t;
 static bool match_uipart_visible[UI_MAX];
@@ -68,10 +69,10 @@ static void show(match_uipart_t pp)
 	match_uipart_visible[pp] = true;
 }
 
-static void hide(match_uipart_t pp)
-{
-	match_uipart_visible[pp] = false;
-}
+//static void hide(match_uipart_t pp)
+//{
+//	match_uipart_visible[pp] = false;
+//}
 
 static void hideall(void)
 {
@@ -125,14 +126,21 @@ typedef struct person_s
 	chanim_idx_t anim; //Frame of animation displayed
 	int animticks; //How many ticks has the frame been displayed
 	int sticky; //Ball possession score, higher = holds onto ball better, negative = loses ball alwayss
+	persondata_t *data; //Reference to stats about the person from team data
 } person_t;
 person_t person_table[2][11];
+
+//Teams participating
+teamdata_t *teamdata[2];
 
 //Which team each gamepad belongs to
 int pad_team[4];
 
 //Which person on the team each gamepad is controlling
 int pad_person[4];
+
+//Team scores
+static int scores[2];
 
 //Loads pitch (grass) texture
 #define PITCHTEX_DIM 2048
@@ -237,12 +245,30 @@ static void match_uipart_draw_ready(void)
 	images_draw(IMF_MATCH_READY, 136, 100);
 }
 
+//Draws UI element - scores
+static void match_uipart_draw_scores(void)
+{
+	for(int tt = 0; tt < 2; tt++)
+	{
+		for(int dd = 0; dd < 2; dd++)
+		{
+			int imf = IMF_MATCH_SCORE0 + (scores[tt] / (dd?1:10));
+			int xp = 320 + (tt?-1:1)*((dd^tt)?64:36);
+			int yp = 432;
+			images_draw(imf, xp, yp);
+		}
+	}
+	images_draw(IMF_MATCH_SCOREHOME, 312 - 50, 464);
+	images_draw(IMF_MATCH_SCOREAWAY, 312 + 50, 464);
+}
+
 //Table of draw functions for each UI element
 typedef void (*match_uipart_drawfn_t)(void);
 match_uipart_drawfn_t match_uipart_drawfns[UI_MAX] =
 {
 	[UI_GOAL] = &match_uipart_draw_goal,
 	[UI_READY] = &match_uipart_draw_ready,
+	[UI_SCORES] = &match_uipart_draw_scores,
 };
 
 
@@ -318,21 +344,62 @@ void drawworld(void)
 	
 	
 	//Draw debug text on top
-	char txtbuf[256];
+	//char txtbuf[256];
 	//snprintf(txtbuf, sizeof(txtbuf)-1, "%8d %8d", cam_radius,cam_center[1]);
 	//font_draw(txtbuf, 0x8000,0,0);
 	
 	//snprintf(txtbuf, sizeof(txtbuf)-1, "%s: %d", match_state_names[match_state], match_state_ticks);
 	//font_draw(txtbuf, 0x8000, 16, 0);
 	
-	snprintf(txtbuf, sizeof(txtbuf)-1, "%d %d %d", ball_team, ball_person, person_table[0][0].sticky);
-	font_draw(txtbuf, 0x8000, 16, 0);
+	//snprintf(txtbuf, sizeof(txtbuf)-1, "%d %d %d", ball_team, ball_person, person_table[0][0].sticky);
+	//font_draw(txtbuf, 0x8000, 16, 0);
+}
+
+//Resets all persons to formation positions instantly
+static void goformation(void)
+{
+	for(int tt = 0; tt < 2; tt++)
+	{
+		int role = 0;
+		int order = 0;
+		int formation[5] = { 1, 3, 4, 3 };
+		for(int pp = 0; pp < 11; pp++)
+		{
+			person_table[tt][pp].pos[0] = (40 - (role * 10)) * 100 * 256;
+			person_table[tt][pp].pos[1] = ( (2 * order) - formation[role] ) * 5 * 100 * 256;
+			person_table[tt][pp].pos[2] = 0;
+			person_table[tt][pp].vel[0] = 0;
+			person_table[tt][pp].vel[1] = 0;
+			person_table[tt][pp].vel[2] = 0;
+			person_table[tt][pp].dir = 32768;
+			person_table[tt][pp].anim = AN_STAND;
+			person_table[tt][pp].animticks = 0;
+			
+			if(tt == 0)
+			{
+				person_table[tt][pp].pos[0] *= -1;
+				person_table[tt][pp].dir = 32768 - person_table[tt][pp].dir;
+			}
+			
+			order++;
+			if(order >= formation[role])
+			{
+				order = 0;
+				role++;
+			}
+		}
+	}
+	
+	//Temphack
+	person_table[0][0].pos[0] = 0;
+	person_table[0][0].pos[1] = 0;
+	
 }
 
 //Triggers a goal
-void goal(int team)
+static void goal(int team)
 {
-	(void)team;
+	scores[team]++;
 	state(MS_GOAL);
 }
 
@@ -751,6 +818,8 @@ void match_tick_intro(void)
 	if( (match_state_ticks / 32) & 1 )
 		show(UI_READY);
 	
+	sim_cam_toball();
+	
 	if(match_state_ticks >= 32*6)
 	{
 		hideall();
@@ -761,6 +830,9 @@ void match_tick_intro(void)
 //Match tick function - playing
 void match_tick_play(void)
 {
+	hideall();
+	show(UI_SCORES);
+	
 	sim_persons();
 	sim_ball();
 	//sim_cam_toball();
@@ -773,12 +845,18 @@ void match_tick_goal(void)
 {
 	hideall();
 	show(UI_GOAL);
-	sim_ball();
+	show(UI_SCORES);
 	
-	if(match_state_ticks > 100)
+	if(match_state_ticks > 200)
 	{
-		hide(UI_GOAL);
-		state(MS_PLAY);
+		goformation();
+		
+		memset(ball_pos, 0, sizeof(ball_pos));
+		memset(ball_vel, 0, sizeof(ball_vel));
+		memset(cam_center, 0, sizeof(cam_center));
+		memset(cam_vel, 0, sizeof(cam_vel));
+		
+		state(MS_INTRO);
 	}
 }
 
@@ -811,7 +889,7 @@ void match_tick(void)
 	(*(match_state_tickfns[match_state]))();
 }
 
-void match(void)
+void match(teamdata_t *tdata[2], int padmap[4])
 {
 	//Load data for match
 	images_purge();
@@ -819,6 +897,27 @@ void match(void)
 	images_loadrange(IMF_MATCH_AAA, IMF_MATCH_ZZZ);
 	pitchtex_load();
 	
+	//Set aside team and pad info
+	pad_team[0] = padmap[0];
+	pad_person[0] = (padmap[0] >= 0) ? 0 : -1;
+	pad_team[1] = padmap[1];
+	pad_person[1] = (padmap[1] >= 0) ? 1 : -1;
+	pad_team[2] = padmap[2];
+	pad_person[2] = (padmap[2] >= 0) ? 2 : -1;
+	pad_team[3] = padmap[3];
+	pad_person[3] = (padmap[3] >= 0) ? 3 : -1;
+	
+	teamdata[0] = tdata[0];
+	teamdata[1] = tdata[1];
+	
+	memset(person_table, 0, sizeof(person_table));
+	for(int tt = 0; tt < 2; tt++)
+	{
+		for(int pp = 0; pp < 11; pp++)
+		{
+			person_table[tt][pp].data = &(teamdata[tt]->persons[pp]);
+		}
+	}
 	
 	//Set up match initial state
 	match_state = MS_INTRO;
@@ -849,33 +948,7 @@ void match(void)
 	goalpost_pos[3][2] = 0;
 	
 	//Set up all player positions
-	memset(person_table, 0, sizeof(person_table));
-	for(int tt = 0; tt < 2; tt++)
-	{
-		int role = 0;
-		int order = 0;
-		int formation[5] = { 1, 3, 4, 3 };
-		for(int pp = 0; pp < 11; pp++)
-		{
-			person_table[tt][pp].pos[0] = (40 - (role * 10)) * 100 * 256;
-			person_table[tt][pp].pos[1] = ( (2 * order) - formation[role] ) * 5 * 100 * 256;
-			person_table[tt][pp].anim = AN_STAND;
-			
-			if(tt == 0)
-				person_table[tt][pp].pos[0] *= -1;
-			
-			order++;
-			if(order >= formation[role])
-			{
-				order = 0;
-				role++;
-			}
-		}
-	}
-	
-	//Temphack
-	person_table[0][0].pos[0] = 0;
-	person_table[0][0].pos[1] = 0;
+	goformation();
 
 	//Simulate until the match state-machine arrives at DONE...
 	int last_sim = _sc_getticks();

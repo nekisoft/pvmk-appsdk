@@ -53,9 +53,11 @@ void screen_title(void)
 		}
 		
 		images_draw(IMF_TITLE_BG, 0, 0);
+		images_draw(IMF_TITLE_NOTICE, 10, 460);
 		images_draw(IMF_TITLE_BALL, ballp[0] / 65536, ballp[1] / 65536);
 		images_draw(IMF_TITLE_LOGO, 32, 32);
 		images_draw(IMF_TITLE_START, 300, 300);
+		
 		fbs_flip();
 		
 		uint16_t presses = pads_edge(PAD_ANY);

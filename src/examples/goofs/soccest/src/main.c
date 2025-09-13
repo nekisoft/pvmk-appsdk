@@ -106,7 +106,21 @@ int main(int argc, const char **argv)
 			break;
 			case NS_MATCH:
 			{
-				match();
+				teamdata_t *tptrs[2] = 
+				{
+					&(leaguedata_quick.teams[screen_teamselect_getteam(0)]),
+					&(leaguedata_quick.teams[screen_teamselect_getteam(1)]),
+				};
+				int padteams[4] = 
+				{
+					screen_padteams_team(0) - 1,
+					screen_padteams_team(1) - 1,
+					screen_padteams_team(2) - 1,
+					screen_padteams_team(3) - 1,
+				};
+				
+				match(tptrs, padteams);
+				
 				nextscreen = NS_MAINMENU;
 				break;
 			}

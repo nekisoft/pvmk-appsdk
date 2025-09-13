@@ -4,6 +4,8 @@
 #ifndef MATCH_H
 #define MATCH_H
 
-void match(void);
+#include "teamdata.h"
+
+void match(teamdata_t *tdata[2], int padmap[4]);
 
 #endif //MATCH_H

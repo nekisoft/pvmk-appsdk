@@ -12,10 +12,11 @@
 //Filenames for each image
 static const char *images_file_names[IMF_MAX] = 
 {
-	[IMF_TITLE_BG]    = "screens/title/bg.png",
-	[IMF_TITLE_LOGO]  = "screens/title/logo.png",
-	[IMF_TITLE_START] = "screens/title/start.png",
-	[IMF_TITLE_BALL]  = "screens/title/ball.png",
+	[IMF_TITLE_BG]     = "screens/title/bg.png",
+	[IMF_TITLE_LOGO]   = "screens/title/logo.png",
+	[IMF_TITLE_START]  = "screens/title/start.png",
+	[IMF_TITLE_BALL]   = "screens/title/ball.png",
+	[IMF_TITLE_NOTICE] = "screens/title/notice.png",
 	
 	[IMF_MAINMENU_BG]     = "screens/mainmenu/bg.png",
 	[IMF_MAINMENU_BALL]   = "screens/mainmenu/ball.png",
@@ -49,6 +50,18 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_MATCH_GOAL1]     = "screens/match/goal1.png",
 	[IMF_MATCH_GOAL2]     = "screens/match/goal2.png",
 	[IMF_MATCH_GOAL3]     = "screens/match/goal3.png",
+	[IMF_MATCH_SCOREHOME] = "screens/match/scorehome.png",
+	[IMF_MATCH_SCOREAWAY] = "screens/match/scoreaway.png",
+	[IMF_MATCH_SCORE0]    = "screens/match/score0.png",
+	[IMF_MATCH_SCORE1]    = "screens/match/score1.png",
+	[IMF_MATCH_SCORE2]    = "screens/match/score2.png",
+	[IMF_MATCH_SCORE3]    = "screens/match/score3.png",
+	[IMF_MATCH_SCORE4]    = "screens/match/score4.png",
+	[IMF_MATCH_SCORE5]    = "screens/match/score5.png",
+	[IMF_MATCH_SCORE6]    = "screens/match/score6.png",
+	[IMF_MATCH_SCORE7]    = "screens/match/score7.png",
+	[IMF_MATCH_SCORE8]    = "screens/match/score8.png",
+	[IMF_MATCH_SCORE9]    = "screens/match/score9.png",
 	
 	[IMF_CARD_CONE]        = "cards/cone.png",
 	[IMF_CARD_BALL0]       = "cards/ball0.png",

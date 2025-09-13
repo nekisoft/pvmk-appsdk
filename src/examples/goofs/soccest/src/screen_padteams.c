@@ -42,10 +42,41 @@ bool screen_padteams(void)
 		fbs_flip();
 		
 		uint16_t presses = pads_edge(PAD_ANY);
+		
 		if(presses & BTNBIT_B)
+		{
+			//Backing out of the menu
 			return false;
+		}
+		
 		if(presses & BTNBIT_START)
-			return true;
+		{
+			//Confirming.
+			
+			//Make sure they're not trying to start with no players in the match
+			int any_selection = 0;
+			for(int pp = 0; pp < 4; pp++)
+			{
+				if(screen_padteams_selection[pp])
+					any_selection = 1;
+			}
+			if(!any_selection)
+			{
+				//They didn't put any pads on any team.
+				//Put the pad hitting "start" on the Home team.
+				//This lets us mash Start to Start a game.
+				for(int pp = 0; pp < 4; pp++)
+				{
+					if(pads[pp] & BTNBIT_START)
+						screen_padteams_selection[pp] = 1;
+				}
+			}
+			else
+			{
+				//Okay they configured the players
+				return true;
+			}
+		}
 		
 		for(int pp = 0; pp < 4; pp++)
 		{
