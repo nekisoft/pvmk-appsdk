@@ -32,6 +32,7 @@ typedef enum match_state_e
 static match_state_t match_state;
 
 //Names of match states
+/*
 static const char *match_state_names[] = 
 {
 	[MS_NONE] = "NONE",
@@ -40,6 +41,7 @@ static const char *match_state_names[] =
 	[MS_GOAL] = "GOAL",
 	[MS_DONE] = "DONE",
 };
+*/
 
 //How long we've been in the given state, in 100hz ticks
 static int32_t match_state_ticks;
@@ -103,8 +105,8 @@ static int32_t ball_team;
 //Player on the team in possession of the ball
 static int32_t ball_person;
 
-//How close to the ball to contest or maintain possession, 24.8 cm
-static const int32_t ball_stick_extent = 256 * 150;
+//How close to the ball to contest or maintain possession, integer cm
+static const int32_t ball_stick_extent = 75;
 
 //Location of goal
 static const int goalwidth = 732 * 256; //Spacing between goal posts
@@ -254,11 +256,11 @@ void drawworld(void)
 	drawpitch();
 	
 	//Project cones to test scale of projection
-	proj_card(IMF_CARD_CONE, 0, 0, 0, 100*256);
-	proj_card(IMF_CARD_CONE, 800*256, 0, 0, 100*256);
-	proj_card(IMF_CARD_CONE, -800*256, 0, 0, 100*256);
-	proj_card(IMF_CARD_CONE, 0, 800*256, 0, 100*256);
-	proj_card(IMF_CARD_CONE, 0, -800*256, 0, 100*256);
+	//proj_card(IMF_CARD_CONE, 0, 0, 0, 100*256);
+	//proj_card(IMF_CARD_CONE, 800*256, 0, 0, 100*256);
+	//proj_card(IMF_CARD_CONE, -800*256, 0, 0, 100*256);
+	//proj_card(IMF_CARD_CONE, 0, 800*256, 0, 100*256);
+	//proj_card(IMF_CARD_CONE, 0, -800*256, 0, 100*256);
 	
 	//Project ball shadow + ball
 	proj_card(IMF_CARD_BALLSH, ball_pos[0], ball_pos[1], -256*5, 16*256);
@@ -320,7 +322,10 @@ void drawworld(void)
 	//snprintf(txtbuf, sizeof(txtbuf)-1, "%8d %8d", cam_radius,cam_center[1]);
 	//font_draw(txtbuf, 0x8000,0,0);
 	
-	snprintf(txtbuf, sizeof(txtbuf)-1, "%s: %d", match_state_names[match_state], match_state_ticks);
+	//snprintf(txtbuf, sizeof(txtbuf)-1, "%s: %d", match_state_names[match_state], match_state_ticks);
+	//font_draw(txtbuf, 0x8000, 16, 0);
+	
+	snprintf(txtbuf, sizeof(txtbuf)-1, "%d %d %d", ball_team, ball_person, person_table[0][0].sticky);
 	font_draw(txtbuf, 0x8000, 16, 0);
 }
 
@@ -400,8 +405,29 @@ void sim_ball(void)
 	}
 	
 	//Update player stickiness scores ( = who is best at possessing the ball)
-	//todo
-	
+	for(int tt = 0; tt < 2; tt++)
+	{
+		for(int pp = 0; pp < 11; pp++)
+		{
+			//Decay old stickyness value
+			person_table[tt][pp].sticky *= 127;
+			person_table[tt][pp].sticky /= 128;
+			
+			//Compute distance to ball, integer only
+			int32_t dx = (person_table[tt][pp].pos[0] - ball_pos[0])/256;
+			int32_t dy = (person_table[tt][pp].pos[1] - ball_pos[1])/256;
+			int32_t dz = (person_table[tt][pp].pos[2] - ball_pos[2])/256;
+			int32_t distsq = (dx*dx)+(dy*dy)+(dz*dz);
+			
+			//Closer to ball -> more stickyness point
+			if(distsq < 65536)
+			{
+				person_table[tt][pp].sticky += (65536 - distsq) / 4096;
+			}
+			
+			
+		}
+	}
 	
 	//Check if the ball changes possession
 	int best_team = -1;
@@ -411,9 +437,10 @@ void sim_ball(void)
 	{
 		for(int pp = 0; pp < 11; pp++)
 		{
-			int32_t dx = person_table[tt][pp].pos[0] - ball_pos[0];
-			int32_t dy = person_table[tt][pp].pos[1] - ball_pos[1];
-			int32_t dz = person_table[tt][pp].pos[2] - ball_pos[2];
+			//Compute integer-only distance to ball, check if they're close enough
+			int32_t dx = (person_table[tt][pp].pos[0] - ball_pos[0])/256;
+			int32_t dy = (person_table[tt][pp].pos[1] - ball_pos[1])/256;
+			int32_t dz = (person_table[tt][pp].pos[2] - ball_pos[2])/256;
 			int32_t distsq = (dx*dx)+(dy*dy)+(dz*dz);
 			if(distsq > (ball_stick_extent * ball_stick_extent))
 			{
@@ -454,6 +481,33 @@ void sim_ball(void)
 		//Ball has changed possession
 		ball_team = best_team;
 		ball_person = best_person;
+	}
+	
+	//Move towards player in possession of ball
+	if(ball_team != -1 && ball_person != -1)
+	{
+		person_t *holder = &(person_table[ball_team][ball_person]);
+		
+		int32_t target_pos[3] = { holder->pos[0], holder->pos[1], holder->pos[2] };
+		target_pos[0] += 50 * trigfunc_cos8(holder->dir);
+		target_pos[1] += 50 * trigfunc_sin8(holder->dir);
+		target_pos[0] += holder->vel[0] / 16;
+		target_pos[1] += holder->vel[1] / 16;
+		
+		int32_t dp[3] =
+		{
+			target_pos[0] - ball_pos[0],
+			target_pos[1] - ball_pos[1],
+			target_pos[2] - ball_pos[2]
+		};
+		
+		//intentionally xy only
+		for(int dd = 0; dd < 2; dd++)
+		{
+			ball_vel[dd] *= 7;
+			ball_vel[dd] /= 8;
+			ball_vel[dd] += dp[dd];
+		}
 	}
 }
 
