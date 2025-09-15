@@ -124,9 +124,13 @@ typedef struct person_s
 	int32_t pos[3]; //Virtual position 24.8 cm
 	int32_t vel[3]; //Virtual velocity 24.8 cm/s
 	int32_t dir; //Angle 0=east 16384=north 32768=west 49152=south
+	
 	chanim_idx_t anim; //Frame of animation displayed
 	int animticks; //How many ticks has the frame been displayed
+	
 	int sticky; //Ball possession score, higher = holds onto ball better, negative = loses ball alwayss
+	int stamina; //Current stamina value, 16.16 (stats are integer-only!)
+	
 	persondata_t *data; //Reference to stats about the person from team data
 } person_t;
 person_t person_table[2][11];
@@ -278,9 +282,32 @@ static void match_uipart_draw_padinfo(void)
 		
 		
 		images_draw(IMF_MATCH_PADA + pp, basex, basey);
-		//font_draw(&("A:\0B:\0C:\0D:\0"[3*pp]), 0x4E46, basex+16, basey);
+		
 		font_draw(FS_SMALL, pptr->data->name[1], 0x4E46, basex+52, basey+4);
 		
+		
+		int stam_cur = pptr->stamina / 65536;
+		int stam_max = pptr->data->staminamax;
+		if(stam_max <= 0)
+			stam_max = 1;
+		if(stam_cur >= stam_max)
+			stam_cur = stam_max;
+		if(stam_cur <= 0)
+			stam_cur = 0;
+		
+		int stam_start = basex + 87; 
+		int stam_end = stam_start + (64 * stam_cur / stam_max);
+		for(int yy = basey + 25; yy < basey + 27; yy++)
+		{
+			for(int xx = stam_start; xx < stam_end; xx++)
+			{
+				BACKBUF[yy][xx] = 0xF000;
+			}
+		}
+		
+		//char stambuf[4] = {0};
+		//snprintf(stambuf, sizeof(stambuf)-1, "%d", stam_cur);
+		//font_draw(FS_SMALL, stambuf, 0xF000, basex + 100, basey + 20);
 	}
 }
 
@@ -835,7 +862,16 @@ void sim_persons(void)
 				pptr->vel[2] = 0;
 			}
 			
-			
+			//Update stamina
+			pptr->stamina += pptr->data->staminarecover * pptr->data->staminamax;
+			if(pptr->stamina <= 0)
+			{
+				pptr->stamina = 0;
+			}
+			if(pptr->stamina >= pptr->data->staminamax * 65536)
+			{
+				pptr->stamina = pptr->data->staminamax * 65536;
+			}
 		}
 	}
 	
