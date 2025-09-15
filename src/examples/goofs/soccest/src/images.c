@@ -81,6 +81,14 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_CARD_SHOE5]       = "cards/shoe5.png",
 	[IMF_CARD_SHOE6]       = "cards/shoe6.png",
 	[IMF_CARD_SHOE7]       = "cards/shoe7.png",
+	[IMF_CARD_TORSO0]      = "cards/torso0.png",
+	[IMF_CARD_TORSO1]      = "cards/torso1.png",
+	[IMF_CARD_TORSO2]      = "cards/torso2.png",
+	[IMF_CARD_TORSO3]      = "cards/torso3.png",
+	[IMF_CARD_TORSO4]      = "cards/torso4.png",
+	[IMF_CARD_TORSO5]      = "cards/torso5.png",
+	[IMF_CARD_TORSO6]      = "cards/torso6.png",
+	[IMF_CARD_TORSO7]      = "cards/torso7.png",
 	[IMF_CARD_SELECTION]   = "cards/selection.png",
 	
 };

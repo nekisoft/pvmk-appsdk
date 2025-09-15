@@ -40,7 +40,7 @@ static const chanim_part_t chanim_part_table[PA_MAX] =
 {
 	[PA_HEAD]      = { .imf = IMF_CARD_SPHERE, .vh = 45*256 },
 	[PA_SHOULDERS] = { .imf = IMF_CARD_SPHERE, .vh = 18*256 },
-	[PA_TORSO]     = { .imf = IMF_CARD_SPHERE, .vh = 48*256 },
+	[PA_TORSO]     = { .imf = IMF_CARD_TORSO0, .vh = 48*256, .nrots = 8 },
 	[PA_HIPS]      = { .imf = IMF_CARD_SPHERE, .vh = 32*256 },
 	[PA_LEGL0]     = { .imf = IMF_CARD_SPHERE, .vh = 20*256 },
 	[PA_LEGL1]     = { .imf = IMF_CARD_SPHERE, .vh = 16*256 },
