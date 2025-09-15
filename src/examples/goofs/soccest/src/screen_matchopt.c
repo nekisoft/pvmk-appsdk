@@ -69,14 +69,14 @@ bool screen_matchopt(const leaguedata_t *league, int tl, int tr)
 		
 		snprintf(txtbuf, sizeof(txtbuf)-1, "%s %s %svs.", 
 			league->teams[tl].city, league->teams[tl].name, playerstrings[players_tl]);
-		font_draw(txtbuf, 0xffff, xloc, yiter); yiter += 30;
+		font_draw(FS_REGULAR, txtbuf, 0xffff, xloc, yiter); yiter += 30;
 		
 		snprintf(txtbuf, sizeof(txtbuf)-1, "%s %s %sat",
 			league->teams[tr].city, league->teams[tr].name, playerstrings[players_tr]);
-		font_draw(txtbuf, 0xffff, xloc, yiter); yiter += 30;
+		font_draw(FS_REGULAR, txtbuf, 0xffff, xloc, yiter); yiter += 30;
 		
 		snprintf(txtbuf, sizeof(txtbuf)-1, "%s", league->teams[tl].venue);
-		font_draw(txtbuf, 0xffff, xloc, yiter); yiter += 30;
+		font_draw(FS_REGULAR, txtbuf, 0xffff, xloc, yiter); yiter += 30;
 		
 		//Show options
 		yiter += 30;
@@ -86,8 +86,8 @@ bool screen_matchopt(const leaguedata_t *league, int tl, int tr)
 			
 			uint16_t namecolor = (ii == itemsel) ? 0xffff : 0x8d3e;
 			uint16_t valcolor = (ii == itemsel) ? 0xffff : 0x58de;
-			font_draw(optr->name, namecolor, xloc, yiter);
-			font_draw(optr->options[screen_matchopt_selections[ii]], valcolor, xloc + 200, yiter);
+			font_draw(FS_REGULAR, optr->name, namecolor, xloc, yiter);
+			font_draw(FS_REGULAR, optr->options[screen_matchopt_selections[ii]], valcolor, xloc + 200, yiter);
 			yiter += 30;
 		}
 		

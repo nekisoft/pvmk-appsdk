@@ -62,6 +62,10 @@ static const char *images_file_names[IMF_MAX] =
 	[IMF_MATCH_SCORE7]    = "screens/match/score7.png",
 	[IMF_MATCH_SCORE8]    = "screens/match/score8.png",
 	[IMF_MATCH_SCORE9]    = "screens/match/score9.png",
+	[IMF_MATCH_PADA]      = "screens/match/pada.png",
+	[IMF_MATCH_PADB]      = "screens/match/padb.png",
+	[IMF_MATCH_PADC]      = "screens/match/padc.png",
+	[IMF_MATCH_PADD]      = "screens/match/padd.png",
 	
 	[IMF_CARD_CONE]        = "cards/cone.png",
 	[IMF_CARD_BALL0]       = "cards/ball0.png",

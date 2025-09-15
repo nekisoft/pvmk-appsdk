@@ -49,15 +49,15 @@ bool screen_teamselect(const leaguedata_t *league)
 		char numbuf[16];
 		snprintf(numbuf, sizeof(numbuf)-1, "#%d", screen_teamselect_selections[0]+1);
 		
-		font_draw(numbuf,   leftcolor, 60, 210);
-		font_draw(tl->city, leftcolor, 60, 240);
-		font_draw(tl->name, leftcolor, 60, 270);
+		font_draw(FS_SMALL,   numbuf,   leftcolor, 60, 226);
+		font_draw(FS_REGULAR, tl->city, leftcolor, 60, 240);
+		font_draw(FS_REGULAR, tl->name, leftcolor, 60, 270);
 		
 		snprintf(numbuf, sizeof(numbuf)-1, "#%d", screen_teamselect_selections[1]+1);
 		
-		font_draw(numbuf,   rightcolor, 410, 210);
-		font_draw(tr->city, rightcolor, 410, 240);
-		font_draw(tr->name, rightcolor, 410, 270);
+		font_draw(FS_SMALL,   numbuf,   rightcolor, 410, 226);
+		font_draw(FS_REGULAR, tr->city, rightcolor, 410, 240);
+		font_draw(FS_REGULAR, tr->name, rightcolor, 410, 270);
 		
 		fbs_flip();
 		

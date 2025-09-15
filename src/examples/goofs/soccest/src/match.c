@@ -276,8 +276,10 @@ static void match_uipart_draw_padinfo(void)
 		int basex = pp * 160;
 		int basey = 0;
 		
-		font_draw(&("A:\0B:\0C:\0D:\0"[3*pp]), 0x4E46, basex+16, basey);
-		font_draw(pptr->data->name[1], 0x4E46, basex+48, basey);
+		
+		images_draw(IMF_MATCH_PADA + pp, basex, basey);
+		//font_draw(&("A:\0B:\0C:\0D:\0"[3*pp]), 0x4E46, basex+16, basey);
+		font_draw(FS_SMALL, pptr->data->name[1], 0x4E46, basex+52, basey+4);
 		
 	}
 }

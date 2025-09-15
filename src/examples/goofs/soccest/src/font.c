@@ -5,15 +5,34 @@
 #include "font.h"
 #include "fbs.h"
 
-#include "font.xbm"
+//Font bitmap data for each font supported
+#include "font_regular.xbm"
+#include "font_small.xbm"
 
-static int font_draw_char(char ch, uint16_t color, int x, int y)
+//Information about each font supported
+typedef struct font_style_data_s
 {
+	int width;
+	int height; //of all 128 characters
+	const char *bits;
+} font_style_data_t;
+font_style_data_t font_style_table[FS_MAX] = 
+{
+	[FS_REGULAR] = { .width = font_regular_width, .height = font_regular_height, .bits = font_regular_bits },
+	[FS_SMALL]   = { .width = font_small_width,   .height = font_small_height,   .bits = font_small_bits   },
+};
+
+static int font_draw_char(font_style_t style, char ch, uint16_t color, int x, int y)
+{
+	const char *font_bits = font_style_table[style].bits;
+	int font_width = font_style_table[style].width;
+	int font_height = font_style_table[style].height / 128;
+	
 	uint32_t fillmap = 0;
-	char *pattern = font_bits + (((uint8_t)ch) * 4 * 32);
-	for(int rr = 0; rr < 32; rr++)
+	const char *pattern = font_bits + (((uint8_t)ch) * ((font_width+7)/8) * (font_height));
+	for(int rr = 0; rr < font_height; rr++)
 	{
-		for(int cc = 0; cc < 32; cc++)
+		for(int cc = 0; cc < font_width; cc++)
 		{
 			if(!(pattern[cc/8] & (1u << (cc%8))))
 			{
@@ -21,7 +40,7 @@ static int font_draw_char(char ch, uint16_t color, int x, int y)
 				fillmap |= 1u << cc;
 			}
 		}
-		pattern += 4;
+		pattern += (font_width+7)/8;
 	}
 	
 	int charwidth = 0;
@@ -33,14 +52,14 @@ static int font_draw_char(char ch, uint16_t color, int x, int y)
 	return charwidth;
 }
 
-int font_draw(const char *str, uint16_t color, int x, int y)
+int font_draw(font_style_t style, const char *str, uint16_t color, int x, int y)
 {
 	int allwidth = 0;
 	while(*str != '\0')
 	{
-		int ww = font_draw_char(*str, color, x, y);
+		int ww = font_draw_char(style, *str, color, x, y);
 		if(str[0] == ' ' && str[1] != '\0')
-			ww = 12;
+			ww = font_style_table[style].width * 3 / 8;
 		
 		str++;
 		x += ww;
