@@ -95,7 +95,20 @@ bool screen_matchopt(const leaguedata_t *league, int tl, int tr)
 		
 		uint16_t presses = pads_edge(PAD_ANY);
 		if(presses & BTNBIT_START)
-			return true;
+		{
+			if(screen_matchopt_options[itemsel+1].name == NULL)
+			{
+				//Already on "go"
+				return true;
+			}
+			else
+			{
+				//Advance to "go"
+				while(screen_matchopt_options[itemsel+1].name != NULL)
+					itemsel++;
+			}
+		}
+		
 		if(presses & BTNBIT_B)
 			return false;
 		
