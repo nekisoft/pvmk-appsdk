@@ -756,7 +756,13 @@ void sim_person_pad(int team, int person, int pad)
 	//Adjust velocity based on direction input
 	//Quake-style wishvel system
 	int32_t wishvel[2] = {0, 0};
-	int plspeed = 200;
+	
+	int plspeed = pptr->data->runspeed;
+	if(ball_team == team && ball_person == person)
+		plspeed = pptr->data->ballspeed;
+	if( (pads[pad] & BTNBIT_B) && (pptr->stamina > 0) )
+		plspeed = pptr->data->sprintspeed;
+	
 	switch(pads[pad] & (BTNBIT_UP | BTNBIT_DOWN | BTNBIT_LEFT | BTNBIT_RIGHT))
 	{
 		case BTNBIT_RIGHT:               wishvel[0] = plspeed *  256; wishvel[1] = plspeed *    0; break;
@@ -1100,14 +1106,25 @@ void sim_persons(void)
 			}
 			
 			//Update stamina
-			pptr->stamina += pptr->data->staminarecover * pptr->data->staminamax;
-			if(pptr->stamina <= 0)
+			
+			int vsq = ((pptr->vel[0]/256)*(pptr->vel[0]/256))+((pptr->vel[1]/256)*(pptr->vel[1]/256));
+			if(vsq > pptr->data->sprintspeed * pptr->data->runspeed)
 			{
-				pptr->stamina = 0;
+				//Sprinting, consume stamina
+				pptr->stamina -= 8192;
 			}
-			if(pptr->stamina >= pptr->data->staminamax * 65536)
+			else
 			{
-				pptr->stamina = pptr->data->staminamax * 65536;
+				//Not sprinting, allow stamina recover
+				pptr->stamina += pptr->data->staminarecover * pptr->data->staminamax;
+				if(pptr->stamina <= 0)
+				{
+					pptr->stamina = 0;
+				}	
+				if(pptr->stamina >= pptr->data->staminamax * 65536)
+				{
+					pptr->stamina = pptr->data->staminamax * 65536;
+				}
 			}
 		}
 	}
