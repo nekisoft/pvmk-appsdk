@@ -5,6 +5,7 @@
 #define PADS_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sc.h>
 
 //Pad states
@@ -20,6 +21,9 @@ void pads_update(void);
 
 //Returns buttons newly pressed (since the last call)
 uint16_t pads_edge(int player);
+
+//Consumes a single button press
+bool pads_detect(int player, int button);
 
 //Buttons
 #define BTNBIT_A _SC_BTNBIT_A

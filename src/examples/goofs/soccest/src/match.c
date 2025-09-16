@@ -461,6 +461,51 @@ static void goal(int team)
 	state(MS_GOAL);
 }
 
+//Sends the ball towards a given virtual point
+void kick(const int32_t *target, uint8_t power, uint8_t accuracy)
+{
+	//Compute ball-to-target vector
+	int32_t shotvec[3] = 
+	{
+		target[0] - ball_pos[0],
+		target[1] - ball_pos[1],
+		target[2] - ball_pos[2],
+	};
+	
+	//Express ball-to-target as distance, heading, and elevation
+	int shotvec_whole[3] = 
+	{
+		shotvec[0] / 256,
+		shotvec[1] / 256,
+		shotvec[2] / 256,
+	};
+	int distsq = 0;
+	distsq += shotvec_whole[0] * shotvec_whole[0];
+	distsq += shotvec_whole[1] * shotvec_whole[1];
+	distsq += shotvec_whole[2] * shotvec_whole[2];
+	
+	int heading = trigfunc_atan2(shotvec[1], shotvec[0]);
+	int elevation = trigfunc_atan2(distsq, (goaldist/256)*(goaldist/256)); //not accurate but cool
+	
+	//Roll for inaccuracy
+	int flub = statfunc_gauss_8b(128, 256 / (accuracy+1)) - 128;
+	heading += flub * 64;
+	
+
+	//Apply force
+	ball_vel[0] = trigfunc_cos8(heading) * power * 16;
+	ball_vel[1] = trigfunc_sin8(heading) * power * 16;
+	ball_vel[2] = trigfunc_sin8(elevation) * power * 16;
+	
+	//Ball gets let go
+	if(ball_team != -1 && ball_person != -1)
+	{
+		person_table[ball_team][ball_person].sticky = -5000;
+		ball_team = -1;
+		ball_person = -1;
+	}
+}
+
 //Simulates ball for one tick
 void sim_ball(void)
 {
@@ -535,8 +580,8 @@ void sim_ball(void)
 		for(int pp = 0; pp < 11; pp++)
 		{
 			//Decay old stickyness value
-			person_table[tt][pp].sticky *= 127;
-			person_table[tt][pp].sticky /= 128;
+			person_table[tt][pp].sticky *= 31;
+			person_table[tt][pp].sticky /= 32;
 			
 			//Compute distance to ball, integer only
 			int32_t dx = (person_table[tt][pp].pos[0] - ball_pos[0])/256;
@@ -545,9 +590,9 @@ void sim_ball(void)
 			int32_t distsq = (dx*dx)+(dy*dy)+(dz*dz);
 			
 			//Closer to ball -> more stickyness point
-			if(distsq < 65536)
+			if(distsq < 1048576)
 			{
-				person_table[tt][pp].sticky += (65536 - distsq) / 4096;
+				person_table[tt][pp].sticky += (1048576 - distsq) / 4096;
 			}
 			
 			
@@ -792,13 +837,205 @@ void sim_person_pad(int team, int person, int pad)
 			pptr->anim = AN_RUN0;
 		}
 	}
+	
+	//Action buttons depend a lot on whether this person has the ball
+	if(ball_team == team && ball_person == person)
+	{
+		//They have the ball.
+		
+		//X, Y, Z used for strategic moves - a particular kick
+		
+		//X button takes a shot on the goal.
+		if(pads_detect(pad, BTNBIT_X))
+		{
+			int32_t target[3] = { team?-goaldist:goaldist, 0, 0};
+			kick(target, pptr->data->kickpower, pptr->data->accuracy);
+		}
+		
+		//Y/Z passes to the next teammate ahead/behind us.
+		if(pads_detect(pad, (BTNBIT_Y | BTNBIT_Z)))
+		{
+			//Find the closest teammate in the appropriate direction
+			int want_dir = ((pads[pad] & BTNBIT_Y)?1:-1) * (team?-1:1);
+			int best_teammate = -1;
+			int best_distsq = 1024*1024*1024;
+			for(int pp = 0; pp < 11; pp++)
+			{
+				if(pp == person)
+					continue; //Don't pass to ourselves
+				
+				person_t *tptr = &(person_table[team][pp]);
+				
+				int xdiff = tptr->pos[0] - pptr->pos[0];
+				if(xdiff * want_dir <= 0)
+					continue; //Teammate is in the wrong direction
+				
+				int dx = (tptr->pos[0] - pptr->pos[0]) / 256;
+				int dy = (tptr->pos[1] - pptr->pos[1]) / 256;
+				int dz = (tptr->pos[2] - pptr->pos[2]) / 256;
+				int distsq = (dx*dx)+(dy*dy)+(dz*dz);
+				if(distsq < best_distsq)
+				{
+					best_teammate = pp;
+					best_distsq = distsq;
+				}
+			}
+			
+			//If we found anyone there, pass to them
+			if(best_teammate != -1)
+			{
+				//Kick the ball
+				kick(person_table[team][best_teammate].pos, pptr->data->kickpower, pptr->data->accuracy);	
+				
+				//If the teammate isn't currently controlled by a pad, control them
+				int teammate_is_controlled = 0;
+				for(int pp = 0; pp < 4; pp++)
+				{
+					if(pad_team[pp] == team && pad_person[pp] == best_teammate)
+						teammate_is_controlled = 1;
+				}
+				if(!teammate_is_controlled)
+					pad_person[pad] = best_teammate;
+			}
+		}
+	}
+	else
+	{
+		//Don't have the ball.
+		
+		//X changes player control to the player closest to the ball.
+		if(pads_detect(pad, BTNBIT_X))
+		{
+			//Find the closest not-currently-controlled teammate to the ball.
+			int best_teammate = -1;
+			int best_distsq = 1024*1024*1024;
+			for(int pp = 0; pp < 11; pp++)
+			{
+				if(pp == person)
+					continue; //Don't switch to ourselves
+				
+				person_t *tptr = &(person_table[team][pp]);
+				
+				int teammate_is_controlled = 0;
+				for(int qq = 0; qq < 4; qq++)
+				{
+					if(pad_team[qq] == team && pad_person[qq] == pp)
+						teammate_is_controlled = 1;
+				}
+				if(teammate_is_controlled)
+					continue; //Someone already controlling this teammate
+				
+				int dx = (tptr->pos[0] - ball_pos[0]) / 256;
+				int dy = (tptr->pos[1] - ball_pos[1]) / 256;
+				int dz = (tptr->pos[2] - ball_pos[2]) / 256;
+				int distsq = (dx*dx)+(dy*dy)+(dz*dz);
+				if(distsq < best_distsq)
+				{
+					best_teammate = pp;
+					best_distsq = distsq;
+				}
+			}
+			
+			//If we found anyone there, change to them
+			if(best_teammate != -1)
+			{
+				pad_person[pad] = best_teammate;
+			}
+		}
+		
+		//Y and Z change player control to the next player forward/backward.
+		if(pads_detect(pad, (BTNBIT_Y | BTNBIT_Z)))
+		{
+			//Find the closest teammate in the appropriate direction
+			int want_dir = ((pads[pad] & BTNBIT_Y)?1:-1) * (team?-1:1);
+			int best_teammate = -1;
+			int best_distsq = 1024*1024*1024;
+			for(int pp = 0; pp < 11; pp++)
+			{
+				if(pp == person)
+					continue; //Don't switch to ourselves
+				
+				person_t *tptr = &(person_table[team][pp]);
+				
+				int xdiff = tptr->pos[0] - pptr->pos[0];
+				if(xdiff * want_dir <= 0)
+					continue; //Teammate is in the wrong direction
+				
+				int teammate_is_controlled = 0;
+				for(int qq = 0; qq < 4; qq++)
+				{
+					if(pad_team[qq] == team && pad_person[qq] == pp)
+						teammate_is_controlled = 1;
+				}
+				if(teammate_is_controlled)
+					continue; //Someone already controlling this teammate
+				
+				int dx = (tptr->pos[0] - pptr->pos[0]) / 256;
+				int dy = (tptr->pos[1] - pptr->pos[1]) / 256;
+				int dz = (tptr->pos[2] - pptr->pos[2]) / 256;
+				int distsq = (dx*dx)+(dy*dy)+(dz*dz);
+				if(distsq < best_distsq)
+				{
+					best_teammate = pp;
+					best_distsq = distsq;
+				}
+			}
+			
+			//If we found anyone there, change to them
+			if(best_teammate != -1)
+			{
+				pad_person[pad] = best_teammate;
+			}
+		}
+	}
 }
 
 //Simulates a person using CPU behaviour
 void sim_person_cpu(int team, int person)
 {
-	(void)team;
-	(void)person;
+	//If we get the ball, try to give control over to a human on the same team
+	if(ball_team == team && ball_person == person)
+	{
+		//Find the gamepad currently controlling the nearest person of the same team
+		int best_pad = -1;
+		int32_t best_distsq = 1024*1024*1024;
+		for(int pp = 0; pp < 4; pp++)
+		{
+			if(pad_team[pp] != team)
+				continue;
+			
+			int32_t *controlled_pos = person_table[pad_team[pp]][pad_person[pp]].pos;
+			int32_t *our_pos = person_table[team][person].pos;
+			
+			int32_t dx = (controlled_pos[0] - our_pos[0]) / 256;
+			int32_t dy = (controlled_pos[1] - our_pos[1]) / 256;
+			int32_t distsq = (dx*dx)+(dy*dy);
+			if(distsq < best_distsq)
+			{
+				best_pad = pp;
+				best_distsq = distsq;
+			}
+		}
+		
+		if(best_pad != -1)
+		{
+			//A human with a gamepad is controlling a nearby person, make them control us instead
+			pad_person[best_pad] = person;
+			return;
+		}
+	}
+	
+	//Could also be that there's no humans on our team! In which case, the CPU plays the ball.
+	
+	person_t *pptr = &(person_table[team][person]);
+	
+	//Todo
+	pptr->vel[0] *= 255;
+	pptr->vel[0] /= 256;
+	pptr->vel[1] *= 255;
+	pptr->vel[1] /= 256;
+	
+	pptr->anim = AN_STAND;
 }
 
 //Simulates all persons on the field

@@ -7,6 +7,8 @@
 
 uint16_t pads[5];
 static uint16_t pads_edge_last[5];
+static uint16_t pads_detect_press[5];
+static uint16_t pads_detect_taken[5];
 
 void pads_update(void)
 {
@@ -24,6 +26,12 @@ void pads_update(void)
 	}
 	
 	pads[PAD_ANY] = pads[PAD_A] | pads[PAD_B] | pads[PAD_C] | pads[PAD_D];
+	
+	for(int pp = 0; pp < 5; pp++)
+	{
+		pads_detect_press[pp] = pads[pp];
+		pads_detect_taken[pp] &= pads[pp];
+	}
 }
 
 uint16_t pads_edge(int player)
@@ -34,4 +42,17 @@ uint16_t pads_edge(int player)
 	pads_edge_last[player] = pads[player];
 	
 	return now & ~then;
+}
+
+bool pads_detect(int player, int button)
+{
+	if( (pads_detect_press[player] & ~pads_detect_taken[player]) & button)
+	{
+		pads_detect_taken[player] |= button;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
