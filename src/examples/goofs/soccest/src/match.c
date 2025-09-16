@@ -125,6 +125,9 @@ typedef struct person_s
 	int32_t vel[3]; //Virtual velocity 24.8 cm/s
 	int32_t dir; //Angle 0=east 16384=north 32768=west 49152=south
 	
+	int32_t dest[3]; //Where they're trying to go
+	int sprinting; //Whether they are trying to sprint or not
+	
 	chanim_idx_t anim; //Frame of animation displayed
 	int animticks; //How many ticks has the frame been displayed
 	
@@ -132,6 +135,8 @@ typedef struct person_s
 	int stamina; //Current stamina value, 16.16 (stats are integer-only!)
 	
 	persondata_t *data; //Reference to stats about the person from team data
+	
+	
 } person_t;
 person_t person_table[2][11];
 
@@ -753,96 +758,26 @@ void sim_person_pad(int team, int person, int pad)
 {
 	person_t *pptr = &(person_table[team][person]);
 	
-	//Adjust velocity based on direction input
-	//Quake-style wishvel system
+	//Set destination for movement, based on direction buttons
 	int32_t wishvel[2] = {0, 0};
-	
-	int plspeed = pptr->data->runspeed;
-	if(ball_team == team && ball_person == person)
-		plspeed = pptr->data->ballspeed;
-	if( (pads[pad] & BTNBIT_B) && (pptr->stamina > 0) )
-		plspeed = pptr->data->sprintspeed;
-	
 	switch(pads[pad] & (BTNBIT_UP | BTNBIT_DOWN | BTNBIT_LEFT | BTNBIT_RIGHT))
 	{
-		case BTNBIT_RIGHT:               wishvel[0] = plspeed *  256; wishvel[1] = plspeed *    0; break;
-		case BTNBIT_RIGHT | BTNBIT_UP:   wishvel[0] = plspeed *  181; wishvel[1] = plspeed *  181; break;
-		case BTNBIT_UP:                  wishvel[0] = plspeed *    0; wishvel[1] = plspeed *  256; break;
-		case BTNBIT_UP | BTNBIT_LEFT:    wishvel[0] = plspeed * -181; wishvel[1] = plspeed *  181; break;
-		case BTNBIT_LEFT:                wishvel[0] = plspeed * -256; wishvel[1] = plspeed *    0; break;
-		case BTNBIT_LEFT | BTNBIT_DOWN:  wishvel[0] = plspeed * -181; wishvel[1] = plspeed * -181; break;
-		case BTNBIT_DOWN:                wishvel[0] = plspeed *    0; wishvel[1] = plspeed * -256; break;
-		case BTNBIT_DOWN | BTNBIT_RIGHT: wishvel[0] = plspeed *  181; wishvel[1] = plspeed * -181; break;
+		case BTNBIT_RIGHT:               wishvel[0] = 100 *  256; wishvel[1] = 100 *    0; break;
+		case BTNBIT_RIGHT | BTNBIT_UP:   wishvel[0] = 100 *  181; wishvel[1] = 100 *  181; break;
+		case BTNBIT_UP:                  wishvel[0] = 100 *    0; wishvel[1] = 100 *  256; break;
+		case BTNBIT_UP | BTNBIT_LEFT:    wishvel[0] = 100 * -181; wishvel[1] = 100 *  181; break;
+		case BTNBIT_LEFT:                wishvel[0] = 100 * -256; wishvel[1] = 100 *    0; break;
+		case BTNBIT_LEFT | BTNBIT_DOWN:  wishvel[0] = 100 * -181; wishvel[1] = 100 * -181; break;
+		case BTNBIT_DOWN:                wishvel[0] = 100 *    0; wishvel[1] = 100 * -256; break;
+		case BTNBIT_DOWN | BTNBIT_RIGHT: wishvel[0] = 100 *  181; wishvel[1] = 100 * -181; break;
 		default: break;
 	}
-	int64_t wishvel_magsq = (wishvel[0]*wishvel[0])+(wishvel[1]*wishvel[1]);
+	pptr->dest[0] = pptr->pos[0] + wishvel[0];
+	pptr->dest[1] = pptr->pos[1] + wishvel[1];
+	pptr->dest[2] = pptr->pos[2];
 	
-	pptr->vel[0] *= 7;
-	pptr->vel[0] += wishvel[0];
-	pptr->vel[0] /= 8;
-	pptr->vel[1] *= 7;
-	pptr->vel[1] += wishvel[1];
-	pptr->vel[1] /= 8;
-	//int64_t vel_magsq = (pptr->vel[0] * pptr->vel[0]) + (pptr->vel[1] * pptr->vel[1]);
-	
-	
-	//Adjust facing based on direction input
-	int wantangle = pptr->dir;
-	switch(pads[pad] & (BTNBIT_UP | BTNBIT_DOWN | BTNBIT_LEFT | BTNBIT_RIGHT))
-	{
-		case BTNBIT_RIGHT:               wantangle = 8192 * 0; break;
-		case BTNBIT_RIGHT | BTNBIT_UP:   wantangle = 8192 * 1; break;
-		case BTNBIT_UP:                  wantangle = 8192 * 2; break;
-		case BTNBIT_UP | BTNBIT_LEFT:    wantangle = 8192 * 3; break;
-		case BTNBIT_LEFT:                wantangle = 8192 * 4; break;
-		case BTNBIT_LEFT | BTNBIT_DOWN:  wantangle = 8192 * 5; break;
-		case BTNBIT_DOWN:                wantangle = 8192 * 6; break;
-		case BTNBIT_DOWN | BTNBIT_RIGHT: wantangle = 8192 * 7; break;
-		default: break;
-	}
-	
-	int angdiff = ((wantangle - pptr->dir) + 65536) % 65536;
-	if(angdiff > 32768)
-		angdiff = angdiff - 65536;
-
-	pptr->dir += angdiff / 16;
-	
-	//Cap angle
-	if(pptr->dir < 0)
-		pptr->dir += 65536;
-	if(pptr->dir > 65536)
-		pptr->dir -= 65536;
-	
-	//Update animation
-	pptr->animticks++;
-	
-	if(pptr->anim >= AN_RUN0 && pptr->anim <= AN_RUN3)
-	{
-		//In the run cycle, continue based on speed
-		if( pptr->animticks > 10)
-		{
-			pptr->animticks = 0;
-			pptr->anim++;
-			if(pptr->anim > AN_RUN3)
-				pptr->anim = AN_RUN0;
-		}
-		
-		//Drop back to standing if too slow
-		if(wishvel_magsq < 100)
-		{
-			pptr->anim = AN_STAND;
-		}
-		
-	}
-	
-	if(pptr->anim == AN_STAND)
-	{
-		//Standing - start to run?
-		if(wishvel_magsq > 100)
-		{
-			pptr->anim = AN_RUN0;
-		}
-	}
+	//Set sprinting flag from B button
+	pptr->sprinting = (pads[pad] & BTNBIT_B);
 	
 	//Action buttons depend a lot on whether this person has the ball
 	if(ball_team == team && ball_person == person)
@@ -1032,17 +967,139 @@ void sim_person_cpu(int team, int person)
 	}
 	
 	//Could also be that there's no humans on our team! In which case, the CPU plays the ball.
-	
 	person_t *pptr = &(person_table[team][person]);
 	
-	//Todo
-	pptr->vel[0] *= 255;
-	pptr->vel[0] /= 256;
-	pptr->vel[1] *= 255;
-	pptr->vel[1] /= 256;
-	
-	pptr->anim = AN_STAND;
+	//If we reached our target, pick a new one
+	int dx = (pptr->dest[0] - pptr->pos[0]) / 256;
+	int dy = (pptr->dest[1] - pptr->pos[1]) / 256;
+	if( ((dx*dx)+(dy*dy) < 256) || (pptr->dest[0] == 0 && pptr->dest[1] == 0) )
+	{
+		pptr->dest[0] = (statfunc_gauss_8b(128, 32) - 128) * 256 * 60;
+		pptr->dest[1] = (statfunc_gauss_8b(128, 32) - 128) * 256 * 30;
+		pptr->sprinting = statfunc_rand_8b() & 1;
+	}
 }
+
+
+//Performs common simulation for player- and cpu-controlled persons
+void sim_person_common(int team, int person)
+{
+	person_t *pptr = &(person_table[team][person]);
+	
+	//Compute direction and distance to movement target
+	int wantangle = trigfunc_atan2(pptr->dest[1] - pptr->pos[1], pptr->dest[0] - pptr->pos[0]);
+	int destdx = (pptr->dest[0] - pptr->pos[0]) / 256;
+	int destdy = (pptr->dest[1] - pptr->pos[1]) / 256;
+	int destdsq = (destdx*destdx)+(destdy*destdy);
+	if(destdsq > 10)
+	{
+		//Have somewhere to go
+	
+		//Add velocity towards movement destination
+		int plspeed = pptr->data->runspeed;
+		if(ball_team == team && ball_person == person)
+			plspeed = pptr->data->ballspeed;
+		if(pptr->sprinting && (pptr->stamina > 0) )
+			plspeed = pptr->data->sprintspeed;
+		
+		pptr->vel[0] *= 7;
+		pptr->vel[0] += plspeed * trigfunc_cos8(wantangle);
+		pptr->vel[0] /= 8;
+		pptr->vel[1] *= 7;
+		pptr->vel[1] += plspeed * trigfunc_sin8(wantangle);
+		pptr->vel[1] /= 8;
+		
+		//Adjust facing based on direction to movement target
+		int angdiff = ((wantangle - pptr->dir) + 65536) % 65536;
+		if(angdiff > 32768)
+			angdiff = angdiff - 65536;
+		
+		pptr->dir += angdiff / 16;
+	}
+	else
+	{
+		//Nowhere to go
+		//Decay velocity
+		pptr->vel[0] *= 7;
+		pptr->vel[0] /= 8;
+		pptr->vel[1] *= 7;
+		pptr->vel[1] /= 8;
+	}
+	
+	//Cap angle
+	if(pptr->dir < 0)
+		pptr->dir += 65536;
+	if(pptr->dir > 65536)
+		pptr->dir -= 65536;
+	
+	//Apply gravity
+	pptr->vel[2] -= (980*256) / 100;
+	
+	//Accumulate velocity into position
+	pptr->pos[0] += pptr->vel[0] / 100;
+	pptr->pos[1] += pptr->vel[1] / 100;
+	pptr->pos[2] += pptr->vel[2] / 100;
+	
+	//Land firm on ground
+	if(pptr->pos[2] < 0)
+	{
+		pptr->pos[2] = 0;
+		pptr->vel[2] = 0;
+	}
+	
+	//Update stamina
+	int vsq = ((pptr->vel[0]/256)*(pptr->vel[0]/256))+((pptr->vel[1]/256)*(pptr->vel[1]/256));
+	if(vsq > pptr->data->sprintspeed * pptr->data->runspeed)
+	{
+		//Sprinting, consume stamina
+		pptr->stamina -= 8192;
+	}
+	else
+	{
+		//Not sprinting, allow stamina recover
+		pptr->stamina += pptr->data->staminarecover * pptr->data->staminamax;
+		if(pptr->stamina <= 0)
+		{
+			pptr->stamina = 0;
+		}	
+		if(pptr->stamina >= pptr->data->staminamax * 65536)
+		{
+			pptr->stamina = pptr->data->staminamax * 65536;
+		}
+	}
+	
+	//Update animation
+	pptr->animticks++;
+	
+	if(pptr->anim >= AN_RUN0 && pptr->anim <= AN_RUN3)
+	{
+		//In the run cycle, continue based on speed
+		if( pptr->animticks > 10)
+		{
+			pptr->animticks = 0;
+			pptr->anim++;
+			if(pptr->anim > AN_RUN3)
+				pptr->anim = AN_RUN0;
+		}
+		
+		//Drop back to standing if too slow
+		if(destdsq < 100)
+		{
+			pptr->anim = AN_STAND;
+		}
+		
+	}
+	
+	if(pptr->anim == AN_STAND)
+	{
+		//Standing - start to run?
+		if(destdsq > 100)
+		{
+			pptr->anim = AN_RUN0;
+		}
+	}
+}
+
 
 //Simulates all persons on the field
 void sim_persons(void)
@@ -1087,45 +1144,8 @@ void sim_persons(void)
 				sim_person_pad(tt, pp, controlling_pad);
 			}
 			
-			//Run common updates...
-			person_t *pptr = &(person_table[tt][pp]);
-			
-			//Apply gravity
-			pptr->vel[2] -= (980*256) / 100;
-			
-			//Accumulate velocity into position
-			pptr->pos[0] += pptr->vel[0] / 100;
-			pptr->pos[1] += pptr->vel[1] / 100;
-			pptr->pos[2] += pptr->vel[2] / 100;
-			
-			//Land firm on ground
-			if(pptr->pos[2] < 0)
-			{
-				pptr->pos[2] = 0;
-				pptr->vel[2] = 0;
-			}
-			
-			//Update stamina
-			
-			int vsq = ((pptr->vel[0]/256)*(pptr->vel[0]/256))+((pptr->vel[1]/256)*(pptr->vel[1]/256));
-			if(vsq > pptr->data->sprintspeed * pptr->data->runspeed)
-			{
-				//Sprinting, consume stamina
-				pptr->stamina -= 8192;
-			}
-			else
-			{
-				//Not sprinting, allow stamina recover
-				pptr->stamina += pptr->data->staminarecover * pptr->data->staminamax;
-				if(pptr->stamina <= 0)
-				{
-					pptr->stamina = 0;
-				}	
-				if(pptr->stamina >= pptr->data->staminamax * 65536)
-				{
-					pptr->stamina = pptr->data->staminamax * 65536;
-				}
-			}
+			//Run common updates
+			sim_person_common(tt, pp);
 		}
 	}
 	
