@@ -114,6 +114,7 @@ static const int32_t ball_stick_extent = 75;
 static const int goalwidth = 732 * 256; //Spacing between goal posts
 static const int goalheight = 244 * 256; //Height of goal top beam
 static const int goaldist = 39*100*256; //Distance from center of field to goal line
+static const int goalback = goaldist + (100*256); //Distance from center of field to back of goal net
 
 //Location of goalposts
 static int32_t goalpost_pos[4][3];
@@ -199,7 +200,10 @@ static void drawpitch(void)
 		
 		if(ycoord < 0 || ycoord >= (PITCHTEX_DIM<<8))
 		{
-			memset(fbrow, 0, 640*2);
+			for(int xx = 0; xx < 640; xx++)
+			{
+				fbrow[xx] = 0; //pitchtex[yy%32][xx];
+			}
 			continue;
 		}
 		
@@ -213,7 +217,7 @@ static void drawpitch(void)
 		for(int xx = 0; xx < 640; xx++)
 		{
 			if(texfrac < 0 || texfrac >= (PITCHTEX_DIM<<8))
-				fbrow[xx] = 0;
+				fbrow[xx] = 0; //texrow[xx%32];
 			else
 				fbrow[xx] = texrow[ (texfrac >> 8) % PITCHTEX_DIM];
 			
@@ -241,6 +245,13 @@ static void match_uipart_draw_goal(void)
 	
 	int basex = 120;
 	int basey = 160;
+	
+	if(match_state_ticks < 52)
+		basex = 640 - match_state_ticks*10;
+	else if(match_state_ticks < 100)
+		basex = 120;
+	else
+		basex = 120 - (match_state_ticks - 100)*10;
 	
 	images_draw(IMF_MATCH_GOAL3, basex + rnds[3][0], basey + rnds[3][1]);
 	images_draw(IMF_MATCH_GOAL2, basex + rnds[2][0], basey + rnds[2][1]);
@@ -429,7 +440,7 @@ static void goformation(void)
 		for(int pp = 0; pp < 11; pp++)
 		{
 			person_table[tt][pp].pos[0] = (40 - (role * 10)) * 100 * 256;
-			person_table[tt][pp].pos[1] = ( (2 * order) - formation[role] ) * 5 * 100 * 256;
+			person_table[tt][pp].pos[1] = ( (2 * order) + 1 - formation[role] ) * 5 * 100 * 256;
 			person_table[tt][pp].pos[2] = 0;
 			person_table[tt][pp].vel[0] = 0;
 			person_table[tt][pp].vel[1] = 0;
@@ -452,11 +463,6 @@ static void goformation(void)
 			}
 		}
 	}
-	
-	//Temphack
-	person_table[0][0].pos[0] = 0;
-	person_table[0][0].pos[1] = 0;
-	
 }
 
 //Triggers a goal
@@ -526,6 +532,38 @@ void sim_ball(void)
 		ball_vel[1] /= 256;
 	}
 	
+	
+	//Bounce off inside of goal
+	if(ball_pos[1] >= -(goalwidth / 2) && ball_pos[1] <= (goalwidth / 2) && ball_pos[2] < goalheight)
+	{
+		if(ball_pos[0] < -goaldist || ball_pos[0] > goaldist)
+		{
+			int32_t nextpos[3] = 
+			{
+				ball_pos[0] + (ball_vel[0] / 99),
+				ball_pos[1] + (ball_vel[1] / 99),
+				ball_pos[2] + (ball_vel[2] / 99),
+			};
+			
+			if(nextpos[0] < -goalback || nextpos[0] > goalback)
+			{
+				ball_vel[0] *= -1;
+				ball_vel[0] /= 8;
+			}
+			if(nextpos[1] > (goalwidth/2) || nextpos[1] < -(goalwidth/2))
+			{
+				ball_vel[1] *= -1;
+				ball_vel[1] /= 8;
+			}
+			if(nextpos[2] > goalheight)
+			{
+				ball_vel[2] *= -1;
+				ball_vel[2] /= 8;
+			}
+		}
+	}
+	
+	
 	//Accumulate ball velocity into ball position
 	ball_pos[0] += ball_vel[0] / 100;
 	ball_pos[1] += ball_vel[1] / 100;
@@ -557,7 +595,7 @@ void sim_ball(void)
 				ball_vel[dd] *= -1;
 		}
 	}
-	
+
 	//Bounce ball off the floor
 	if(ball_pos[2] < 0)
 	{
@@ -585,8 +623,8 @@ void sim_ball(void)
 		for(int pp = 0; pp < 11; pp++)
 		{
 			//Decay old stickyness value
-			person_table[tt][pp].sticky *= 31;
-			person_table[tt][pp].sticky /= 32;
+			person_table[tt][pp].sticky *= 7;
+			person_table[tt][pp].sticky /= 8;
 			
 			//Compute distance to ball, integer only
 			int32_t dx = (person_table[tt][pp].pos[0] - ball_pos[0])/256;
@@ -689,23 +727,16 @@ void sim_ball(void)
 //Simulates camera for one tick - following ball
 void sim_cam_toball(void)
 {
-	//Accelerate camera movement towards ball
-	for(int dd = 0; dd < 2; dd++)
-	{
-		int veldiff = ball_vel[dd] - cam_vel[dd];
-		int posdiff = ball_pos[dd] - cam_center[dd];
-		
-		cam_vel[dd] += veldiff / 100;
-		cam_vel[dd] += posdiff / 100;
-	}
+	cam_center[0] *= 15;
+	cam_center[0] += ball_pos[0];
+	cam_center[0] /= 16;
+	cam_center[1] *= 15;
+	cam_center[1] += ball_pos[1];
+	cam_center[1] /= 16;
 	
-	//Accumulate camera
-	cam_center[0] += cam_vel[0] / 100;
-	cam_center[1] += cam_vel[1] / 100;
-	
-	//Todo - camera radius feedback... maybe track multiple points?
-	if(cam_radius < 100)
-		cam_radius = 100;
+	cam_radius *= 15;
+	cam_radius += 600;
+	cam_radius /= 16;
 }
 
 //Simulates closeup camera for a single gamepad's person
@@ -734,6 +765,64 @@ void sim_cam_topad(int pad)
 	if(cam_radius < 100)
 		cam_radius = 100;	
 	
+}
+
+//Simulates normal game camera
+void sim_cam_gameplay(void)
+{
+	//Find average location and maximum distance pairwise of:
+	//1. all gamepad-controlled persons
+	//2. the ball
+	//3. (maybe other stuff? the goal if the ball gets close?)
+	int32_t dsq_max = 0;
+	int32_t avg[3] = {0,0,0};
+	int avgn = 0;
+	for(int pp = 0; pp < 4; pp++)
+	{
+		if(pad_team[pp] == -1)
+			continue;
+		
+		for(int qq = 0; qq < 5; qq++)
+		{
+			if(qq < 4 && pad_team[qq] == -1)
+				continue;
+			
+			int32_t *posa = person_table[pad_team[pp]][pad_person[pp]].pos;
+			int32_t *posb = (qq==4)?(ball_pos):(person_table[pad_team[qq]][pad_person[qq]].pos);
+			
+			int32_t dx = (posa[0] - posb[0]) / 256;
+			int32_t dy = (posa[1] - posb[1]) / 256;
+			int32_t dsq = (dx*dx)+(dy*dy);
+			
+			if(dsq > dsq_max)
+				dsq_max = dsq;
+			
+			avg[0] += posb[0];
+			avg[1] += posb[1];
+			avg[2] += posb[2];
+			avgn++;
+		}
+	}
+	avg[0] /= avgn;
+	avg[1] /= avgn;
+	avg[2] /= avgn;
+	
+	//Cheap hack so we don't need sqrt...
+	int target_radius = dsq_max / cam_radius;
+	cam_radius *= 31;
+	cam_radius += target_radius;
+	cam_radius /= 32;
+	if(cam_radius < 800)
+		cam_radius = 800;
+	
+	//exponential smooth position too
+	cam_center[0] *= 31;
+	cam_center[0] += avg[0];
+	cam_center[0] /= 32;
+	
+	cam_center[1] *= 31;
+	cam_center[1] += avg[1];
+	cam_center[1] /= 32;
 }
 
 //Simulates goals for one tick, checking if a goal was scored
@@ -969,7 +1058,7 @@ void sim_person_cpu(int team, int person)
 	//Could also be that there's no humans on our team! In which case, the CPU plays the ball.
 	person_t *pptr = &(person_table[team][person]);
 	
-	//If we reached our target, pick a new one
+	//If we reached our movement target, pick a new one
 	int dx = (pptr->dest[0] - pptr->pos[0]) / 256;
 	int dy = (pptr->dest[1] - pptr->pos[1]) / 256;
 	if( ((dx*dx)+(dy*dy) < 256) || (pptr->dest[0] == 0 && pptr->dest[1] == 0) )
@@ -985,6 +1074,9 @@ void sim_person_cpu(int team, int person)
 void sim_person_common(int team, int person)
 {
 	person_t *pptr = &(person_table[team][person]);
+	
+	//Fudge factor to make things faster
+	int speedfudge = 2;
 	
 	//Compute direction and distance to movement target
 	int wantangle = trigfunc_atan2(pptr->dest[1] - pptr->pos[1], pptr->dest[0] - pptr->pos[0]);
@@ -1003,10 +1095,10 @@ void sim_person_common(int team, int person)
 			plspeed = pptr->data->sprintspeed;
 		
 		pptr->vel[0] *= 7;
-		pptr->vel[0] += plspeed * trigfunc_cos8(wantangle);
+		pptr->vel[0] += speedfudge * plspeed * trigfunc_cos8(wantangle);
 		pptr->vel[0] /= 8;
 		pptr->vel[1] *= 7;
-		pptr->vel[1] += plspeed * trigfunc_sin8(wantangle);
+		pptr->vel[1] += speedfudge * plspeed * trigfunc_sin8(wantangle);
 		pptr->vel[1] /= 8;
 		
 		//Adjust facing based on direction to movement target
@@ -1049,7 +1141,7 @@ void sim_person_common(int team, int person)
 	
 	//Update stamina
 	int vsq = ((pptr->vel[0]/256)*(pptr->vel[0]/256))+((pptr->vel[1]/256)*(pptr->vel[1]/256));
-	if(vsq > pptr->data->sprintspeed * pptr->data->runspeed)
+	if(vsq > speedfudge * speedfudge * pptr->data->sprintspeed * pptr->data->runspeed)
 	{
 		//Sprinting, consume stamina
 		pptr->stamina -= 8192;
@@ -1159,7 +1251,7 @@ void match_tick_intro(void)
 	if( (match_state_ticks / 32) & 1 )
 		show(UI_READY);
 	
-	sim_cam_toball();
+	sim_cam_gameplay();
 	
 	if(match_state_ticks >= 32*6)
 	{
@@ -1177,9 +1269,8 @@ void match_tick_play(void)
 	
 	sim_persons();
 	sim_ball();
-	//sim_cam_toball();
-	sim_cam_topad(0);
 	sim_goals();
+	sim_cam_gameplay();
 }
 
 //Match tick function - goal scored
@@ -1188,6 +1279,10 @@ void match_tick_goal(void)
 	hideall();
 	show(UI_GOAL);
 	show(UI_SCORES);
+	
+	sim_persons();
+	sim_ball();
+	sim_cam_toball();
 	
 	if(match_state_ticks > 200)
 	{

@@ -290,9 +290,9 @@ void persondata_generate(persondata_t *output)
 	output->height = statfunc_gauss_8b(170, 8);
 	output->mass = statfunc_gauss_8b(65, 10);
 
-	output->runspeed = statfunc_gauss_8b(140, 30);
-	output->sprintspeed = statfunc_gauss_8b(200, 43);
-	output->ballspeed = statfunc_gauss_8b(120, 30);	
+	output->runspeed = statfunc_gauss_8b(106, 40);
+	output->sprintspeed = statfunc_gauss_8b(160, 43);
+	output->ballspeed = statfunc_gauss_8b(100, 40);	
 	if(output->ballspeed + 5 > output->runspeed)
 		output->ballspeed = output->runspeed - 5;
 	if(output->sprintspeed - 5 < output->runspeed)
@@ -301,9 +301,9 @@ void persondata_generate(persondata_t *output)
 	output->staminamax = statfunc_gauss_8b(100, 10);
 	output->staminarecover = statfunc_gauss_8b(100, 10);
 	
-	output->kickpower = statfunc_gauss_8b(100, 30);
-	output->accuracy = statfunc_gauss_8b(100, 30);
-	output->throwpower = statfunc_gauss_8b(100, 30);
+	output->kickpower = statfunc_gauss_8b(100, 10);
+	output->accuracy = statfunc_gauss_8b(100, 10);
+	output->throwpower = statfunc_gauss_8b(100, 10);
 	
 	output->dive = statfunc_gauss_8b(100, 10);
 	output->eyesight = statfunc_gauss_8b(100, 10);
