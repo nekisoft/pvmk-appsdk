@@ -15,6 +15,7 @@
 #include "images.h"
 #include "proj.h"
 #include "chanim.h"
+#include "behave.h"
 
 #include "stb_image.h"
 #include <string.h>
@@ -135,8 +136,11 @@ typedef struct person_s
 	int sticky; //Ball possession score, higher = holds onto ball better, negative = loses ball alwayss
 	int stamina; //Current stamina value, 16.16 (stats are integer-only!)
 	
-	persondata_t *data; //Reference to stats about the person from team data
+	behave_state_t behave_state; //State of NPC behavior
+	int32_t formpos[2]; //Position when in formation
+	behave_role_t role; //Role to play when simulating NPC behavior
 	
+	persondata_t *data; //Reference to stats about the person from team data
 	
 } person_t;
 person_t person_table[2][11];
@@ -454,6 +458,11 @@ static void goformation(void)
 				person_table[tt][pp].pos[0] *= -1;
 				person_table[tt][pp].dir = 32768 - person_table[tt][pp].dir;
 			}
+			
+			//temp
+			person_table[tt][pp].formpos[0] = person_table[tt][pp].pos[0];
+			person_table[tt][pp].formpos[1] = person_table[tt][pp].pos[1];
+			person_table[tt][pp].role = pp + 1;
 			
 			order++;
 			if(order >= formation[role])
@@ -1058,14 +1067,58 @@ void sim_person_cpu(int team, int person)
 	//Could also be that there's no humans on our team! In which case, the CPU plays the ball.
 	person_t *pptr = &(person_table[team][person]);
 	
-	//If we reached our movement target, pick a new one
-	int dx = (pptr->dest[0] - pptr->pos[0]) / 256;
-	int dy = (pptr->dest[1] - pptr->pos[1]) / 256;
-	if( ((dx*dx)+(dy*dy) < 256) || (pptr->dest[0] == 0 && pptr->dest[1] == 0) )
+	//Prepare inputs for behavior simulation
+	behave_input_t inputs = 
 	{
-		pptr->dest[0] = (statfunc_gauss_8b(128, 32) - 128) * 256 * 60;
-		pptr->dest[1] = (statfunc_gauss_8b(128, 32) - 128) * 256 * 30;
-		pptr->sprinting = statfunc_rand_8b() & 1;
+		.role = pptr->role,
+		.have_ball = (ball_team == team && ball_person == person),
+		.team_ball = (ball_team == team),
+		.attack_dir = (team ? -1 : 1),
+		.self_pos = { pptr->pos[0], pptr->pos[1] },
+		.ball_pos = { ball_pos[0], ball_pos[1] },
+		.form_pos = { pptr->formpos[0], pptr->formpos[1] },
+		.team_pos = {
+			{ person_table[team][ 0].pos[0], person_table[team][ 0].pos[1] },
+			{ person_table[team][ 1].pos[0], person_table[team][ 1].pos[1] },
+			{ person_table[team][ 2].pos[0], person_table[team][ 2].pos[1] },
+			{ person_table[team][ 3].pos[0], person_table[team][ 3].pos[1] },
+			{ person_table[team][ 4].pos[0], person_table[team][ 4].pos[1] },
+			{ person_table[team][ 5].pos[0], person_table[team][ 5].pos[1] },
+			{ person_table[team][ 6].pos[0], person_table[team][ 6].pos[1] },
+			{ person_table[team][ 7].pos[0], person_table[team][ 7].pos[1] },
+			{ person_table[team][ 8].pos[0], person_table[team][ 8].pos[1] },
+			{ person_table[team][ 9].pos[0], person_table[team][ 9].pos[1] },
+			{ person_table[team][10].pos[0], person_table[team][10].pos[1] },
+		},
+		.oppo_pos =  {
+			{ person_table[!team][ 0].pos[0], person_table[!team][ 0].pos[1] },
+			{ person_table[!team][ 1].pos[0], person_table[!team][ 1].pos[1] },
+			{ person_table[!team][ 2].pos[0], person_table[!team][ 2].pos[1] },
+			{ person_table[!team][ 3].pos[0], person_table[!team][ 3].pos[1] },
+			{ person_table[!team][ 4].pos[0], person_table[!team][ 4].pos[1] },
+			{ person_table[!team][ 5].pos[0], person_table[!team][ 5].pos[1] },
+			{ person_table[!team][ 6].pos[0], person_table[!team][ 6].pos[1] },
+			{ person_table[!team][ 7].pos[0], person_table[!team][ 7].pos[1] },
+			{ person_table[!team][ 8].pos[0], person_table[!team][ 8].pos[1] },
+			{ person_table[!team][ 9].pos[0], person_table[!team][ 9].pos[1] },
+			{ person_table[!team][10].pos[0], person_table[!team][10].pos[1] },
+		},
+	};
+	
+	//Todo - mangle inputs based on character stats / game difficulty
+
+	//Run behavior to find what they do
+	behave_output_t outputs = {0};
+	behave_sim(&inputs, &pptr->behave_state, &outputs);
+
+	//Perform the action as if a controller set it up (see person common)
+	pptr->dest[0] = outputs.dest[0];
+	pptr->dest[1] = outputs.dest[1];
+	pptr->sprinting = outputs.sprint;
+	if(ball_team == team && ball_person == person && outputs.kick)
+	{
+		int32_t target[3] = { outputs.target[0], outputs.target[1], pptr->pos[2] };
+		kick(target, pptr->data->kickpower, pptr->data->accuracy);
 	}
 }
 
