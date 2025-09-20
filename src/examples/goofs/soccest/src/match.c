@@ -27,6 +27,7 @@ typedef enum match_state_e
 	MS_INTRO,
 	MS_PLAY,
 	MS_GOAL,
+	MS_OOB,
 	MS_DONE,
 	MS_MAX
 } match_state_t;
@@ -108,6 +109,11 @@ static int32_t ball_team;
 //Player on the team in possession of the ball
 static int32_t ball_person;
 
+//Information about ball going out of bounds
+static int32_t oob_fault_team; //Last team to touch it
+static int32_t oob_xdir; //Which goal line it went off of (-1, 1) or 0 if it didn't
+static int32_t oob_ydir; //Which touch line it went off of (-1, 1) or 0 if it didn't
+
 //How close to the ball to contest or maintain possession, integer cm
 static const int32_t ball_stick_extent = 75;
 
@@ -119,6 +125,9 @@ static const int goalback = goaldist + (100*256); //Distance from center of fiel
 
 //Location of goalposts
 static int32_t goalpost_pos[4][3];
+
+//Out-of-bounds size (+/- these dimensions, 24.8 cm)
+static int32_t bounds_extent[2] = { 52 * 100 * 256, 34 * 100 * 256 };
 
 //Information about a player on the field
 typedef struct person_s
@@ -464,6 +473,9 @@ static void goformation(void)
 			person_table[tt][pp].formpos[1] = person_table[tt][pp].pos[1];
 			person_table[tt][pp].role = pp + 1;
 			
+			//reset behavior
+			memset(&(person_table[tt][pp].behave_state), 0, sizeof(behave_state_t));
+			
 			order++;
 			if(order >= formation[role])
 			{
@@ -479,6 +491,14 @@ static void goal(int team)
 {
 	scores[team]++;
 	state(MS_GOAL);
+}
+
+//Triggers an out-of-bounds
+static void oob(int xdir, int ydir)
+{
+	oob_xdir = xdir;
+	oob_ydir = ydir;
+	state(MS_OOB);
 }
 
 //Sends the ball towards a given virtual point
@@ -524,6 +544,16 @@ void kick(const int32_t *target, uint8_t power, uint8_t accuracy)
 		ball_team = -1;
 		ball_person = -1;
 	}
+}
+
+//Simulates out-of-bounds rules
+void sim_bounds(void)
+{
+	//Check against each bound
+	if     (ball_pos[0] >  bounds_extent[0]) oob( 1,  0);
+	else if(ball_pos[0] < -bounds_extent[0]) oob(-1,  0);
+	else if(ball_pos[1] >  bounds_extent[1]) oob( 0,  1);
+	else if(ball_pos[1] < -bounds_extent[1]) oob( 0, -1);
 }
 
 //Simulates ball for one tick
@@ -703,6 +733,13 @@ void sim_ball(void)
 		//Ball has changed possession
 		ball_team = best_team;
 		ball_person = best_person;
+		
+		if(ball_team != -1)
+		{
+			//Record the last team to possess the ball, even if it since left possession.
+			//Blame that team for out-of-bounds if it happens.
+			oob_fault_team = ball_team;
+		}
 	}
 	
 	//Move towards player in possession of ball
@@ -1027,6 +1064,26 @@ void sim_person_pad(int team, int person, int pad)
 			}
 		}
 	}
+	
+	//A button just kicks whatever's here
+	if(pads_detect(pad, BTNBIT_A))
+	{
+		//Check if the ball is nearby us
+		int32_t dx = (ball_pos[0] - pptr->pos[0]) / 256;
+		int32_t dy = (ball_pos[1] - pptr->pos[1]) / 256;
+		
+		int32_t maxd = 100; //cm
+		int32_t distsq = (dx*dx)+(dy*dy);
+		if(distsq < (maxd * maxd))
+		{
+			//Ball is close enough, smash that.
+			//Halve our accuracy and power because we're not in possession.
+			int32_t target[3] = {pptr->pos[0], pptr->pos[1], pptr->pos[2]};
+			target[0] += trigfunc_cos8(pptr->dir) * 100;
+			target[1] += trigfunc_sin8(pptr->dir) * 100;
+			kick(target, pptr->data->kickpower/2, pptr->data->accuracy/2);
+		}
+	}
 }
 
 //Simulates a person using CPU behaviour
@@ -1337,7 +1394,7 @@ void match_tick_goal(void)
 	sim_ball();
 	sim_cam_toball();
 	
-	if(match_state_ticks > 200)
+	if(match_state_ticks > 300)
 	{
 		goformation();
 		
@@ -1350,6 +1407,25 @@ void match_tick_goal(void)
 	}
 }
 
+//Match tick function - out of bounds
+void match_tick_oob(void)
+{
+	hideall();
+	//show(UI_OOB);
+	show(UI_SCORES);
+	
+	//Temp - just reset for now like a goal was scored
+	goformation();
+	
+	memset(ball_pos, 0, sizeof(ball_pos));
+	memset(ball_vel, 0, sizeof(ball_vel));
+	memset(cam_center, 0, sizeof(cam_center));
+	memset(cam_vel, 0, sizeof(cam_vel));
+	
+	state(MS_INTRO);
+	
+}
+
 //Table of tick functions for different match states
 typedef void (*match_state_tickfn_t)(void);
 match_state_tickfn_t match_state_tickfns[MS_MAX] = 
@@ -1357,6 +1433,7 @@ match_state_tickfn_t match_state_tickfns[MS_MAX] =
 	[MS_INTRO] = &match_tick_intro,
 	[MS_PLAY]  = &match_tick_play,
 	[MS_GOAL]  = &match_tick_goal,
+	[MS_OOB]   = &match_tick_oob,
 };
 
 //Runs at 100hz to simulate match

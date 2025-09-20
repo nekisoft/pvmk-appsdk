@@ -28,7 +28,7 @@ typedef struct proj_element_s
 	int sh;
 	
 } proj_element_t;
-#define PROJ_ELEMENT_MAX 256
+#define PROJ_ELEMENT_MAX 1024
 static proj_element_t proj_element_table[PROJ_ELEMENT_MAX];
 static int proj_element_used;
 
