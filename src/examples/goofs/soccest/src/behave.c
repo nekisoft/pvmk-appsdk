@@ -4,6 +4,7 @@
 
 #include "behave.h"
 #include "statfunc.h"
+#include "trigfunc.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -14,10 +15,10 @@
 #define BEHAVE_FRESH (state->step_age <= 1)
 
 //Out-of-bounds (+/- this amount)
-static const int32_t behave_bounds[2] = { 50 * 100 * 256, 30 * 100 * 256 };
+static const int32_t behave_bounds[2] = { 39 * 100 * 256, 30 * 100 * 256 };
 
 //Goal location (+/- this amount)
-static const int32_t behave_goal = 50 * 100 * 256;
+static const int32_t behave_goal = 39 * 100 * 256;
 
 //Behavior step - hover around formation point
 static void behave_sim_hover(const behave_input_t *in, behave_state_t *state, behave_output_t *out)
@@ -77,10 +78,10 @@ static void behave_sim_hover(const behave_input_t *in, behave_state_t *state, be
 			[BR_WINGBACK] = 1000,
 			[BR_DEFMID] = 500,
 			[BR_CTRMID] = 400,
-			[BR_ATKMID] = 300,
-			[BR_WINGER] = 200,
-			[BR_FORWARD] = 200,
-			[BR_STRIKER] = 200,
+			[BR_ATKMID] = 30,
+			[BR_WINGER] = 20,
+			[BR_FORWARD] = 20,
+			[BR_STRIKER] = 20,
 			[BR_KINDIE] = 10,
 		};
 		
@@ -207,6 +208,7 @@ static void behave_sim_possess(const behave_input_t *in, behave_state_t *state, 
 	out->target[0] = in->ball_pos[0];
 	out->target[1] = in->ball_pos[1];
 	
+	
 	//If we get the ball then figure out what to do
 	if(in->have_ball)
 	{
@@ -248,6 +250,21 @@ static void behave_sim_possess(const behave_input_t *in, behave_state_t *state, 
 			[BR_KINDIE]     = BS_POSSESS, //KEEP RUNNING AT IT
 		};
 		BEHAVE_GOTO(onteampossess[in->role]);
+	}
+	else
+	{
+		//If the opposing team has it, and we're close, kick it
+		int32_t dx = (in->self_pos[0] - in->ball_pos[0]) / 256;
+		int32_t dy = (in->self_pos[1] - in->ball_pos[1]) / 256;
+		int32_t distsq = (dx*dx)+(dy*dy);
+		int32_t kickdist = 90;
+		if(distsq < (kickdist * kickdist))
+		{
+			out->kick = true;
+			int balldir = trigfunc_atan2(dy, dx);
+			out->target[0] = in->self_pos[0] + (trigfunc_cos8(balldir) * 100);
+			out->target[1] = in->self_pos[1] + (trigfunc_sin8(balldir) * 100);
+		}
 	}
 }
 
@@ -300,6 +317,10 @@ static void behave_sim_defend(const behave_input_t *in, behave_state_t *state, b
 {
 	(void)in; (void)state; (void)out;
 	BEHAVE_GOTO(BS_HOVER);
+	
+	//Based on the ball's velocity, find the line it's moving along.
+	//Then, move towards the closest point on that line.
+	//todo
 }
 
 //Behavior step - try to shoot the opponent's goal
@@ -393,3 +414,25 @@ void behave_sim(const behave_input_t *in, behave_state_t *state, behave_output_t
 	(*behave_step_fn_table[state->step_now])(in, state, out);
 }
 
+
+const char *behave_dbgstr(const behave_state_t *st)
+{
+	static const char *stnames[BS_MAX] = 
+	{
+		[BS_HOVER] = "hover",
+		[BS_COVER] = "cover",
+		[BS_POSSESS] = "possess",
+		[BS_ATTACK] = "attack",
+		[BS_DEFEND] = "defend",
+		[BS_TAKESHOT] = "takeshot",
+		[BS_PASSFORE] = "passfore",
+		[BS_PASSBACK] = "passback",
+		[BS_MARK] = "mark",
+	};
+	const char *stname = "?";
+	if(st->step_now >= 0 && st->step_now < BS_MAX && stnames[st->step_now] != NULL)
+		stname = stnames[st->step_now];
+	
+	return stname;
+	
+}

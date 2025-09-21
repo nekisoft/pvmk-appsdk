@@ -52,6 +52,7 @@ bool screen_padteams(void)
 		if(presses & BTNBIT_START)
 		{
 			//Confirming.
+			return true; //for debug, allow games with no human
 			
 			//Make sure they're not trying to start with no players in the match
 			int any_selection = 0;

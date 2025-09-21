@@ -89,4 +89,7 @@ typedef struct behave_output_s
 //Updates NPC behavior
 void behave_sim(const behave_input_t *in, behave_state_t *state, behave_output_t *out);
 
+//Describes state for debugging
+const char *behave_dbgstr(const behave_state_t *st);
+
 #endif //BEHAVE_H

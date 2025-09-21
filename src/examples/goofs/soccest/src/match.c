@@ -127,7 +127,7 @@ static const int goalback = goaldist + (100*256); //Distance from center of fiel
 static int32_t goalpost_pos[4][3];
 
 //Out-of-bounds size (+/- these dimensions, 24.8 cm)
-static int32_t bounds_extent[2] = { 52 * 100 * 256, 34 * 100 * 256 };
+static int32_t bounds_extent[2] = { 39 * 100 * 256, 34 * 100 * 256 };
 
 //Information about a player on the field
 typedef struct person_s
@@ -138,6 +138,10 @@ typedef struct person_s
 	
 	int32_t dest[3]; //Where they're trying to go
 	int sprinting; //Whether they are trying to sprint or not
+	
+	int32_t target[3]; //What they're trying to kick at
+	int trykick; //Whether they're trying to kick the ball
+	int kickdelay; //How long before we can kick again
 	
 	chanim_idx_t anim; //Frame of animation displayed
 	int animticks; //How many ticks has the frame been displayed
@@ -440,6 +444,15 @@ void drawworld(void)
 	
 	//snprintf(txtbuf, sizeof(txtbuf)-1, "%d %d %d", ball_team, ball_person, person_table[0][0].sticky);
 	//font_draw(txtbuf, 0x8000, 16, 0);
+	
+	for(int ll = 0; ll < 22; ll++)
+	{
+		char txtbuf[256];
+		person_t *pptr = &(person_table[ll/11][ll%11]);
+		snprintf(txtbuf, sizeof(txtbuf)-1, "%s", behave_dbgstr(&pptr->behave_state));
+		font_draw(FS_SMALL, txtbuf, 0x8000, 16, 16 + (ll * 16));
+	}
+		
 }
 
 //Resets all persons to formation positions instantly
@@ -536,14 +549,6 @@ void kick(const int32_t *target, uint8_t power, uint8_t accuracy)
 	ball_vel[0] = trigfunc_cos8(heading) * power * 16;
 	ball_vel[1] = trigfunc_sin8(heading) * power * 16;
 	ball_vel[2] = trigfunc_sin8(elevation) * power * 16;
-	
-	//Ball gets let go
-	if(ball_team != -1 && ball_person != -1)
-	{
-		person_table[ball_team][ball_person].sticky = -5000;
-		ball_team = -1;
-		ball_person = -1;
-	}
 }
 
 //Simulates out-of-bounds rules
@@ -674,7 +679,7 @@ void sim_ball(void)
 			//Closer to ball -> more stickyness point
 			if(distsq < 1048576)
 			{
-				person_table[tt][pp].sticky += (1048576 - distsq) / 4096;
+				person_table[tt][pp].sticky += (1048576 - distsq) / 16384;
 			}
 			
 			
@@ -849,6 +854,20 @@ void sim_cam_gameplay(void)
 			avgn++;
 		}
 	}
+	if(avgn == 0)
+	{
+		//no human players
+		//let pad a control a free cam
+		cam_radius -= (pads[PAD_A] & BTNBIT_A) ? 10 : 0;
+		cam_radius += (pads[PAD_A] & BTNBIT_B) ? 10 : 0;
+		
+		cam_center[0] += (pads[PAD_A] & BTNBIT_RIGHT) ? (cam_radius) : 0;
+		cam_center[0] -= (pads[PAD_A] & BTNBIT_LEFT)  ? (cam_radius) : 0;
+		cam_center[1] += (pads[PAD_A] & BTNBIT_UP)    ? (cam_radius) : 0;
+		cam_center[1] -= (pads[PAD_A] & BTNBIT_DOWN)  ? (cam_radius) : 0;
+		return;
+	}
+	
 	avg[0] /= avgn;
 	avg[1] /= avgn;
 	avg[2] /= avgn;
@@ -924,8 +943,10 @@ void sim_person_pad(int team, int person, int pad)
 		//X button takes a shot on the goal.
 		if(pads_detect(pad, BTNBIT_X))
 		{
-			int32_t target[3] = { team?-goaldist:goaldist, 0, 0};
-			kick(target, pptr->data->kickpower, pptr->data->accuracy);
+			pptr->target[0] = team?-goaldist:goaldist;
+			pptr->target[1] = 0;
+			pptr->target[2] = 0;
+			pptr->trykick = true;
 		}
 		
 		//Y/Z passes to the next teammate ahead/behind us.
@@ -961,7 +982,10 @@ void sim_person_pad(int team, int person, int pad)
 			if(best_teammate != -1)
 			{
 				//Kick the ball
-				kick(person_table[team][best_teammate].pos, pptr->data->kickpower, pptr->data->accuracy);	
+				pptr->target[0] = person_table[team][best_teammate].pos[0];
+				pptr->target[1] = person_table[team][best_teammate].pos[1];
+				pptr->target[2] = person_table[team][best_teammate].pos[2];
+				pptr->trykick = true;
 				
 				//If the teammate isn't currently controlled by a pad, control them
 				int teammate_is_controlled = 0;
@@ -1068,21 +1092,10 @@ void sim_person_pad(int team, int person, int pad)
 	//A button just kicks whatever's here
 	if(pads_detect(pad, BTNBIT_A))
 	{
-		//Check if the ball is nearby us
-		int32_t dx = (ball_pos[0] - pptr->pos[0]) / 256;
-		int32_t dy = (ball_pos[1] - pptr->pos[1]) / 256;
-		
-		int32_t maxd = 100; //cm
-		int32_t distsq = (dx*dx)+(dy*dy);
-		if(distsq < (maxd * maxd))
-		{
-			//Ball is close enough, smash that.
-			//Halve our accuracy and power because we're not in possession.
-			int32_t target[3] = {pptr->pos[0], pptr->pos[1], pptr->pos[2]};
-			target[0] += trigfunc_cos8(pptr->dir) * 100;
-			target[1] += trigfunc_sin8(pptr->dir) * 100;
-			kick(target, pptr->data->kickpower/2, pptr->data->accuracy/2);
-		}
+		pptr->trykick = true;
+		pptr->target[0] = pptr->pos[0] + trigfunc_cos8(pptr->dir) * 100;
+		pptr->target[1] = pptr->pos[1] + trigfunc_sin8(pptr->dir) * 100;
+		pptr->target[2] = pptr->pos[2];
 	}
 }
 
@@ -1172,10 +1185,13 @@ void sim_person_cpu(int team, int person)
 	pptr->dest[0] = outputs.dest[0];
 	pptr->dest[1] = outputs.dest[1];
 	pptr->sprinting = outputs.sprint;
-	if(ball_team == team && ball_person == person && outputs.kick)
+	if(outputs.kick)
 	{
-		int32_t target[3] = { outputs.target[0], outputs.target[1], pptr->pos[2] };
-		kick(target, pptr->data->kickpower, pptr->data->accuracy);
+		//Can kick if we're close enough, or possess the ball
+		pptr->trykick = true;
+		pptr->target[0] = outputs.target[0];
+		pptr->target[1] = outputs.target[1];
+		pptr->target[2] = 0;
 	}
 }
 
@@ -1298,6 +1314,74 @@ void sim_person_common(int team, int person)
 		if(destdsq > 100)
 		{
 			pptr->anim = AN_RUN0;
+		}
+	}
+	
+	//If they're trying to kick, see what happens
+	if(pptr->kickdelay > 0)
+		pptr->kickdelay--;
+	
+	if(pptr->trykick)
+	{
+		pptr->trykick = false;
+		
+		uint8_t accuracy = pptr->data->accuracy;
+		uint8_t power = pptr->data->kickpower;
+		bool inrange = (ball_person == person && ball_team == team);
+		if(!inrange)
+		{
+			//Not possessing the balll...
+			//Check if the ball is nearby us tho.
+			int32_t dx = (ball_pos[0] - pptr->pos[0]) / 256;
+			int32_t dy = (ball_pos[1] - pptr->pos[1]) / 256;
+			
+			int32_t maxd = 100; //cm
+			int32_t distsq = (dx*dx)+(dy*dy);
+			if(distsq < (maxd * maxd))
+			{
+				//Ball is close enough, smash that.
+				//Halve our accuracy and power because we're not in possession.
+				inrange = true;
+				accuracy /= 2;
+				power /= 2;
+			}
+		}
+		
+		if(inrange && (pptr->kickdelay <= 0))
+		{
+			kick(pptr->target, power, accuracy);
+			pptr->kickdelay = 50;
+			
+			//The person kicking the ball gets a bonus to their possession,
+			//anyone else gets less
+			if(ball_person != -1 && ball_team != -1)
+				person_table[ball_team][ball_person].sticky -= 100;
+			
+			person_table[team][person].sticky += 200;
+		}
+		
+	}
+	
+	//Bump off others
+	for(int tt = 0; tt < 2; tt++)
+	{
+		for(int pp = 0; pp < 11; pp++)
+		{
+			if(tt == team && pp == person)
+				continue; //Don't bump into self
+			
+			const person_t *other = &(person_table[tt][pp]);
+			
+			int32_t dx = (other->pos[0] - pptr->pos[0]) / 256;
+			int32_t dy = (other->pos[1] - pptr->pos[1]) / 256;
+			int32_t dsq = (dx*dx)+(dy*dy);
+			int32_t radius = 50;
+			if(dsq > (radius*radius))
+				continue; //Too far, no bump
+			
+			int bumpdir = trigfunc_atan2(dy, dx);
+			pptr->pos[0] -= 4 * trigfunc_cos8(bumpdir);
+			pptr->pos[1] -= 4 * trigfunc_sin8(bumpdir);
 		}
 	}
 }
