@@ -310,6 +310,55 @@ static void behave_sim_attack(const behave_input_t *in, behave_state_t *state, b
 		
 		BEHAVE_GOTO(onlose[in->role]);
 	}
+	
+	//If there's opponents too close, try to pass away from them
+	int32_t closest_oppo_forward = 1024*1024*1024;
+	int32_t closest_oppo_backward = 1024*1024*1024;
+	for(int pp = 0; pp < 11; pp++)
+	{
+		int32_t dx = (in->oppo_pos[pp][0] - in->self_pos[0]) / 256;
+		int32_t dy = (in->oppo_pos[pp][1] - in->self_pos[1]) / 256;
+		int32_t dsq = (dx*dx)+(dy*dy);
+		if(dx * in->attack_dir > 0)
+		{
+			//Opponent ahead of us
+			if(dsq < closest_oppo_forward)
+				closest_oppo_forward = dsq;
+		}
+		else
+		{
+			//Opponent behind us
+			if(dsq < closest_oppo_backward)
+				closest_oppo_backward = dsq;
+		}
+	}
+	
+	//How close they have to be, to force us to pass
+	//First column - opponent ahead of us, we pass back
+	//Second column - opponent behind us, we pass forward
+	static const int32_t pass_thresh[BR_MAX][2] = 
+	{
+		[BR_GOALIE]     = { 200, 100},
+		[BR_SWEEPER]    = { 200, 100},
+		[BR_FULLBACK]   = { 200, 100},
+		[BR_CENTREBACK] = { 200, 100},
+		[BR_WINGBACK]   = { 200, 100},
+		[BR_DEFMID]     = { 200, 100},
+		[BR_CTRMID]     = { 200, 100},
+		[BR_ATKMID]     = { 200, 100},
+		[BR_WINGER]     = { 200, 100},
+		[BR_FORWARD]    = { 200, 100},
+		[BR_STRIKER]    = { 200, 100},
+		[BR_KINDIE]     = { 200, 100},
+	};
+	
+	int32_t fw_thresh_sq = pass_thresh[in->role][0] * pass_thresh[in->role][0];
+	int32_t bw_thresh_sq = pass_thresh[in->role][1] * pass_thresh[in->role][1];
+	
+	if(closest_oppo_forward < fw_thresh_sq)
+		BEHAVE_GOTO(BS_PASSBACK);
+	if(closest_oppo_backward < bw_thresh_sq)
+		BEHAVE_GOTO(BS_PASSFORE);
 }
 
 //Behavior step - try to get in the way of the ball
@@ -362,22 +411,262 @@ static void behave_sim_takeshot(const behave_input_t *in, behave_state_t *state,
 //Behavior step - pass to teammate ahead of you
 static void behave_sim_passfore(const behave_input_t *in, behave_state_t *state, behave_output_t *out)
 {
-	(void)in; (void)state; (void)out;
-	BEHAVE_GOTO(BS_HOVER);
+	//Scan for teammates ahead of us. Pick the best one.
+	//todo - consider which ones are blocked by opponents
+	int best_person = -1;
+	int best_dsq = 1024*1024*1024;
+	for(int pp = 0; pp < 11; pp++)
+	{
+		int32_t dx = (in->team_pos[pp][0] - in->self_pos[0]) / 256;
+		int32_t dy = (in->team_pos[pp][1] - in->self_pos[1]) / 256;
+		if(dx == 0 && dy == 0)
+			continue; //Us
+		if(dx * in->attack_dir <= 0)
+			continue; //Not ahead of us
+		
+		int32_t dsq = (dx*dx)+(dy*dy);
+		if(dsq < best_dsq)
+		{
+			best_person = pp;
+			best_dsq = dsq;
+		}
+	}
+	
+	if(best_person == -1)
+	{
+		//Can't pass to anyone!
+		static const behave_step_t onnobody[BR_MAX] = 
+		{
+			[BR_GOALIE]     = BS_PASSBACK,
+			[BR_SWEEPER]    = BS_PASSBACK,
+			[BR_FULLBACK]   = BS_PASSBACK,
+			[BR_CENTREBACK] = BS_PASSBACK,
+			[BR_WINGBACK]   = BS_PASSBACK,
+			[BR_DEFMID]     = BS_PASSBACK,
+			[BR_CTRMID]     = BS_PASSBACK,
+			[BR_ATKMID]     = BS_ATTACK,
+			[BR_WINGER]     = BS_TAKESHOT,
+			[BR_FORWARD]    = BS_ATTACK,
+			[BR_STRIKER]    = BS_TAKESHOT,
+			[BR_KINDIE]     = BS_TAKESHOT,
+		};
+		
+		BEHAVE_GOTO(onnobody[in->role]);
+	}
+	else
+	{
+		//Try to pass to them
+		out->kick = true;
+		out->sprint = true;
+		out->dest[0] = in->team_pos[best_person][0];
+		out->dest[1] = in->team_pos[best_person][1];
+		out->target[0] = in->team_pos[best_person][0];
+		out->target[1] = in->team_pos[best_person][1];
+	}
+	
+	//Handle losing the ball - whether we got a pass off or not
+	if(!in->have_ball)
+	{
+		static const behave_step_t onlose[BR_MAX] = 
+		{
+			[BR_GOALIE]     = BS_POSSESS,
+			[BR_SWEEPER]    = BS_POSSESS,
+			[BR_FULLBACK]   = BS_POSSESS,
+			[BR_CENTREBACK] = BS_POSSESS,
+			[BR_WINGBACK]   = BS_POSSESS,
+			[BR_DEFMID]     = BS_POSSESS,
+			[BR_CTRMID]     = BS_POSSESS,
+			[BR_ATKMID]     = BS_POSSESS,
+			[BR_WINGER]     = BS_POSSESS,
+			[BR_FORWARD]    = BS_POSSESS,
+			[BR_STRIKER]    = BS_POSSESS,
+			[BR_KINDIE]     = BS_POSSESS,
+		};
+		
+		BEHAVE_GOTO(onlose[in->role]);
+	}
 }
 
 //Behavior step - pass to teammate behind you
 static void behave_sim_passback(const behave_input_t *in, behave_state_t *state, behave_output_t *out)
 {
-	(void)in; (void)state; (void)out;
-	BEHAVE_GOTO(BS_HOVER);
+	//Scan for teammates behind us. Pick the best one.
+	//todo - consider which ones are blocked by opponents
+	int best_person = -1;
+	int best_dsq = 1024*1024*1024;
+	for(int pp = 0; pp < 11; pp++)
+	{
+		int32_t dx = (in->team_pos[pp][0] - in->self_pos[0]) / 256;
+		int32_t dy = (in->team_pos[pp][1] - in->self_pos[1]) / 256;
+		if(dx == 0 && dy == 0)
+			continue; //Us
+		if(dx * in->attack_dir >= 0)
+			continue; //Not behind us
+		
+		int32_t dsq = (dx*dx)+(dy*dy);
+		if(dsq < best_dsq)
+		{
+			best_person = pp;
+			best_dsq = dsq;
+		}
+	}
+	
+	if(best_person == -1)
+	{
+		//Can't pass to anyone!
+		static const behave_step_t onnobody[BR_MAX] = 
+		{
+			[BR_GOALIE]     = BS_HOVER,
+			[BR_SWEEPER]    = BS_HOVER,
+			[BR_FULLBACK]   = BS_HOVER,
+			[BR_CENTREBACK] = BS_HOVER,
+			[BR_WINGBACK]   = BS_COVER,
+			[BR_DEFMID]     = BS_COVER,
+			[BR_CTRMID]     = BS_ATTACK,
+			[BR_ATKMID]     = BS_ATTACK,
+			[BR_WINGER]     = BS_TAKESHOT,
+			[BR_FORWARD]    = BS_TAKESHOT,
+			[BR_STRIKER]    = BS_TAKESHOT,
+			[BR_KINDIE]     = BS_TAKESHOT,
+		};
+		
+		BEHAVE_GOTO(onnobody[in->role]);
+	}
+	else
+	{
+		//Try to pass to them
+		out->kick = true;
+		out->sprint = true;
+		out->dest[0] = in->team_pos[best_person][0];
+		out->dest[1] = in->team_pos[best_person][1];
+		out->target[0] = in->team_pos[best_person][0];
+		out->target[1] = in->team_pos[best_person][1];
+	}
+	
+	//Handle losing the ball - whether we got a pass off or not
+	if(!in->have_ball)
+	{
+		static const behave_step_t onlose[BR_MAX] = 
+		{
+			[BR_GOALIE]     = BS_HOVER,
+			[BR_SWEEPER]    = BS_HOVER,
+			[BR_FULLBACK]   = BS_HOVER,
+			[BR_CENTREBACK] = BS_HOVER,
+			[BR_WINGBACK]   = BS_HOVER,
+			[BR_DEFMID]     = BS_COVER,
+			[BR_CTRMID]     = BS_COVER,
+			[BR_ATKMID]     = BS_COVER,
+			[BR_WINGER]     = BS_COVER,
+			[BR_FORWARD]    = BS_COVER,
+			[BR_STRIKER]    = BS_COVER,
+			[BR_KINDIE]     = BS_POSSESS,
+		};
+		
+		BEHAVE_GOTO(onlose[in->role]);
+	}
 }
 
 //Behavior step - harass an opponent
 static void behave_sim_mark(const behave_input_t *in, behave_state_t *state, behave_output_t *out)
 {
-	(void)in; (void)state; (void)out;
-	BEHAVE_GOTO(BS_HOVER);
+	//Find the closest opponent who's not already possessing the ball
+	int32_t best_oppo = -1;
+	int32_t best_dsq = 1024*1024*1024;
+	for(int pp = 0; pp < 11; pp++)
+	{
+		int32_t dx = (in->oppo_pos[pp][0] - in->self_pos[0]) / 256;
+		int32_t dy = (in->oppo_pos[pp][1] - in->self_pos[1]) / 256;
+		int32_t dsq = (dx*dx)+(dy*dy);
+		
+		int32_t oppo_to_ball_x = (in->ball_pos[0] - in->oppo_pos[pp][0]) / 256;
+		int32_t oppo_to_ball_y = (in->ball_pos[1] - in->oppo_pos[pp][1]) / 256;
+		int32_t oppo_ball_dsq = (oppo_to_ball_x*oppo_to_ball_x)+(oppo_to_ball_y*oppo_to_ball_y);
+		if(oppo_ball_dsq < 1000*1000)
+		{
+			//They're already too close to the ball, no sense marking them
+			continue;
+		}
+		
+		if(dsq < best_dsq)
+		{
+			best_oppo = pp;
+			best_dsq = dsq;
+		}	
+	}
+	
+	if(best_oppo == -1)
+	{
+		//Defend instead
+		BEHAVE_GOTO(BS_DEFEND);
+		return;
+	}
+
+	//Handle cases where we get bored
+	static const int boredom_threshold[BR_MAX] = 
+	{
+		[BR_GOALIE] = 1000,
+		[BR_SWEEPER] = 1000,
+		[BR_FULLBACK] = 1000,
+		[BR_CENTREBACK] = 1000,
+		[BR_WINGBACK] = 1000,
+		[BR_DEFMID] = 1000,
+		[BR_CTRMID] = 1000,
+		[BR_ATKMID] = 1000,
+		[BR_WINGER] = 1000,
+		[BR_FORWARD] = 1000,
+		[BR_STRIKER] = 1000,
+		[BR_KINDIE] = 10,
+	};
+	
+	static const behave_step_t boredom_options[BR_MAX][2] = 
+	{
+		[BR_GOALIE]     = { BS_HOVER,   BS_HOVER   },
+		[BR_SWEEPER]    = { BS_COVER,   BS_COVER   },
+		[BR_FULLBACK]   = { BS_HOVER,   BS_COVER   },
+		[BR_CENTREBACK] = { BS_HOVER,   BS_COVER   },
+		[BR_WINGBACK]   = { BS_COVER,   BS_COVER   },
+		[BR_DEFMID]     = { BS_HOVER,   BS_COVER   },
+		[BR_CTRMID]     = { BS_COVER,   BS_COVER   },
+		[BR_ATKMID]     = { BS_POSSESS, BS_POSSESS },
+		[BR_WINGER]     = { BS_COVER,   BS_POSSESS },
+		[BR_FORWARD]    = { BS_POSSESS, BS_POSSESS },
+		[BR_STRIKER]    = { BS_POSSESS, BS_POSSESS },
+		[BR_KINDIE]     = { BS_POSSESS, BS_POSSESS },
+	};
+	
+	if(state->step_age > boredom_threshold[in->role] + statfunc_rand_8b())
+		BEHAVE_GOTO(boredom_options[in->role][statfunc_rand_8b()&1]);
+
+	
+	//Otherwise, get up in their face, between them and the ball
+	int32_t oppo_to_ball_x = (in->ball_pos[0] - in->oppo_pos[best_oppo][0]);
+	int32_t oppo_to_ball_y = (in->ball_pos[1] - in->oppo_pos[best_oppo][1]);
+	int32_t oppo_to_ball_dir = trigfunc_atan2(oppo_to_ball_y, oppo_to_ball_x);
+	
+	static const int mark_dist_cm_roles[BR_MAX] = 
+	{
+		[BR_GOALIE]     = 200,
+		[BR_SWEEPER]    = 200,
+		[BR_FULLBACK]   = 300,
+		[BR_CENTREBACK] = 200,
+		[BR_WINGBACK]   = 200,
+		[BR_DEFMID]     = 500,
+		[BR_CTRMID]     = 500,
+		[BR_ATKMID]     = 500,
+		[BR_WINGER]     = 300,
+		[BR_FORWARD]    = 200,
+		[BR_STRIKER]    = 200,
+		[BR_KINDIE]     = 1,
+	};
+	int mark_dist_cm = mark_dist_cm_roles[in->role] * 2;
+	
+	out->kick = false;
+	out->sprint = false;
+	out->dest[0] = in->oppo_pos[best_oppo][0] + (trigfunc_cos8(oppo_to_ball_dir) * mark_dist_cm);
+	out->dest[1] = in->oppo_pos[best_oppo][1] + (trigfunc_sin8(oppo_to_ball_dir) * mark_dist_cm);
+	out->target[0] = out->dest[0];
+	out->target[1] = out->dest[1];
+	
 }
 
 //Table of behavior steps
