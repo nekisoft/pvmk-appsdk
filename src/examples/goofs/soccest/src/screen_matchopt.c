@@ -10,17 +10,43 @@
 #include "font.h"
 #include <stdio.h>
 
+typedef struct screen_matchopt_value_s
+{
+	const char *v_str;
+	int v_int;
+} screen_matchopt_value_t;
+
 typedef struct screen_matchopt_option_s
 {
 	const char *name;
-	const char **options;
+	const screen_matchopt_value_t options[8];
 } screen_matchopt_option_t;
 const screen_matchopt_option_t screen_matchopt_options[] = 
 {
-	{ .name = "Duration", .options = (const char*[]){ "10 Minutes", "30 Minutes", "90 Minutes", NULL } },
-	{ .name = "Ball Size", .options = (const char*[]){ "Normal", "Big Balls", NULL } },
-	{ .name = "Manslaughter", .options = (const char*[]){ "Yellow Card", "Red Card", "Legal", NULL } },
-	{ .name = "START GAME!", .options = (const char*[]){ "", NULL } },
+	[MO_DURATION] = {
+		.name = "Duration",
+		.options = {
+			{ .v_str = "10 Minutes", .v_int = 10, },
+			{ .v_str = "30 Minutes", .v_int = 30, },
+			{ .v_str = "90 Minutes", .v_int = 90, },
+		}
+	},
+	[MO_BALLSIZE] = {
+		.name = "Ball Size",
+		.options = {
+			{ .v_str = "Normal",    .v_int = 24, },
+			{ .v_str = "Big Balls", .v_int = 96, },
+		}
+	},
+	[MO_FRAGTYPE] = {
+		.name = "Manslaughter",
+		.options = {
+			{ .v_str = "Yellow Card", .v_int = 1, },
+			{ .v_str = "Red Card",    .v_int = 2, },
+			{ .v_str = "Legal",       .v_int = 0, },
+		}
+	},
+	{ .name = "START GAME!", .options = { { .v_str = "" } } },
 	{0}
 };
 int screen_matchopt_selections[sizeof(screen_matchopt_options)/sizeof(screen_matchopt_options[0])];
@@ -87,7 +113,7 @@ bool screen_matchopt(const leaguedata_t *league, int tl, int tr)
 			uint16_t namecolor = (ii == itemsel) ? 0xffff : 0x8d3e;
 			uint16_t valcolor = (ii == itemsel) ? 0xffff : 0x58de;
 			font_draw(FS_REGULAR, optr->name, namecolor, xloc, yiter);
-			font_draw(FS_REGULAR, optr->options[screen_matchopt_selections[ii]], valcolor, xloc + 200, yiter);
+			font_draw(FS_REGULAR, optr->options[screen_matchopt_selections[ii]].v_str, valcolor, xloc + 200, yiter);
 			yiter += 30;
 		}
 		
@@ -131,8 +157,13 @@ bool screen_matchopt(const leaguedata_t *league, int tl, int tr)
 		if(screen_matchopt_selections[itemsel] < 0)
 			screen_matchopt_selections[itemsel] = 0;
 		
-		if(screen_matchopt_options[itemsel].options[screen_matchopt_selections[itemsel]] == NULL)
+		if(screen_matchopt_options[itemsel].options[screen_matchopt_selections[itemsel]].v_str == NULL)
 			screen_matchopt_selections[itemsel]--;
 		
 	}
+}
+
+int screen_matchopt_int(screen_matchopt_idx_t opt)
+{
+	return screen_matchopt_options[opt].options[screen_matchopt_selections[opt]].v_int;
 }

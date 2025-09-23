@@ -57,6 +57,17 @@ void proj_card(images_file_t imf, int32_t vx8, int32_t vy8, int32_t vz8, int32_t
 	int vy_rel = vy8 - proj_campos[1];
 	int vz_rel = vz8 - proj_campos[2];
 	
+	//Approximate clipping in global space
+	if(vx_rel/512 < -proj_camrad)
+		return;
+	if(vx_rel/512 > proj_camrad)
+		return;
+	if(vy_rel/512 < -proj_camrad)
+		return;
+	if(vy_rel/512 > proj_camrad)
+		return;
+		
+	
 	int sy = 1024 * ((proj_camrad * 360) - vy_rel ) / ((proj_camrad * 1536) + vy_rel);	
 	int sx = 320 +  (vx_rel * (1024 + sy) / (proj_camrad * 1024));
 	int sh =        (   vh8 * (1024 + sy) / (proj_camrad * 1024));
@@ -71,6 +82,7 @@ void proj_card(images_file_t imf, int32_t vx8, int32_t vy8, int32_t vz8, int32_t
 		return;
 	}
 	
+	//Tighter clipping in screen space
 	if(sx < -200)
 		return;
 	if(sx > SCREENX+200)

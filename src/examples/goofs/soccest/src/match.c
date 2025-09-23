@@ -16,6 +16,7 @@
 #include "proj.h"
 #include "chanim.h"
 #include "behave.h"
+#include "screen_matchopt.h"
 
 #include "stb_image.h"
 #include <string.h>
@@ -372,8 +373,9 @@ void drawworld(void)
 	//proj_card(IMF_CARD_CONE, 0, -800*256, 0, 100*256);
 	
 	//Project ball shadow + ball
-	proj_card(IMF_CARD_BALLSH, ball_pos[0], ball_pos[1], -256*5, 16*256);
-	proj_card(IMF_CARD_BALL0 + ((ball_frame >> 8) & 0x3u), ball_pos[0], ball_pos[1], ball_pos[2], 24*256);
+	int ballsize = screen_matchopt_int(MO_BALLSIZE);
+	proj_card(IMF_CARD_BALLSH, ball_pos[0], ball_pos[1], -256*5, ballsize*170);
+	proj_card(IMF_CARD_BALL0 + ((ball_frame >> 8) & 0x3u), ball_pos[0], ball_pos[1], ball_pos[2], ballsize*256);
 	
 	//Project goalposts
 	for(int pp = 0; pp < 4; pp++)
