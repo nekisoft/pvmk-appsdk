@@ -307,7 +307,7 @@ void fade_out(int what)
 		delay(20);
 	}
 }
-void fade_in(PALETTE pp, int what)
+void fade_in(unsigned char *buffer, PALETTE pp, int what)
 {
 	PALETTE pp_scaled = {0};
 	for(int step = 0; step <= what; step++)
@@ -320,6 +320,7 @@ void fade_in(PALETTE pp, int what)
 			pp_scaled[col].b = (pp[col].b * frac) / 256;
 		}
 		set_palette(pp_scaled);
+		Pop_Buffer(buffer);
 		Swap_Buffer();
 		delay(20);
 	}
@@ -336,7 +337,7 @@ void New_Brighten_Palette( pcx_picture_ptr image) {
 		obPalette[i].b = image->palette[i].blue;
 	}
 
-	fade_in(obPalette, 15);
+	fade_in(image->buffer, obPalette, 15);
 }
 
 void New_Enable_Palette( palette_type palette  ) {

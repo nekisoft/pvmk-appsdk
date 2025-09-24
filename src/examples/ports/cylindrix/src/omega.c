@@ -168,7 +168,7 @@
 /* Global variables */
 
 char copyright_string[] = "CYLINDRIX VERSION 2.0 COPYRIGHT 2002 GOLDTREE ENTERPRISES, Hotwarez LLC";
-char version_string[] = "V2.0a1";
+char version_string[] = "V2.0A1.PVMK";
 
 //Johnm 9/5/2002 Temporary global boolean to denote that we are rendering the second player's screen
 int g_bRenderingFirstPlayer = 0;

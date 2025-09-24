@@ -54,8 +54,6 @@ void Set_Video_Mode( int mode );
 /* Clear the double buffer */
 void DB_Clear_Screen( void );
 
-/* Fade whats in the double buffer */
-void Fade_Screen( void );
 
 /* Clear video ram */
 void Clear_Screen( void );
@@ -67,7 +65,7 @@ void Set_Palette_Register( int index, RGB_color_ptr color );
 void Init_Double_Buffer( void );
 
 /* Return a pointer to the double buffer */
-char *Return_Double_Buffer( void );
+uint16_t *Return_Double_Buffer( void );
 
 /* Write the value color into the double buffer */
 void DB_Fast_Pixel( int x, int y, unsigned char color );

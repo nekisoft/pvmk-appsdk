@@ -26,12 +26,12 @@
                         Fixed point to regular ints and viece versa */
  
 /* macro so we don't have to call an external pixel plotter */
-#define funkit(x,y,color) funky_buffer[(((y)<<8) + ((y)<<6)) + (x)] = (color);    
+#define funkit(x,y,color) funky_buffer[(((y)<<8) + ((y)<<6)) + (x)] = (pvmk_palette[(unsigned char)color]);    
 
 
 /* globals */
 
-char *funky_buffer; /* pointer we will use for the double
+uint16_t *funky_buffer; /* pointer we will use for the double
                            buffer */ 
 int32_t max_index;         /* The ending index of the image->buffer */
 uint32_t image_index = 0;   /* our position in the image buffer */

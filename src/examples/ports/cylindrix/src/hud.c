@@ -48,7 +48,7 @@
 /* The following externs are declared in object.c, and are needed inside of
    draw_hud. */
 
-extern unsigned char *double_buffer;
+
 extern Matrix scale_matrix;
 extern Matrix inv_scale_matrix;
 extern Matrix projection_matrix;
@@ -1482,18 +1482,21 @@ void draw_vertical_bottom_justified_bar( BarInfo *barinfo )
 
 /* Blits a 320x200 buffer into the double buffer, pixels of TRANSPARENT_COLOR
    are not drawn. (that's why you can see through 'em.) */
-
+extern uint16_t pvmk_buffers[3][240][320];
+extern int pvmk_buffer_next;
+extern uint16_t pvmk_palette[256];
 void blit_screen( unsigned char *buffer )
 {
-    register unsigned char *ptr = buffer;
-    register unsigned char *end = buffer + 64000;
-
-    while( ptr < end ) {
-        if( *ptr != TRANSPARENT_COLOR ) {
-            *(double_buffer + (ptr - buffer)) = *ptr;
-        }
-        ptr++;
-    }
+	for(int yy = 0; yy < 200; yy++)
+	{
+		for(int xx = 0; xx < 320; xx++)
+		{
+			if(*buffer != TRANSPARENT_COLOR)
+				pvmk_buffers[pvmk_buffer_next][yy][xx] = pvmk_palette[*buffer];
+			
+			buffer++;
+		}
+	}
 }
 
 /* takes an array of 64,000 pixels and compresses them into a pixmap by

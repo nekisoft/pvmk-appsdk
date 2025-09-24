@@ -36,6 +36,12 @@ extern int g_YResolution;
 extern int g_bRenderingSecondPlayer;
 extern int g_bRenderingFirstPlayer;
 
+
+extern uint16_t pvmk_palette[256];
+uint16_t pvmk_buffers[3][240][320];
+int pvmk_buffer_next;
+
+
 /* absolute value of a */
 #ifndef ABS
 	#define ABS(a)          (((a)<0) ? -(a) : (a))
@@ -104,23 +110,6 @@ int FillConvexPolygon( struct PointListHeader *VertexList, int Color,
 
 /* Globals */
 
-/* pointer to the video buffer which holds data displayed on the screen */
-
-//uint32_t video_buffer_storage[320*240/4];
-
-//unsigned char *video_buffer  = (unsigned char *)video_buffer_storage; //0xD0000000L; /* vram byte ptr */
-
-//unsigned int *word_video_buffer = (unsigned int *)video_buffer_storage; //0xD0000000L;
-
-unsigned char *double_buffer;
-
-/* Here is our word buffer for horizontal lines and clearing the buffer
-   Words at a time */
-
-unsigned int *word_double_buffer;
-
-unsigned short *line_double_buffer;
-
 unsigned char dither_matrix[2][2] = { {1, 2}, 
                                       {3, 0}  };
                                       
@@ -175,10 +164,10 @@ void DrawHorizontalLineList(struct HLineList * HLineListPtr,
 {
    struct HLine *HLinePtr;
    int Length, Width;
-   unsigned char *ScreenPtr;
+   uint16_t *ScreenPtr;
 
    /* Point to the start of the first scan line on which to draw */
-   ScreenPtr = double_buffer + (HLineListPtr->yStart * SCREEN_WIDTH);
+   ScreenPtr = &(pvmk_buffers[pvmk_buffer_next][HLineListPtr->yStart][0]);
 
    /* Point to the xStart/xEnd descriptor for the first (top)
       horizontal line */
@@ -189,7 +178,12 @@ void DrawHorizontalLineList(struct HLineList * HLineListPtr,
    while (Length-- > 0) {
       /* Draw the whole horizontal line if it has a positive width */
       if ((Width = HLinePtr->xEnd - HLinePtr->xStart + 1) > 0)
-	 memset(ScreenPtr + HLinePtr->xStart, Color, Width);
+      {
+	      for(int xx = HLinePtr->xStart; xx < HLinePtr->xStart + Width; xx++)
+	      {
+		      ScreenPtr[xx] = pvmk_palette[Color];
+	      }
+      }
       HLinePtr++;                /* point to next scan line x info */
       ScreenPtr += SCREEN_WIDTH; /* point to next scan line start */
    }
@@ -474,32 +468,7 @@ void Set_Video_Mode( int mode ) {
 /* Clear the double buffer by filling it with zeros */
 void DB_Clear_Screen( void )
 {
-     int32_t i;
-     unsigned int *ptr = word_double_buffer;
-
-     for( i = 0; i < 800; i++ ) {
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-          *(ptr++) = 0;
-    }
-
+	memset(&(pvmk_buffers[pvmk_buffer_next][0][0]), 0, sizeof(pvmk_buffers[pvmk_buffer_next]));
 } /* End of DB_Clear_Screen */
 
 void draw_border(void)
@@ -548,82 +517,15 @@ void draw_border(void)
 
 }
 
-void Fade_Screen( void )
-    {
-     int32_t i;
-
-     for( i = 0; i < 64000; i++ )
-	 {
-	  if( double_buffer[i] >= 10 )
-	      double_buffer[i] -= 10;
-
-	  if( double_buffer[i] < 10 && double_buffer[i] != 0 )
-	      double_buffer[i]--;
-
-	 }
-    }
-
-
 
 void H_Line_Fast( int x1, int x2, int y, unsigned int color )
+{
+    for(int xx = x1; xx <= x2; xx++)
     {
-     int i;
-     int32_t line_offset;
-     unsigned short middle_word;
-     unsigned short first_word;
-     unsigned short last_word;
-
-
-     middle_word = ((color<<8) | color );
-
-     line_offset = ((y<<7) + (y<<5));
-
-
-     if( ( x1 & 0x0001) )
-	 {
-	  first_word = ((color << 8) | double_buffer[((y<<8) + (y<<6)) + x1]);
-	 }
-     else
-	 {
-	  first_word = ((color << 8) | color);
-	 }
-
-     if( (x2 & 0x0001 ) )
-	 {
-	  last_word = ((color << 8) | color);
-	 }
-     else
-	 {
-	  last_word = (color | double_buffer[((y<<8) + (y<<6)) + x2]);
-	 }
-
-     line_double_buffer[ line_offset + (x1>>1)] = first_word;
-     line_double_buffer[ line_offset + (x2>>1)] = last_word;
-
-     for( i = (x1 >> 1); i <= (x2 >> 1); i++ )
-	 {
-	  line_double_buffer[line_offset + i] = middle_word;
-	 }
-
-
-
+	pvmk_buffers[pvmk_buffer_next][y][xx] = pvmk_palette[color];
     }
+}
 
-/* Clear the video buffer by filling it with zeros */
-void Clear_Screen( void )
-    {
-   //  int32_t i;
-//
-  //   for( i = 0; i < 64000; i++ )
-//	 video_buffer[i] = 0;
-
-
-   /*  _fmemset(video_buffer, 0, 320*200 );  Must make a faster one  */
-    }
-
-
-extern uint16_t pvmk_palette[256];
-    
 /* Set the palette register at index to the color trinity in color */
 void Set_Palette_Register( int index, RGB_color_ptr color ) {
 	
@@ -641,68 +543,45 @@ void Set_Palette_Register( int index, RGB_color_ptr color ) {
 } 
 
 
+
 /* Initialize about 64k for the double buffer */
 void Init_Double_Buffer( void )  /* Remember double_buffer is global */
-    {
+{
 
 
-     if ( !(double_buffer = (unsigned char *)malloc( (size_t)64000 + 1)  ) )
-       {
-	printf("Not enough memory!!!");
-	exit(0);
-       }
-
-   /* Alias our word buffer to the double buffer */
-
-     word_double_buffer = (unsigned int *)double_buffer;
-     line_double_buffer = (unsigned short *)double_buffer;
-
-    }  /* End Init_Double_Buffer */
+}
 
 
 
 /* Return a pointer to this global double buffer to the caller */
 /* This is for when another package needs a pointer to the */
 /* Double buffer for fast access */
-char *Return_Double_Buffer( void )
-   {
-    return( (char*)double_buffer);
-   }
+uint16_t *Return_Double_Buffer( void )
+{
+	return &(pvmk_buffers[pvmk_buffer_next][0][0]);
+}
 
 
 /* Put a value in the double buffer at x,y of value color */
 void DB_Fast_Pixel( int x, int y, unsigned char color )
-    {
-     double_buffer[((y<<8) + (y<<6)) + x] = color;
-    }
+{
+	pvmk_buffers[pvmk_buffer_next][y][x] = pvmk_palette[color];
+}
 
 /* Put a value in the double buffer at x,y of value color, but if x or y
    is out of range then no pixel is drawn */
 
 void DB_Scissor_Pixel( int x, int y, unsigned char color )
 {
-    if( (x >= 0) && (x < 320) && (y >= 0) && (y < 200) ) {
-        double_buffer[((y<<8) + (y<<6)) + x] = color;
-    }
+	if( (x >= 0) && (x < 320) && (y >= 0) && (y < 200) ) {
+		pvmk_buffers[pvmk_buffer_next][y][x] = pvmk_palette[color];
+	}
 }
 
 //BITMAP *g_bmp = NULL;
 
 /*  Copy the double buffer into the video buffer */
-
-uint16_t pvmk_buffers[3][240][320];
-int pvmk_buffer_next;
-
 void Swap_Buffer( void ) {
-	
-	for(int y = 0; y < 200; y++)
-	{
-		for(int x = 0; x < 320; x++)
-		{
-			unsigned char idxcol = double_buffer[((y<<8) + (y<<6)) + x];
-			pvmk_buffers[pvmk_buffer_next][y][x] = pvmk_palette[idxcol];
-		}
-	}
 	
 	int displayed = _sc_gfx_flip(_SC_GFX_MODE_320X240_16BPP, &(pvmk_buffers[pvmk_buffer_next][0][0]));
 	if(displayed < 0)
@@ -713,9 +592,12 @@ void Swap_Buffer( void ) {
 		if(pvmk_buffer_next == nn)
 			continue;
 		
-		if((uint16_t*)(uintptr_t)displayed == &(pvmk_buffers[nn][0][0]))
+		if((uintptr_t)displayed == (uintptr_t)&(pvmk_buffers[nn][0][0]))
 			continue;
 		
+		//Ugh, this is awful.
+		//I wish they didn't assume we started with the contents of the prior frame.
+		memcpy(pvmk_buffers[nn], pvmk_buffers[pvmk_buffer_next], sizeof(pvmk_buffers[0]));
 		pvmk_buffer_next = nn;
 		break;
 	}
@@ -771,32 +653,46 @@ void Swap_Buffer( void ) {
     for( i = 0xA0000; i < end; i += 4 )
 	_farnspokel(i, word_double_buffer[index++] );
 */
-} /* End swap buffer */
+}
 
 
 /* copy buffer into the double buffer */
 void Pop_Buffer( unsigned char *buffer )
-    {
-     int32_t i;
-
-     for( i = 0; i < 64000; i++ )
-	 double_buffer[i] = buffer[i];
-
-
-     /*
-     _asm
-	 {
-	  push ds
-	  les di, double_buffer ;Set the destination ( video buffer )
-	  lds si, buffer        ;Set the source ( double buffer )
-	  mov cx, 320*200/2     ;We want to move 64000/2 words
-	  rep movsw             ;Do the move
-	  pop ds
-	 }
-    */
-
-
-    }  /* End pop buffer */
+{
+	unsigned char *bb = buffer;
+	for(int yy = 19; yy >= 0; yy--)
+	{
+		for(int xx = 0; xx < 320; xx++)
+		{
+			pvmk_buffers[pvmk_buffer_next][yy][xx] = pvmk_palette[*bb];
+			bb++;
+		}
+		if(yy%2)
+			bb-=320;
+	}
+	
+	bb = buffer;
+	for(int yy = 20; yy < 220; yy++)
+	{
+		for(int xx = 0; xx < 320; xx++)
+		{
+			pvmk_buffers[pvmk_buffer_next][yy][xx] = pvmk_palette[*bb];
+			bb++;
+		}
+	}
+	
+	for(int yy = 220; yy < 240; yy++)
+	{
+		bb -= 640;
+		for(int xx = 0; xx < 320; xx++)
+		{
+			pvmk_buffers[pvmk_buffer_next][yy][xx] = pvmk_palette[*bb];
+			bb++;
+		}
+		if(yy%2)
+			bb+=320;
+	}
+} 
 
 
 
@@ -904,7 +800,11 @@ void DB_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
     if( lx > rx ) return;
     inc_x4( l, r, p, dp, lx, mask );
 
-    memset( (char *)(double_buffer + ((y<<8) + (y<<6)) + lx), color, rx-lx+1 );
+	for(int xx = lx; xx <= rx; xx++)
+	{
+		pvmk_buffers[pvmk_buffer_next][y][xx] = pvmk_palette[color];
+	}
+    //memset( (char *)(double_buffer + ((y<<8) + (y<<6)) + lx), color, rx-lx+1 );
 
 }
 
@@ -976,8 +876,9 @@ void shade_DB_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
 	(void)color;
     int32_t x, lx, rx;
     int32_t p[4], dp[4]; /* MAGIC */
-    unsigned char *db_ptr;
-
+    //unsigned char *db_ptr;
+uint16_t *db_ptr;
+	
     mask &= ~0x1; /* stop interpolating x */
 
     lx = l[X] >> MEXP;
@@ -990,17 +891,18 @@ void shade_DB_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
     if( lx > rx ) return;
     inc_x4( l, r, p, dp, lx, mask );
 
-    db_ptr = &double_buffer[ ((y<<8) + (y<<6)) + lx ];
+    //db_ptr = &double_buffer[ ((y<<8) + (y<<6)) + lx ];
+	db_ptr = &(pvmk_buffers[pvmk_buffer_next][y][lx]);
 
     for( x = lx; x < rx; x++ ) {
     
         if( (dither_matrix[x%2][y%2]) < ((p[3] >> 8) & 3) ) { /* home */
-            *db_ptr = (unsigned char)(p[3] >> 10) + 1;
+            *db_ptr = pvmk_palette[(unsigned char)(p[3] >> 10) + 1];
 	    db_ptr++;
 	    increment4( p, dp, mask );
 	}
 	else {
-	    *db_ptr = (unsigned char)(p[3] >> 10);
+	    *db_ptr = pvmk_palette[(unsigned char)(p[3] >> 10)];
 	    db_ptr++;
 	    increment4( p, dp, mask );
 	}
@@ -1074,7 +976,7 @@ void DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
     int32_t x, lx, rx;
     int32_t p[4], dp[4]; /* MAGIC */
     int32_t *zb_ptr;
-    unsigned char *db_ptr;
+    uint16_t *db_ptr;
 
     mask &= ~0x1; /* stop interpolating x */
 
@@ -1087,11 +989,11 @@ void DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win,
     inc_x4( l, r, p, dp, lx, mask );
 
     zb_ptr = &zbuff[ ((y<<8) + (y<<6)) + lx ];
-    db_ptr = &double_buffer[ ((y<<8) + (y<<6)) + lx ];
+    db_ptr = &(pvmk_buffers[pvmk_buffer_next][y][lx]); //&double_buffer[ ((y<<8) + (y<<6)) + lx ];
 
     for( x = lx; x < rx; x++ ) {
 	if( p[Z] < *zb_ptr ) {
-	    *db_ptr = color;  /* plot the pixel */
+	    *db_ptr = pvmk_palette[color];  /* plot the pixel */
 	    *zb_ptr = p[Z];   /* set the zbuffer */
 	}
 	zb_ptr++;
@@ -1170,7 +1072,7 @@ void shade_DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win
     int32_t x, lx, rx;
     int32_t p[4], dp[4]; /* MAGIC */
     int32_t *zb_ptr;
-    unsigned char *db_ptr;
+    uint16_t *db_ptr;
 
     mask &= ~0x1; /* stop interpolating x */
 
@@ -1183,11 +1085,11 @@ void shade_DB_zbuff_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win
     inc_x4( l, r, p, dp, lx, mask );
 
     zb_ptr = &zbuff[ ((y<<8) + (y<<6)) + lx ];
-    db_ptr = &double_buffer[ ((y<<8) + (y<<6)) + lx ];
+    db_ptr = &(pvmk_buffers[pvmk_buffer_next][y][lx]); //&double_buffer[ ((y<<8) + (y<<6)) + lx ];
 
     for( x = lx; x < rx; x++ ) {
 	if( p[Z] < *zb_ptr ) {
-	    *db_ptr = (unsigned char)(p[3] >> MEXP);
+	    *db_ptr = pvmk_palette[(unsigned char)(p[3] >> MEXP)];
 	    *zb_ptr = p[Z];
 	}
 	db_ptr++;
@@ -1270,7 +1172,7 @@ void DB_transparent_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win
     int32_t new_color, old_color;
     int32_t x;
     int32_t i;
-    unsigned char *db_ptr;
+    uint16_t *db_ptr;
 
     mask &= ~0x1; /* stop interpolating x */
 
@@ -1282,7 +1184,7 @@ void DB_transparent_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win
     if( lx > rx ) return;
     inc_x4( l, r, p, dp, lx, mask );
     
-    db_ptr = &double_buffer[ ((y<<8) + (y<<6)) + lx ];
+    db_ptr = &(pvmk_buffers[pvmk_buffer_next][y][lx]); //&double_buffer[ ((y<<8) + (y<<6)) + lx ];
     
     new_color = 0;
     
@@ -1310,7 +1212,7 @@ void DB_transparent_scanline( int32_t y, int32_t l[4], int32_t r[4], Window *win
             }
         }
         
-        *db_ptr = new_color;
+        *db_ptr = pvmk_palette[new_color];
         db_ptr++;
     }
 }
