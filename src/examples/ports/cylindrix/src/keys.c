@@ -696,13 +696,19 @@ void pvmk_pollkeys(void)
 		
 		static const int map[16] = 
 		{
-			[_SC_BTNIDX_A] = INDEX_ENTER,
-			[_SC_BTNIDX_B] = INDEX_ESC,
+			[_SC_BTNIDX_START] = INDEX_ENTER,
+			[_SC_BTNIDX_MODE] = INDEX_ESC,
 			
 			[_SC_BTNIDX_UP] = INDEX_UP_ARROW,
 			[_SC_BTNIDX_DOWN] = INDEX_DOWN_ARROW,
 			[_SC_BTNIDX_LEFT] = INDEX_LEFT_ARROW,
 			[_SC_BTNIDX_RIGHT] = INDEX_RIGHT_ARROW,
+			
+			[_SC_BTNIDX_A] = 31, //laser
+			[_SC_BTNIDX_B] = 30, //missile
+			[_SC_BTNIDX_C] = 23, //special
+			[_SC_BTNIDX_X] = 32, //strafe
+			[_SC_BTNIDX_Y] = 18, //modeswitch
 		};
 		
 		for(int bb = 0; bb < 16; bb++)
