@@ -171,6 +171,9 @@ void display_next_opponent(void)
     Wait_For_Vsync();
     Swap_Buffer();
 
+	
+    Enable_Palette( menu_stuff.wingman_menu_background.palette );
+
     Pop_Buffer( menu_stuff.wingman_menu_background.buffer );
 
     if( (game_configuration.blue0_ai == 8) &&

@@ -1487,7 +1487,7 @@ extern int pvmk_buffer_next;
 extern uint16_t pvmk_palette[256];
 void blit_screen( unsigned char *buffer )
 {
-	for(int yy = 0; yy < 200; yy++)
+	for(int yy = 20; yy < 220; yy++)
 	{
 		for(int xx = 0; xx < 320; xx++)
 		{

@@ -2030,7 +2030,7 @@ void main_menu_left_arrow(void)
 
 void main_menu_return_key(void)
 {
-
+#if 0	
     if( main_menu_data.current_selection == 0 ) { /* start game */
 
         make_menu_current( &game_menu );
@@ -2040,15 +2040,60 @@ void main_menu_return_key(void)
         }
 
     }
-    else if( main_menu_data.current_selection == 1 ) { /* options */
+    else
+	#endif
+   if( main_menu_data.current_selection == 0 ) { /* tournament game */
 
-        make_menu_current( &options_menu );
+        if( multiplayer_game_only ) {
+        
+            if( sb_installed ) {
+                Play_Menu_Sound( menu_stuff.menu_sounds.error_sound );
+            }
+            
+        }
+        else {
+            make_menu_current( &tournament_game_setup_menu );
+
+            game_configuration.game_type = TournamentGame;
+            
+            if( sb_installed ) {
+                Play_Menu_Sound( menu_stuff.menu_sounds.enter_sound );
+            }
+
+        }
+
+    }
+    else if( main_menu_data.current_selection == 1 ) { /* custom game */
+    
+        if( multiplayer_game_only ) {
+            if( sb_installed ) {
+                Play_Menu_Sound( menu_stuff.menu_sounds.error_sound );
+            }
+        }
+        else {
+
+            make_menu_current( &custom_game_menu );
+
+            game_configuration.game_type = CustomGame;
+            
+            if( sb_installed ) {
+                Play_Menu_Sound( menu_stuff.menu_sounds.enter_sound );
+            }
+
+        }
+    }
+
+    #if 0
+else if( main_menu_data.current_selection == 2 ) { /* options */
+
+        make_menu_current( &sound_menu ); //pvmk - strip out other options
         
         if( sb_installed ) {
             Play_Menu_Sound( menu_stuff.menu_sounds.enter_sound );
         }
 
     }
+    #endif
     else if( main_menu_data.current_selection == 2 ) { /* view stats */
 
         make_menu_current( &view_stats_menu );
@@ -2067,6 +2112,7 @@ void main_menu_return_key(void)
         }
 
     }
+    #if 0
     else if( main_menu_data.current_selection == 4 ) { /* play intro */
     
         if( multiplayer_game_only ) {
@@ -2108,7 +2154,7 @@ void main_menu_return_key(void)
         }
 
     }
-
+#endif
 }
 
 void main_menu_escape_key(void)
@@ -2126,6 +2172,12 @@ void main_menu_draw_menu(void)
     int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
+	
+	
+    string_blit( "MAIN MENU", 85, 5,
+                 menu_stuff.menu_text.buffer,
+                 menu_stuff.menu_text.xpixels + 1,
+                 menu_stuff.menu_text.ypixels + 1, SELECTED_TEXT_COLOR );
 
     x = x_start;
     y = y_start;
@@ -2147,7 +2199,7 @@ void main_menu_draw_menu(void)
         y += y_spacing;
     }
     
-    micro_string_blit( version_string, 10, 194,
+    micro_string_blit( version_string, 10, 194+30,
                        menu_stuff.micro_text.buffer,
                        menu_stuff.micro_text.xpixels + 1,
                        menu_stuff.micro_text.ypixels + 1, SELECTED_TEXT_COLOR );
@@ -2167,14 +2219,19 @@ void init_main_menu(void)
     main_menu.escape_key = (Method)main_menu_escape_key;
     main_menu.draw_menu = (Method)main_menu_draw_menu;
 
-    strcpy( main_menu_data.item[0], "START GAME" );
-    strcpy( main_menu_data.item[1], "OPTIONS" );
+    //strcpy( main_menu_data.item[0], "START GAME" );
+	
+    strcpy( main_menu_data.item[0], "TOURNAMENT GAME" );
+    strcpy( main_menu_data.item[1], "CUSTOM GAME" );
+
+  //  strcpy( main_menu_data.item[2], "OPTIONS" );
     strcpy( main_menu_data.item[2], "VIEW STATS" );
     strcpy( main_menu_data.item[3], "CHANGE PILOT" );
-    strcpy( main_menu_data.item[4], "PLAY INTRO" );
-    strcpy( main_menu_data.item[5], "QUIT" );
+    //strcpy( main_menu_data.item[4], "PLAY INTRO" );
+//    strcpy( main_menu_data.item[5], "QUIT" );
 
-    main_menu_data.num_items = 6;
+  //  main_menu_data.num_items = 6;
+    main_menu_data.num_items = 4;
 
     main_menu_data.current_selection = 0;
 }
@@ -2678,7 +2735,7 @@ void sound_menu_return_key(void)
 
 void sound_menu_escape_key(void)
 {
-    make_menu_current( &options_menu );
+    make_menu_current( &main_menu );
 
     if( sb_installed ) {
         Play_Menu_Sound( menu_stuff.menu_sounds.esc_sound );
@@ -2755,7 +2812,7 @@ void init_sound_menu(void)
     sound_menu.escape_key = (Method)sound_menu_escape_key;
     sound_menu.draw_menu = (Method)sound_menu_draw_menu;
 
-    strcpy( sound_menu_data.item[0], "CD VOLUME :" );
+    strcpy( sound_menu_data.item[0], "MUSIC VOLUME :" );
     strcpy( sound_menu_data.item[1], "FX VOLUME :" );
     strcpy( sound_menu_data.item[2], "VOICE VOLUME :" );
 
@@ -3943,7 +4000,7 @@ void custom_game_menu_return_key(void)
 
 void custom_game_menu_escape_key(void)
 {
-    make_menu_current( &game_menu );
+    make_menu_current( /*&game_menu */ &main_menu );
 
     if( sb_installed ) {
         Play_Menu_Sound( menu_stuff.menu_sounds.esc_sound );
@@ -3961,6 +4018,12 @@ void custom_game_menu_draw_menu(void)
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
+	
+    string_blit( "CUSTOM GAME", 85, 5,
+                 menu_stuff.menu_text.buffer,
+                 menu_stuff.menu_text.xpixels + 1,
+                 menu_stuff.menu_text.ypixels + 1, SELECTED_TEXT_COLOR );
+	
     x = x_start;
     y = y_start;
 
@@ -7556,7 +7619,7 @@ void tournament_game_setup_menu_return_key(void)
 
 void tournament_game_setup_menu_escape_key(void)
 {
-    make_menu_current( &game_menu );
+    make_menu_current( /*&game_menu*/ &main_menu );
     
     if( sb_installed ) {
         Play_Menu_Sound( menu_stuff.menu_sounds.esc_sound );
@@ -7574,6 +7637,13 @@ void tournament_game_setup_menu_draw_menu(void)
     int32_t x, y;
 
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
+	
+
+    string_blit( "TOURNAMENT GAME", 85, 5,
+                 menu_stuff.menu_text.buffer,
+                 menu_stuff.menu_text.xpixels + 1,
+                 menu_stuff.menu_text.ypixels + 1, SELECTED_TEXT_COLOR );
+	
 
     x = x_start;
     y = y_start;
@@ -7667,7 +7737,7 @@ void view_stats_menu_return_key(void)
     FILE *fp;
 
     if( view_stats_menu_data.current_selection == 0 ) { /* output stats */
-    
+    #if 0
         /* find the next available filename */
         
         for( i = 0; i < 1000; i++ ) {
@@ -7712,7 +7782,7 @@ void view_stats_menu_return_key(void)
         Swap_Buffer();
         
         while( !Jon_Kbhit() );
-        
+        #endif
         make_menu_current( &main_menu );
 
     }
@@ -8014,12 +8084,18 @@ void init_view_stats_menu(void)
     view_stats_menu.escape_key = (Method)view_stats_menu_escape_key;
     view_stats_menu.draw_menu = (Method)view_stats_menu_draw_menu;
 
-    strcpy( view_stats_menu_data.item[0], "OUTPUT STATS" );
-    strcpy( view_stats_menu_data.item[1], "RETURN TO MAIN MENU" );
+    //strcpy( view_stats_menu_data.item[0], "OUTPUT STATS" );
+    //strcpy( view_stats_menu_data.item[1], "RETURN TO MAIN MENU" );
 
-    view_stats_menu_data.num_items = 2;
+    //view_stats_menu_data.num_items = 2;
 
-    view_stats_menu_data.current_selection = 1;
+    //view_stats_menu_data.current_selection = 1;
+	
+	
+    strcpy( view_stats_menu_data.item[0], /*"RETURN TO MAIN MENU"*/ "" );
+    view_stats_menu_data.num_items = 1;
+    view_stats_menu_data.current_selection = 0;
+	
 }
 
 
@@ -8142,12 +8218,13 @@ void during_game_menu_return_key(void)
         exit_event_loop = TRUE;
 
     }
-    else if( during_game_menu_data.current_selection == 1 ) { /* options */
+    //else if( during_game_menu_data.current_selection == 1 ) { /* options */
 
-        make_menu_current( &during_game_options_menu );
+        //make_menu_current( &during_game_options_menu );
+      //  make_menu_current( &during_game_sound_menu ); //pvmk - strip options
 
-    }
-    else if( during_game_menu_data.current_selection == 2 ) { /* quit game */
+    //}
+    else if( during_game_menu_data.current_selection == 1 ) { /* quit game */
 
         exit_event_loop = TRUE;
         quit_game = TRUE;
@@ -8176,9 +8253,14 @@ void during_game_menu_draw_menu(void)
     const int32_t y_start = 70;
     const int32_t y_spacing = 15;
     int32_t x, y;
-
+	
     Pop_Buffer( menu_stuff.general_menu_background.buffer );
 
+    string_blit( "GAME PAUSED", 85, 5,
+                 menu_stuff.menu_text.buffer,
+                 menu_stuff.menu_text.xpixels + 1,
+                 menu_stuff.menu_text.ypixels + 1, SELECTED_TEXT_COLOR );
+	
     x = x_start;
     y = y_start;
 
@@ -8215,10 +8297,10 @@ void init_during_game_menu(void)
     during_game_menu.draw_menu = (Method)during_game_menu_draw_menu;
 
     strcpy( during_game_menu_data.item[0], "RESUME GAME" );
-    strcpy( during_game_menu_data.item[1], "OPTIONS" );
-    strcpy( during_game_menu_data.item[2], "QUIT GAME" );
+    //strcpy( during_game_menu_data.item[1], "OPTIONS" );
+    strcpy( during_game_menu_data.item[1], "QUIT GAME" );
 
-    during_game_menu_data.num_items = 3;
+    during_game_menu_data.num_items = 2;
 
     during_game_menu_data.current_selection = 0;
 }
@@ -8696,7 +8778,8 @@ void during_game_sound_menu_return_key(void)
 
 void during_game_sound_menu_escape_key(void)
 {
-    make_menu_current( &during_game_options_menu );
+    //make_menu_current( &during_game_options_menu );
+    make_menu_current( &during_game_menu ); //pvmk - strip options
     
     if( sb_installed ) {
         Play_Menu_Sound( menu_stuff.menu_sounds.esc_sound );
@@ -8773,7 +8856,7 @@ void init_during_game_sound_menu(void)
     during_game_sound_menu.escape_key = (Method)during_game_sound_menu_escape_key;
     during_game_sound_menu.draw_menu = (Method)during_game_sound_menu_draw_menu;
 
-    strcpy( during_game_sound_menu_data.item[0], "CD VOLUME :" );
+    strcpy( during_game_sound_menu_data.item[0], "MUSIC VOLUME :" );
     strcpy( during_game_sound_menu_data.item[1], "FX VOLUME :" );
     strcpy( during_game_sound_menu_data.item[2], "VOICE VOLUME :" );
 
@@ -9819,7 +9902,7 @@ void custom_game_stat_menu_return_key(void)
     static char filename[512];
 
     if( custom_game_stat_menu_data.current_selection == 0 ) { /* output stats */
-
+#if 0
         /* find the next available filename */
         
         for( i = 0; i < 1000; i++ ) {
@@ -9864,7 +9947,7 @@ void custom_game_stat_menu_return_key(void)
         Swap_Buffer();
         
         while( !Jon_Kbhit() );
-        
+        #endif //0
         exit_event_loop = TRUE;
         make_menu_current( &custom_game_menu );
     }
@@ -10131,12 +10214,17 @@ void init_custom_game_stat_menu(void)
     custom_game_stat_menu.escape_key = (Method)custom_game_stat_menu_escape_key;
     custom_game_stat_menu.draw_menu = (Method)custom_game_stat_menu_draw_menu;
 
-    strcpy( custom_game_stat_menu_data.item[0], "OUTPUT STATS" );
-    strcpy( custom_game_stat_menu_data.item[1], "CONTINUE" );
+    //strcpy( custom_game_stat_menu_data.item[0], "OUTPUT STATS" );
+    //strcpy( custom_game_stat_menu_data.item[1], "CONTINUE" );
 
-    custom_game_stat_menu_data.num_items = 2;
+    //custom_game_stat_menu_data.num_items = 2;
 
-    custom_game_stat_menu_data.current_selection = 1;
+    //custom_game_stat_menu_data.current_selection = 1;
+	
+	
+    strcpy( custom_game_stat_menu_data.item[0], "CONTINUE" );
+    custom_game_stat_menu_data.num_items = 1;
+    custom_game_stat_menu_data.current_selection = 0;
 }
 
 
@@ -10232,7 +10320,7 @@ void tournament_game_stat_menu_return_key(void)
     static char filename[512];
 
     if( tournament_game_stat_menu_data.current_selection == 0 ) { /* output stats */
-
+#if 0
         /* find the next available filename */
         
         for( i = 0; i < 1000; i++ ) {
@@ -10277,14 +10365,14 @@ void tournament_game_stat_menu_return_key(void)
         Swap_Buffer();
         
         while( !Jon_Kbhit() );
-        
+        #endif
         exit_event_loop = TRUE;
-        make_menu_current( &tournament_game_setup_menu );
+        make_menu_current( /*&tournament_game_setup_menu*/ &main_menu );
     }
     else if( tournament_game_stat_menu_data.current_selection == 1 ) { /* continue */
 
         exit_event_loop = TRUE;
-        make_menu_current( &tournament_game_setup_menu );
+        make_menu_current( /*&tournament_game_setup_menu */ &main_menu);
 
     }
     
@@ -10544,12 +10632,16 @@ void init_tournament_game_stat_menu(void)
     tournament_game_stat_menu.escape_key = (Method)tournament_game_stat_menu_escape_key;
     tournament_game_stat_menu.draw_menu = (Method)tournament_game_stat_menu_draw_menu;
 
-    strcpy( tournament_game_stat_menu_data.item[0], "OUTPUT STATS" );
-    strcpy( tournament_game_stat_menu_data.item[1], "CONTINUE" );
+//    strcpy( tournament_game_stat_menu_data.item[0], "OUTPUT STATS" );
+  //  strcpy( tournament_game_stat_menu_data.item[1], "CONTINUE" );
 
-    tournament_game_stat_menu_data.num_items = 2;
+   // tournament_game_stat_menu_data.num_items = 2;
 
-    tournament_game_stat_menu_data.current_selection = 1;
+    //tournament_game_stat_menu_data.current_selection = 1;
+	
+  strcpy( tournament_game_stat_menu_data.item[0], "CONTINUE" );
+    tournament_game_stat_menu_data.num_items = 1;
+    tournament_game_stat_menu_data.current_selection = 0;
 }
 
 
