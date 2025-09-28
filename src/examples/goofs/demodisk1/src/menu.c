@@ -21,6 +21,7 @@ void gamelist(void)
 		"CyberDogs",
 		"Cylindrix",
 		"In Pursuit of GREED",
+		"Chasin' Gators",
 		NULL
 	};
 	
@@ -50,7 +51,7 @@ void gamelist(void)
 		
 		const char *bottomtext[] = 
 		{
-			"At any time:",
+			"", //"At any time:",
 			" - Hold START+MODE+DOWN to POWER OFF.",
 			" - Hold UP alone to POWER ON again.",
 			NULL,
