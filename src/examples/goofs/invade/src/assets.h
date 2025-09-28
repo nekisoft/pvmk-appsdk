@@ -38,6 +38,7 @@ typedef struct {
     Sound* ufoSound;
     Sound* bgMusic;
 } Assets;
+extern Assets g_assets;
 
 // Global asset management
 bool assets_init(Assets* assets);

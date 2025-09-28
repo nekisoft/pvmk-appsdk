@@ -1,7 +1,17 @@
 #include "input.h"
+#include <stdlib.h>
 #include <string.h>
 
-void input_init(Input* input) {
+typedef struct {
+    bool keys[INPUT_MAX];
+    bool keysPressed[INPUT_MAX];  // Just pressed this frame
+    bool keysReleased[INPUT_MAX]; // Just released this frame
+    SDL_Gamepad* gamepad;
+} Input;
+static Input g_Input;
+static Input * const input = &g_Input;
+
+void input_init(void) {
     memset(input, 0, sizeof(Input));
     
     // Try to open first available gamepad
@@ -13,13 +23,30 @@ void input_init(Input* input) {
     }
 }
 
-void input_update(Input* input) {
+void input_handle_event(SDL_Event* event);
+
+bool input_update(void) {
+	
+	
     // Clear just pressed/released states
     memset(input->keysPressed, 0, sizeof(input->keysPressed));
     memset(input->keysReleased, 0, sizeof(input->keysReleased));
+	
+
+	// Handle events
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+	    if (event.type == SDL_EVENT_QUIT) {
+		exit(0);
+	    }
+	    input_handle_event(&event);
+	}
+
+	
+	return true;
 }
 
-void input_handle_event(Input* input, SDL_Event* event) {
+void input_handle_event(SDL_Event* event) {
     switch (event->type) {
         case SDL_EVENT_KEY_DOWN:
             if (!event->key.repeat) {
@@ -232,21 +259,21 @@ void input_handle_event(Input* input, SDL_Event* event) {
     }
 }
 
-void input_cleanup(Input* input) {
+void input_cleanup(void) {
     if (input->gamepad) {
         SDL_CloseGamepad(input->gamepad);
         input->gamepad = NULL;
     }
 }
 
-bool input_is_pressed(Input* input, InputAction action) {
+bool input_is_pressed(InputAction action) {
     return input->keysPressed[action];
 }
 
-bool input_is_held(Input* input, InputAction action) {
+bool input_is_held(InputAction action) {
     return input->keys[action];
 }
 
-bool input_is_released(Input* input, InputAction action) {
+bool input_is_released(InputAction action) {
     return input->keysReleased[action];
 }

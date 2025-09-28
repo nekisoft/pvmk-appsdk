@@ -6,10 +6,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-// External globals
-extern Renderer g_renderer;
-extern Audio g_audio;
-extern Assets g_assets;
 
 Sprite* load_png_sprite(const char* filename) {
     int width, height, channels;

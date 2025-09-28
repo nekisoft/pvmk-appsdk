@@ -5,14 +5,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct {
-    SDL_Window* window;
-    SDL_Renderer* renderer;
-    SDL_Texture* texture;
-    uint32_t* framebuffer;
-    int width;
-    int height;
-} Renderer;
 
 typedef struct {
     uint32_t* pixels;
@@ -22,18 +14,18 @@ typedef struct {
 } Sprite;
 
 // Renderer functions
-bool renderer_init(Renderer* renderer, const char* title, int width, int height);
-void renderer_clear(Renderer* renderer, uint32_t color);
-void renderer_present(Renderer* renderer);
-void renderer_cleanup(Renderer* renderer);
+bool renderer_init(const char* title, int width, int height);
+void renderer_clear(uint32_t color);
+void renderer_present(void);
+void renderer_cleanup(void);
 
 // Drawing functions
-void draw_pixel(Renderer* renderer, int x, int y, uint32_t color);
-void draw_rect(Renderer* renderer, int x, int y, int w, int h, uint32_t color);
-void draw_filled_rect(Renderer* renderer, int x, int y, int w, int h, uint32_t color);
-void draw_sprite(Renderer* renderer, Sprite* sprite, int x, int y);
-void draw_sprite_scaled(Renderer* renderer, Sprite* sprite, int x, int y, float scale);
-void draw_text(Renderer* renderer, const char* text, int x, int y, uint32_t color);
+void draw_pixel(int x, int y, uint32_t color);
+void draw_rect(int x, int y, int w, int h, uint32_t color);
+void draw_filled_rect(int x, int y, int w, int h, uint32_t color);
+void draw_sprite(Sprite* sprite, int x, int y);
+void draw_sprite_scaled(Sprite* sprite, int x, int y, float scale);
+void draw_text(const char* text, int x, int y, uint32_t color);
 
 // Color utilities
 #define RGBA(r, g, b, a) ((uint32_t)((a) << 24) | ((r) << 16) | ((g) << 8) | (b))

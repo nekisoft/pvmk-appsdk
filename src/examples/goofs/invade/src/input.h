@@ -16,22 +16,14 @@ typedef enum {
     INPUT_MAX
 } InputAction;
 
-typedef struct {
-    bool keys[INPUT_MAX];
-    bool keysPressed[INPUT_MAX];  // Just pressed this frame
-    bool keysReleased[INPUT_MAX]; // Just released this frame
-    SDL_Gamepad* gamepad;
-} Input;
-
 // Input functions
-void input_init(Input* input);
-void input_update(Input* input);
-void input_handle_event(Input* input, SDL_Event* event);
-void input_cleanup(Input* input);
+void input_init(void);
+bool input_update(void);
+void input_cleanup(void);
 
 // Query functions
-bool input_is_pressed(Input* input, InputAction action);
-bool input_is_held(Input* input, InputAction action);
-bool input_is_released(Input* input, InputAction action);
+bool input_is_pressed(InputAction action);
+bool input_is_held(InputAction action);
+bool input_is_released(InputAction action);
 
 #endif // INPUT_H

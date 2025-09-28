@@ -8,16 +8,124 @@
 #include <string.h>
 #include <math.h>
 
-// External globals
-extern Renderer g_renderer;
-extern Assets g_assets;
-extern Audio g_audio;
+// Game entities
+typedef struct {
+    float x, y;
+    int width, height;
+    bool active;
+    Sprite* sprite;
+} Entity;
 
-void game_init(GameState* game) {
+typedef struct {
+    Entity base;
+    int lives;
+    int moveDir;     // -1 left, 0 stop, 1 right
+    int moveDirY;    // -1 up, 0 stop, 1 down
+    bool canFire;
+    uint32_t lastFireTime;
+    bool isInvincible;           // True during invincibility period
+    uint32_t invincibilityStart; // When invincibility started
+    uint32_t invincibilityDuration; // How long invincibility lasts (3000ms)
+} Player;
+
+typedef struct {
+    Entity base;
+    int points;
+    int animFrame;
+    uint32_t lastAnimTime;
+} Alien;
+
+typedef struct {
+    Entity base;
+    int direction;  // 1 for player bullet (up), -1 for alien bullet (down)
+} Bullet;
+
+typedef struct {
+    Entity base;
+    uint8_t* damageMap;  // Per-pixel damage tracking
+    int health;
+} Shield;
+
+typedef struct {
+    Entity base;
+    int direction;  // -1 or 1 for left/right movement
+    uint32_t spawnTime;
+} UFO;
+
+typedef struct {
+    Entity base;
+    uint32_t startTime;
+    uint32_t duration;  // How long explosion lasts in milliseconds
+    int animFrame;      // Current animation frame
+    uint32_t lastFrameTime;
+} Explosion;
+
+// Game phases
+typedef enum {
+    PHASE_INTRO,      // Story/intro sequence
+    PHASE_PLAYING,    // Main gameplay
+    PHASE_GAME_OVER   // Game over state
+} GamePhase;
+
+// Game state
+typedef struct {
+    Player player;
+    Alien aliens[MAX_ALIEN_ROWS][MAX_ALIEN_COLS];
+    Bullet playerBullets[MAX_BULLETS];
+    Bullet alienBullets[MAX_ALIEN_BULLETS];
+    Shield shields[SHIELD_COUNT];
+    UFO ufo;
+    Explosion explosions[MAX_EXPLOSIONS];
+    
+    int score;
+    int highScore;
+    int wave;
+    int alienCount;
+    int alienDirection;
+    float alienSpeed;
+    uint32_t lastAlienMove;
+    uint32_t lastAlienFire;
+    
+    // Smooth edge drop state
+    bool alienDropping;      // true when aliens are in dropping animation
+    float dropProgress;      // 0.0 to 1.0 progress of current drop
+    uint32_t dropStartTime;  // when the current drop started
+    
+    GamePhase phase;
+    uint32_t phaseStartTime;
+    GamePhase phase_last;
+    bool gameOver;
+    bool victory;  // true if game ended due to victory, false if defeat
+    bool paused;
+    uint32_t gameStartTime;
+    
+    // Bonus point display
+    bool showBonus;
+    int bonusPoints;
+    float bonusX, bonusY;
+    uint32_t bonusStartTime;
+} GameState;
+static GameState g_gameState;
+static GameState * const game = &g_gameState;
+
+
+// Helper functions
+bool check_collision(Entity* a, Entity* b);
+void spawn_alien_bullet(void);
+void spawn_player_bullet(void);
+void spawn_ufo(void);
+void spawn_explosion(float x, float y);
+void damage_shield(Shield* shield, int x, int y, int radius);
+void damage_shield_visual(Shield* shield, int x, int y, int radius);
+void damage_shield_health(Shield* shield, int x, int y, int radius);
+void next_wave(void);
+
+void game_init(void) {
     memset(game, 0, sizeof(GameState));
     
     // Start with intro phase
     game->phase = PHASE_INTRO;
+game->phase_last = PHASE_INTRO;
     game->phaseStartTime = SDL_GetTicks();
     
     // Initialize player (starts off-screen during intro)
@@ -111,7 +219,7 @@ void game_init(GameState* game) {
     }
 }
 
-void game_cleanup(GameState* game) {
+void game_cleanup(void) {
     // Free shield damage maps
     for (int i = 0; i < SHIELD_COUNT; i++) {
         if (game->shields[i].damageMap) {
@@ -156,7 +264,7 @@ bool check_collision(Entity* a, Entity* b) {
 }
 
 
-void spawn_player_bullet(GameState* game) {
+void spawn_player_bullet(void) {
     if (!game->player.canFire) return;
     
     // Find an inactive bullet slot
@@ -177,13 +285,13 @@ void spawn_player_bullet(GameState* game) {
             game->player.lastFireTime = SDL_GetTicks();
             
             // Play shoot sound
-            audio_play_sound(&g_audio, g_assets.shootSound);
+            audio_play_sound(g_assets.shootSound);
             break;
         }
     }
 }
 
-void spawn_alien_bullet(GameState* game) {
+void spawn_alien_bullet(void) {
     // Pick a random active alien to fire
     int wave_rows = get_wave_rows(game->wave);
     int wave_cols = get_wave_cols(game->wave);
@@ -221,7 +329,7 @@ void spawn_alien_bullet(GameState* game) {
     }
 }
 
-void spawn_ufo(GameState* game) {
+void spawn_ufo(void) {
     if (!game->ufo.base.active && rand() % UFO_SPAWN_CHANCE == 0) {
         game->ufo.base.width = UFO_WIDTH;
         game->ufo.base.height = UFO_HEIGHT;
@@ -245,11 +353,11 @@ void spawn_ufo(GameState* game) {
         fflush(stdout);
         
         // Play UFO sound
-        audio_play_sound(&g_audio, g_assets.ufoSound);
+        audio_play_sound(g_assets.ufoSound);
     }
 }
 
-void spawn_explosion(GameState* game, float x, float y) {
+void spawn_explosion(float x, float y) {
     // Find an inactive explosion slot
     for (int i = 0; i < MAX_EXPLOSIONS; i++) {
         Explosion* explosion = &game->explosions[i];
@@ -298,17 +406,15 @@ void damage_shield_health(Shield* shield, int x, int y, int radius) {
         float centerY = shield->base.y + shield->base.height / 2.0f;
         
         // Create multiple smaller explosions for better effect
-        extern GameState g_gameState;  // Access global game state
-        spawn_explosion(&g_gameState, centerX - 8, centerY - 8);
-        spawn_explosion(&g_gameState, centerX + 8, centerY - 8);
-        spawn_explosion(&g_gameState, centerX, centerY + 8);
-        spawn_explosion(&g_gameState, centerX - 4, centerY + 4);
-        spawn_explosion(&g_gameState, centerX + 4, centerY - 4);
+        spawn_explosion(centerX - 8, centerY - 8);
+        spawn_explosion(centerX + 8, centerY - 8);
+        spawn_explosion(centerX, centerY + 8);
+        spawn_explosion(centerX - 4, centerY + 4);
+        spawn_explosion(centerX + 4, centerY - 4);
         
         // Play explosion sound
-        extern Audio g_audio;
         extern Assets g_assets;
-        audio_play_sound(&g_audio, g_assets.explosionSound);
+        audio_play_sound(g_assets.explosionSound);
         
         shield->base.active = false;
     }
@@ -365,7 +471,7 @@ float get_enemy_bullet_speed(int wave) {
     }
 }
 
-void next_wave(GameState* game) {
+void next_wave(void) {
     game->wave++;
     
     // Get wave-specific configurations
@@ -459,10 +565,16 @@ void next_wave(GameState* game) {
     }
 }
 
-void game_update(GameState* game, uint32_t deltaTime) {
+void game_update(uint32_t deltaTime) {
     (void)deltaTime;  // Fixed timestep, deltaTime not used
     
     if (game->paused) return;
+	
+	if(game->phase != game->phase_last)
+	{
+		game->phase_last = game->phase;
+		game->phaseStartTime = SDL_GetTicks();
+	}
     
     // Handle intro phase
     if (game->phase == PHASE_INTRO) {
@@ -626,7 +738,7 @@ void game_update(GameState* game, uint32_t deltaTime) {
     
     // Automatic firing - fire continuously when able
     if (game->player.canFire && game->phase == PHASE_PLAYING && !game->gameOver) {
-        spawn_player_bullet(game);
+        spawn_player_bullet();
     }
     
     // Move player horizontally with screen wrapping
@@ -701,7 +813,7 @@ void game_update(GameState* game, uint32_t deltaTime) {
                         bullet->base.active = false;
                         
                         // Create explosion at alien position
-                        spawn_explosion(game, alien->base.x + alien->base.width/2, 
+                        spawn_explosion(alien->base.x + alien->base.width/2, 
                                       alien->base.y + alien->base.height/2);
                         
                         alien->base.active = false;
@@ -717,7 +829,7 @@ void game_update(GameState* game, uint32_t deltaTime) {
                         }
                         
                         // Play explosion sound
-                        audio_play_sound(&g_audio, g_assets.explosionSound);
+                        audio_play_sound(g_assets.explosionSound);
                         
                         bulletHit = true; // Mark that bullet hit something
                         break; // Exit inner loop immediately
@@ -736,7 +848,7 @@ void game_update(GameState* game, uint32_t deltaTime) {
                 bullet->base.active = false;
                 
                 // Create explosion at UFO position
-                spawn_explosion(game, game->ufo.base.x + game->ufo.base.width/2, 
+                spawn_explosion(game->ufo.base.x + game->ufo.base.width/2, 
                               game->ufo.base.y + game->ufo.base.height/2);
                 
                 // Health restoration logic - add 1 life if not at maximum
@@ -768,8 +880,8 @@ void game_update(GameState* game, uint32_t deltaTime) {
                 }
                 
                 // Play explosion sound
-                audio_play_sound(&g_audio, g_assets.explosionSound);
-                audio_stop_sound(&g_audio, g_assets.ufoSound);
+                audio_play_sound(g_assets.explosionSound);
+                audio_stop_sound(g_assets.ufoSound);
                 
                 bulletHit = true;
             }
@@ -896,7 +1008,7 @@ void game_update(GameState* game, uint32_t deltaTime) {
                         game->victory = false;  // Mark as defeat
                         game->phase = PHASE_GAME_OVER;
                         // Play explosion sound
-                        audio_play_sound(&g_audio, g_assets.explosionSound);
+                        audio_play_sound(g_assets.explosionSound);
                         return;  // Stop processing to prevent freeze
                     }
                 }
@@ -907,7 +1019,7 @@ void game_update(GameState* game, uint32_t deltaTime) {
     // Spawn alien bullets more frequently for testing consecutive bullets
     uint32_t currentTime = SDL_GetTicks();
     if (currentTime - game->lastAlienFire > 300) {  // Fire every 300ms (more frequent)
-        spawn_alien_bullet(game);
+        spawn_alien_bullet();
         game->lastAlienFire = currentTime;
     }
     
@@ -917,8 +1029,8 @@ void game_update(GameState* game, uint32_t deltaTime) {
         if (game->alienBullets[i].base.active) activeBulletCount++;
     }
     if (activeBulletCount > 1) {
-        printf("Multiple alien bullets active: %d\n", activeBulletCount);
-        fflush(stdout);
+        //printf("Multiple alien bullets active: %d\n", activeBulletCount);
+        //fflush(stdout);
     }
     
     for (int i = 0; i < MAX_ALIEN_BULLETS; i++) {
@@ -949,7 +1061,7 @@ void game_update(GameState* game, uint32_t deltaTime) {
                     game->player.invincibilityStart = SDL_GetTicks();
                     
                     // Play explosion sound
-                    audio_play_sound(&g_audio, g_assets.explosionSound);
+                    audio_play_sound(g_assets.explosionSound);
                     
                     // Show damaged sprite briefly
                     game->player.base.sprite = g_assets.playerDamaged;
@@ -992,11 +1104,11 @@ void game_update(GameState* game, uint32_t deltaTime) {
         // Remove UFO if off screen
         if (game->ufo.base.x < -UFO_WIDTH || game->ufo.base.x > SCREEN_WIDTH) {
             game->ufo.base.active = false;
-            audio_stop_sound(&g_audio, g_assets.ufoSound);
+            audio_stop_sound(g_assets.ufoSound);
         }
     } else {
         // Try to spawn UFO
-        spawn_ufo(game);
+        spawn_ufo();
     }
     
     // Update bonus point display
@@ -1035,17 +1147,17 @@ void game_update(GameState* game, uint32_t deltaTime) {
             game->victory = true;  // Mark as victory
             game->phase = PHASE_GAME_OVER;
             // Play victory sound
-            audio_play_sound(&g_audio, g_assets.explosionSound);
+            audio_play_sound(g_assets.explosionSound);
         } else {
             // Continue to next wave (Wave 1 → Wave 2 → Wave 3)
             printf("Wave %d completed, advancing to Wave %d\n", game->wave, game->wave + 1);
             fflush(stdout);
-            next_wave(game);
+            next_wave();
         }
     }
 }
 
-void game_handle_input(GameState* game, int key, bool pressed) {
+void game_handle_input(int key, bool pressed) {
     // Skip input during intro except for start button to skip
     if (game->phase == PHASE_INTRO && key != INPUT_START) {
         return;
@@ -1162,7 +1274,7 @@ void game_handle_input(GameState* game, int key, bool pressed) {
                         }
                     }
                 } else if (game->gameOver) {
-                    game_init(game);  // Restart game
+                    
                 } else {
                     game->paused = !game->paused;
                 }
@@ -1171,49 +1283,48 @@ void game_handle_input(GameState* game, int key, bool pressed) {
     }
 }
 
-void game_render(GameState* game, uint32_t* framebuffer) {
-    (void)framebuffer;  // Using global renderer
-    
+void game_render(void) {
+	
     // Check if we should show game over screen
     if (game->gameOver || game->phase == PHASE_GAME_OVER) {
         // Draw black background for game over screen
-        renderer_clear(&g_renderer, COLOR_BLACK);
+        renderer_clear(COLOR_BLACK);
         
         // Draw a white border to make sure the screen is visible
-        draw_rect(&g_renderer, 10, 10, SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20, COLOR_WHITE);
+        draw_rect(10, 10, SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20, COLOR_WHITE);
         
         // Draw game over messages
         if (game->victory) {
             // Victory screen
-            draw_text(&g_renderer, "CONGRATULATIONS!", SCREEN_WIDTH / 2 - 80, 
+            draw_text("CONGRATULATIONS!", SCREEN_WIDTH / 2 - 80, 
                      SCREEN_HEIGHT / 2 - 80, COLOR_YELLOW);
-            draw_text(&g_renderer, "YOU HAVE COMPLETED ALL WAVES!", SCREEN_WIDTH / 2 - 120, 
+            draw_text("YOU HAVE COMPLETED ALL WAVES!", SCREEN_WIDTH / 2 - 120, 
                      SCREEN_HEIGHT / 2 - 60, COLOR_WHITE);
-            draw_text(&g_renderer, "EARTH IS SAVED!", SCREEN_WIDTH / 2 - 56, 
+            draw_text("EARTH IS SAVED!", SCREEN_WIDTH / 2 - 56, 
                      SCREEN_HEIGHT / 2 - 40, COLOR_GREEN);
             
             char finalScore[64];
             snprintf(finalScore, sizeof(finalScore), "FINAL SCORE: %06d", game->score);
-            draw_text(&g_renderer, finalScore, SCREEN_WIDTH / 2 - 72, 
+            draw_text(finalScore, SCREEN_WIDTH / 2 - 72, 
                      SCREEN_HEIGHT / 2 - 10, COLOR_WHITE);
                      
             char highScore[64];
             snprintf(highScore, sizeof(highScore), "HIGH SCORE: %06d", game->highScore);
-            draw_text(&g_renderer, highScore, SCREEN_WIDTH / 2 - 68, 
+            draw_text(highScore, SCREEN_WIDTH / 2 - 68, 
                      SCREEN_HEIGHT / 2 + 10, COLOR_YELLOW);
         } else {
             // Game over screen (defeat) - Clean and simple for maximum visibility
             
             // Draw clear white text on black background
-            draw_text(&g_renderer, "GAME OVER", SCREEN_WIDTH / 2 - 36, SCREEN_HEIGHT / 2 - 40, COLOR_WHITE);
+            draw_text("GAME OVER", SCREEN_WIDTH / 2 - 36, SCREEN_HEIGHT / 2 - 40, COLOR_WHITE);
             
             char scoreText[64];
             snprintf(scoreText, sizeof(scoreText), "SCORE= %d", game->score);
-            draw_text(&g_renderer, scoreText, SCREEN_WIDTH / 2 - 40, SCREEN_HEIGHT / 2 - 10, COLOR_WHITE);
+            draw_text(scoreText, SCREEN_WIDTH / 2 - 40, SCREEN_HEIGHT / 2 - 10, COLOR_WHITE);
                      
             char highScore[64];
             snprintf(highScore, sizeof(highScore), "HIGH SCORE= %d", game->highScore);
-            draw_text(&g_renderer, highScore, SCREEN_WIDTH / 2 - 60, SCREEN_HEIGHT / 2 + 10, COLOR_WHITE);
+            draw_text(highScore, SCREEN_WIDTH / 2 - 60, SCREEN_HEIGHT / 2 + 10, COLOR_WHITE);
         }
         
         // No restart instruction text displayed
@@ -1225,7 +1336,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
         // Tile the background
         for (int y = 0; y < SCREEN_HEIGHT; y += g_assets.starBackground->height) {
             for (int x = 0; x < SCREEN_WIDTH; x += g_assets.starBackground->width) {
-                draw_sprite(&g_renderer, g_assets.starBackground, x, y);
+                draw_sprite(g_assets.starBackground, x, y);
             }
         }
     }
@@ -1235,20 +1346,20 @@ void game_render(GameState* game, uint32_t* framebuffer) {
         uint32_t elapsed = SDL_GetTicks() - game->phaseStartTime;
         
         if (elapsed < 2000) {
-            draw_text(&g_renderer, "EARTH IS UNDER ATTACK!", 
+            draw_text("FLORIDA IS UNDER ATTACK!", 
                      SCREEN_WIDTH / 2 - 88, SCREEN_HEIGHT / 3, COLOR_WHITE);
-            draw_text(&g_renderer, "YOUR MISSION: DEFEND THE PLANET", 
+            draw_text("YOUR MISSION: DEFEND THE SWAMP", 
                      SCREEN_WIDTH / 2 - 120, SCREEN_HEIGHT / 3 + 20, COLOR_WHITE);
         } else if (elapsed < 3000) {
-            draw_text(&g_renderer, "GET READY!", 
+            draw_text("GET READY!", 
                      SCREEN_WIDTH / 2 - 40, SCREEN_HEIGHT / 3, COLOR_YELLOW);
         } else if (elapsed < 5000) {
-            draw_text(&g_renderer, "ALIEN INVASION INCOMING!", 
+            draw_text("GATOR INVASION INCOMING!", 
                      SCREEN_WIDTH / 2 - 96, SCREEN_HEIGHT / 3, COLOR_RED);
         }
         
         // Always show skip instruction during intro
-        draw_text(&g_renderer, "PRESS START TO SKIP", 
+        draw_text("PRESS START TO SKIP", 
                  SCREEN_WIDTH / 2 - 76, SCREEN_HEIGHT - 30, COLOR_WHITE);
     }
     
@@ -1268,7 +1379,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
         }
         
         if (shouldDraw) {
-            draw_sprite_scaled(&g_renderer, game->player.base.sprite, 
+            draw_sprite_scaled(game->player.base.sprite, 
                               (int)game->player.base.x, (int)game->player.base.y, 0.75f);
         }
     }
@@ -1289,7 +1400,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
             if (alien->base.active) {
                 // Apply smooth drop offset during animation
                 int renderY = (int)(alien->base.y + dropOffset);
-                draw_sprite_scaled(&g_renderer, alien->base.sprite,
+                draw_sprite_scaled(alien->base.sprite,
                            (int)alien->base.x, renderY, 0.5f);
             }
         }
@@ -1343,7 +1454,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
                         
                         if (shouldDraw) {
                             // Use bright green color for shields
-                            draw_pixel(&g_renderer, 
+                            draw_pixel(
                                       (int)(shield->base.x + x),
                                       (int)(shield->base.y + y), RGB(0, 255, 0));
                         }
@@ -1357,7 +1468,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
                 uint32_t healthColor = shield->health > 10 ? RGB(0, 255, 0) :   // Green if > 50% (>10)
                                       shield->health > 5 ? RGB(255, 255, 0) :   // Yellow if > 25% (>5)
                                       RGB(255, 0, 0);                          // Red if <= 25% (<=5)
-                draw_pixel(&g_renderer, 
+                draw_pixel(
                           (int)(shield->base.x + x),
                           (int)(shield->base.y - 5), healthColor);
             }
@@ -1368,7 +1479,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
     for (int i = 0; i < MAX_BULLETS; i++) {
         Bullet* bullet = &game->playerBullets[i];
         if (bullet->base.active) {
-            draw_sprite(&g_renderer, bullet->base.sprite,
+            draw_sprite(bullet->base.sprite,
                        (int)bullet->base.x, (int)bullet->base.y);
         }
     }
@@ -1376,14 +1487,14 @@ void game_render(GameState* game, uint32_t* framebuffer) {
     for (int i = 0; i < MAX_ALIEN_BULLETS; i++) {
         Bullet* bullet = &game->alienBullets[i];
         if (bullet->base.active) {
-            draw_sprite(&g_renderer, bullet->base.sprite,
+            draw_sprite(bullet->base.sprite,
                        (int)bullet->base.x, (int)bullet->base.y);
         }
     }
     
     // Draw UFO (scaled down to be visually smaller)
     if (game->ufo.base.active) {
-        draw_sprite_scaled(&g_renderer, game->ufo.base.sprite,
+        draw_sprite_scaled(game->ufo.base.sprite,
                           (int)game->ufo.base.x, (int)game->ufo.base.y, 0.4f);
     }
     
@@ -1414,7 +1525,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
                         int px = centerX + dx;
                         int py = centerY + dy;
                         if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
-                            draw_pixel(&g_renderer, px, py, color);
+                            draw_pixel(px, py, color);
                         }
                     }
                 }
@@ -1425,18 +1536,18 @@ void game_render(GameState* game, uint32_t* framebuffer) {
     // Draw UI
     char scoreText[64];
     snprintf(scoreText, sizeof(scoreText), "SCORE: %06d", game->score);
-    draw_text(&g_renderer, scoreText, 10, 10, COLOR_WHITE);
+    draw_text(scoreText, 10, 10, COLOR_WHITE);
     
     snprintf(scoreText, sizeof(scoreText), "HIGH: %06d", game->highScore);
-    draw_text(&g_renderer, scoreText, SCREEN_WIDTH - 120, 10, COLOR_WHITE);
+    draw_text(scoreText, SCREEN_WIDTH - 120, 10, COLOR_WHITE);
     
     snprintf(scoreText, sizeof(scoreText), "WAVE: %d", game->wave);
-    draw_text(&g_renderer, scoreText, SCREEN_WIDTH / 2 - 30, 10, COLOR_WHITE);
+    draw_text(scoreText, SCREEN_WIDTH / 2 - 30, 10, COLOR_WHITE);
     
     // Draw lives
     for (int i = 0; i < game->player.lives; i++) {
         if (g_assets.life) {
-            draw_sprite_scaled(&g_renderer, g_assets.life, 
+            draw_sprite_scaled(g_assets.life, 
                              10 + i * 40, SCREEN_HEIGHT - 40, 0.5f);
         }
     }
@@ -1450,7 +1561,7 @@ void game_render(GameState* game, uint32_t* framebuffer) {
         if (timeRemaining > 0) {
             char invincText[32];
             snprintf(invincText, sizeof(invincText), "SHIELD: %.1fs", timeRemaining / 1000.0f);
-            draw_text(&g_renderer, invincText, 10, SCREEN_HEIGHT - 60, COLOR_YELLOW);
+            draw_text(invincText, 10, SCREEN_HEIGHT - 60, COLOR_YELLOW);
         }
     }
     
@@ -1460,17 +1571,22 @@ void game_render(GameState* game, uint32_t* framebuffer) {
         if (game->bonusPoints == 1) {
             // Health restoration message
             snprintf(bonusText, sizeof(bonusText), "+1 LIFE!");
-            draw_text(&g_renderer, bonusText, (int)game->bonusX, (int)game->bonusY - 20, COLOR_GREEN);
+            draw_text(bonusText, (int)game->bonusX, (int)game->bonusY - 20, COLOR_GREEN);
         } else {
             // Bonus points message
             snprintf(bonusText, sizeof(bonusText), "+%d BONUS!", game->bonusPoints);
-            draw_text(&g_renderer, bonusText, (int)game->bonusX, (int)game->bonusY - 20, COLOR_YELLOW);
+            draw_text(bonusText, (int)game->bonusX, (int)game->bonusY - 20, COLOR_YELLOW);
         }
     }
     
     // Draw pause message (game over is handled at top of function)
     if (game->paused) {
-        draw_text(&g_renderer, "PAUSED", SCREEN_WIDTH / 2 - 24, 
+        draw_text("PAUSED", SCREEN_WIDTH / 2 - 24, 
                  SCREEN_HEIGHT / 2, COLOR_YELLOW);
     }
+}
+
+bool game_isgameover(void)
+{
+	return (game->phase == PHASE_GAME_OVER) && (game->phase_last == PHASE_GAME_OVER) && (SDL_GetTicks() > game->phaseStartTime + 5000);
 }

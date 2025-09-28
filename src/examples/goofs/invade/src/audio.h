@@ -16,28 +16,17 @@ typedef struct {
     bool loop;
 } Sound;
 
-typedef struct {
-    SDL_AudioDeviceID device;
-    SDL_AudioSpec spec;
-    SDL_AudioStream* stream;
-    Sound* sounds[16];  // Max 16 simultaneous sounds
-    int soundCount;
-    Sound* bgm;  // Background music
-    float masterVolume;
-    int bufferSize;  // Store buffer size separately
-} Audio;
-
 // Audio functions
-bool audio_init(Audio* audio);
-void audio_cleanup(Audio* audio);
-void audio_update(Audio* audio);
+bool audio_init(void);
+void audio_cleanup(void);
+void audio_update(void);
 
 // Sound management
 Sound* audio_create_sound(int16_t* data, int length, bool loop);
 void audio_free_sound(Sound* sound);
-void audio_play_sound(Audio* audio, Sound* sound);
-void audio_stop_sound(Audio* audio, Sound* sound);
-void audio_set_bgm(Audio* audio, Sound* bgm);
+void audio_play_sound(Sound* sound);
+void audio_stop_sound(Sound* sound);
+void audio_set_bgm(Sound* bgm);
 
 // Sound generation (for built-in effects)
 Sound* audio_generate_shoot(void);

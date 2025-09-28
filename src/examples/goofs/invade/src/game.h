@@ -18,7 +18,7 @@
 #define ALIEN_SPEED_BASE 1
 #define ALIEN_DROP_DISTANCE 20
 #define MAX_BULLETS 10
-#define MAX_ALIEN_BULLETS 20
+#define MAX_ALIEN_BULLETS 2
 #define MAX_EXPLOSIONS 10
 #define PLAYER_LIVES 3
 // Wave-specific configurations
@@ -70,120 +70,15 @@
 #define ALIEN_POINTS_BOT 10
 #define UFO_POINTS 200
 
-// Game entities
-typedef struct {
-    float x, y;
-    int width, height;
-    bool active;
-    Sprite* sprite;
-} Entity;
-
-typedef struct {
-    Entity base;
-    int lives;
-    int moveDir;     // -1 left, 0 stop, 1 right
-    int moveDirY;    // -1 up, 0 stop, 1 down
-    bool canFire;
-    uint32_t lastFireTime;
-    bool isInvincible;           // True during invincibility period
-    uint32_t invincibilityStart; // When invincibility started
-    uint32_t invincibilityDuration; // How long invincibility lasts (3000ms)
-} Player;
-
-typedef struct {
-    Entity base;
-    int points;
-    int animFrame;
-    uint32_t lastAnimTime;
-} Alien;
-
-typedef struct {
-    Entity base;
-    int direction;  // 1 for player bullet (up), -1 for alien bullet (down)
-} Bullet;
-
-typedef struct {
-    Entity base;
-    uint8_t* damageMap;  // Per-pixel damage tracking
-    int health;
-} Shield;
-
-typedef struct {
-    Entity base;
-    int direction;  // -1 or 1 for left/right movement
-    uint32_t spawnTime;
-} UFO;
-
-typedef struct {
-    Entity base;
-    uint32_t startTime;
-    uint32_t duration;  // How long explosion lasts in milliseconds
-    int animFrame;      // Current animation frame
-    uint32_t lastFrameTime;
-} Explosion;
-
-// Game phases
-typedef enum {
-    PHASE_INTRO,      // Story/intro sequence
-    PHASE_PLAYING,    // Main gameplay
-    PHASE_GAME_OVER   // Game over state
-} GamePhase;
-
-// Game state
-typedef struct {
-    Player player;
-    Alien aliens[MAX_ALIEN_ROWS][MAX_ALIEN_COLS];
-    Bullet playerBullets[MAX_BULLETS];
-    Bullet alienBullets[MAX_ALIEN_BULLETS];
-    Shield shields[SHIELD_COUNT];
-    UFO ufo;
-    Explosion explosions[MAX_EXPLOSIONS];
-    
-    int score;
-    int highScore;
-    int wave;
-    int alienCount;
-    int alienDirection;
-    float alienSpeed;
-    uint32_t lastAlienMove;
-    uint32_t lastAlienFire;
-    
-    // Smooth edge drop state
-    bool alienDropping;      // true when aliens are in dropping animation
-    float dropProgress;      // 0.0 to 1.0 progress of current drop
-    uint32_t dropStartTime;  // when the current drop started
-    
-    GamePhase phase;
-    uint32_t phaseStartTime;
-    bool gameOver;
-    bool victory;  // true if game ended due to victory, false if defeat
-    bool paused;
-    uint32_t gameStartTime;
-    
-    // Bonus point display
-    bool showBonus;
-    int bonusPoints;
-    float bonusX, bonusY;
-    uint32_t bonusStartTime;
-} GameState;
 
 // Function declarations
-void game_init(GameState* game);
-void game_update(GameState* game, uint32_t deltaTime);
-void game_handle_input(GameState* game, int key, bool pressed);
-void game_render(GameState* game, uint32_t* framebuffer);
-void game_cleanup(GameState* game);
+void game_init(void);
+void game_update(uint32_t deltaTime);
+void game_handle_input(int key, bool pressed);
+void game_render(void);
+void game_cleanup(void);
 
-// Helper functions
-bool check_collision(Entity* a, Entity* b);
-void spawn_alien_bullet(GameState* game);
-void spawn_player_bullet(GameState* game);
-void spawn_ufo(GameState* game);
-void spawn_explosion(GameState* game, float x, float y);
-void damage_shield(Shield* shield, int x, int y, int radius);
-void damage_shield_visual(Shield* shield, int x, int y, int radius);
-void damage_shield_health(Shield* shield, int x, int y, int radius);
-void next_wave(GameState* game);
+bool game_isgameover(void);
 
 // Wave configuration functions
 int get_wave_rows(int wave);

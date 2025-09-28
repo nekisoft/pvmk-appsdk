@@ -7,12 +7,25 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+typedef struct {
+    SDL_AudioDeviceID device;
+    SDL_AudioSpec spec;
+    SDL_AudioStream* stream;
+    Sound* sounds[16];  // Max 16 simultaneous sounds
+    int soundCount;
+    Sound* bgm;  // Background music
+    float masterVolume;
+    int bufferSize;  // Store buffer size separately
+} Audio;
+static Audio g_audio;
+static Audio * const audio = &g_audio;
+
 static void audio_callback(void* userdata, SDL_AudioStream* stream, 
                           int additional_amount, int total_amount) {
     (void)additional_amount;
     (void)total_amount;
     
-    Audio* audio = (Audio*)userdata;
+    (void)userdata; //Audio* audio = (Audio*)userdata;
     int16_t* buffer = (int16_t*)SDL_malloc(audio->bufferSize * audio->spec.channels * sizeof(int16_t));
     
     if (!buffer) return;
@@ -76,7 +89,7 @@ static void audio_callback(void* userdata, SDL_AudioStream* stream,
     SDL_free(buffer);
 }
 
-bool audio_init(Audio* audio) {
+bool audio_init(void) {
     memset(audio, 0, sizeof(Audio));
     
     audio->spec.freq = AUDIO_SAMPLE_RATE;
@@ -98,7 +111,7 @@ bool audio_init(Audio* audio) {
     return true;
 }
 
-void audio_cleanup(Audio* audio) {
+void audio_cleanup(void) {
     if (audio->device) {
         SDL_PauseAudioDevice(audio->device);
         SDL_CloseAudioDevice(audio->device);
@@ -116,7 +129,7 @@ void audio_cleanup(Audio* audio) {
     }
 }
 
-void audio_update(Audio* audio) {
+void audio_update(void) {
     // Audio is handled in the callback
     (void)audio;
 }
@@ -142,7 +155,7 @@ void audio_free_sound(Sound* sound) {
     }
 }
 
-void audio_play_sound(Audio* audio, Sound* sound) {
+void audio_play_sound(Sound* sound) {
     if (!sound || audio->soundCount >= 16) return;
     
     // Reset position for replayable sounds
@@ -152,7 +165,7 @@ void audio_play_sound(Audio* audio, Sound* sound) {
     audio->sounds[audio->soundCount++] = sound;
 }
 
-void audio_stop_sound(Audio* audio, Sound* sound) {
+void audio_stop_sound(Sound* sound) {
     for (int i = 0; i < audio->soundCount; i++) {
         if (audio->sounds[i] == sound) {
             audio->sounds[i] = NULL;
@@ -161,7 +174,7 @@ void audio_stop_sound(Audio* audio, Sound* sound) {
     }
 }
 
-void audio_set_bgm(Audio* audio, Sound* bgm) {
+void audio_set_bgm(Sound* bgm) {
     audio->bgm = bgm;
     if (bgm) {
         bgm->position = 0;

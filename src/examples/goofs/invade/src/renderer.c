@@ -3,7 +3,18 @@
 #include <string.h>
 #include <stdio.h>
 
-bool renderer_init(Renderer* renderer, const char* title, int width, int height) {
+typedef struct {
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+    SDL_Texture* texture;
+    uint32_t* framebuffer;
+    int width;
+    int height;
+} Renderer;
+static Renderer g_renderer;
+static Renderer * const renderer = &g_renderer;
+
+bool renderer_init(const char* title, int width, int height) {
     // Create window
     renderer->window = SDL_CreateWindow(title, width, height, 0);
     if (!renderer->window) {
@@ -45,13 +56,13 @@ bool renderer_init(Renderer* renderer, const char* title, int width, int height)
     return true;
 }
 
-void renderer_clear(Renderer* renderer, uint32_t color) {
+void renderer_clear(uint32_t color) {
     for (int i = 0; i < renderer->width * renderer->height; i++) {
         renderer->framebuffer[i] = color;
     }
 }
 
-void renderer_present(Renderer* renderer) {
+void renderer_present(void) {
     // Update texture with framebuffer
     SDL_UpdateTexture(renderer->texture, NULL, renderer->framebuffer, 
         renderer->width * sizeof(uint32_t));
@@ -61,9 +72,10 @@ void renderer_present(Renderer* renderer) {
     
     // Present
     SDL_RenderPresent(renderer->renderer);
+	SDL_Delay(1);
 }
 
-void renderer_cleanup(Renderer* renderer) {
+void renderer_cleanup(void) {
     if (renderer->framebuffer) {
         free(renderer->framebuffer);
     }
@@ -78,35 +90,35 @@ void renderer_cleanup(Renderer* renderer) {
     }
 }
 
-void draw_pixel(Renderer* renderer, int x, int y, uint32_t color) {
+void draw_pixel(int x, int y, uint32_t color) {
     if (x >= 0 && x < renderer->width && y >= 0 && y < renderer->height) {
         renderer->framebuffer[y * renderer->width + x] = color;
     }
 }
 
-void draw_rect(Renderer* renderer, int x, int y, int w, int h, uint32_t color) {
+void draw_rect(int x, int y, int w, int h, uint32_t color) {
     // Top and bottom edges
     for (int i = 0; i < w; i++) {
-        draw_pixel(renderer, x + i, y, color);
-        draw_pixel(renderer, x + i, y + h - 1, color);
+        draw_pixel(x + i, y, color);
+        draw_pixel(x + i, y + h - 1, color);
     }
     
     // Left and right edges
     for (int i = 1; i < h - 1; i++) {
-        draw_pixel(renderer, x, y + i, color);
-        draw_pixel(renderer, x + w - 1, y + i, color);
+        draw_pixel(x, y + i, color);
+        draw_pixel(x + w - 1, y + i, color);
     }
 }
 
-void draw_filled_rect(Renderer* renderer, int x, int y, int w, int h, uint32_t color) {
+void draw_filled_rect(int x, int y, int w, int h, uint32_t color) {
     for (int j = 0; j < h; j++) {
         for (int i = 0; i < w; i++) {
-            draw_pixel(renderer, x + i, y + j, color);
+            draw_pixel(x + i, y + j, color);
         }
     }
 }
 
-void draw_sprite(Renderer* renderer, Sprite* sprite, int x, int y) {
+void draw_sprite(Sprite* sprite, int x, int y) {
     if (!sprite || !sprite->pixels) return;
     
     for (int j = 0; j < sprite->height; j++) {
@@ -114,13 +126,13 @@ void draw_sprite(Renderer* renderer, Sprite* sprite, int x, int y) {
             uint32_t pixel = sprite->pixels[j * sprite->width + i];
             // Only draw non-transparent pixels (alpha > 0)
             if ((pixel & 0xFF000000) > 0) {
-                draw_pixel(renderer, x + i, y + j, pixel);
+                draw_pixel(x + i, y + j, pixel);
             }
         }
     }
 }
 
-void draw_sprite_scaled(Renderer* renderer, Sprite* sprite, int x, int y, float scale) {
+void draw_sprite_scaled(Sprite* sprite, int x, int y, float scale) {
     if (!sprite || !sprite->pixels || scale <= 0) return;
     
     int scaledWidth = (int)(sprite->width * scale);
@@ -135,7 +147,7 @@ void draw_sprite_scaled(Renderer* renderer, Sprite* sprite, int x, int y, float 
                 uint32_t pixel = sprite->pixels[srcY * sprite->width + srcX];
                 // Only draw non-transparent pixels (alpha > 0)
                 if ((pixel & 0xFF000000) > 0) {
-                    draw_pixel(renderer, x + i, y + j, pixel);
+                    draw_pixel(x + i, y + j, pixel);
                 }
             }
         }
@@ -206,7 +218,7 @@ static const uint8_t font_data[95][8] = {
     {0x7E, 0x20, 0x10, 0x08, 0x04, 0x02, 0x7E, 0x00}, // Z
 };
 
-void draw_text(Renderer* renderer, const char* text, int x, int y, uint32_t color) {
+void draw_text(const char* text, int x, int y, uint32_t color) {
     int startX = x;
     
     while (*text) {
@@ -223,7 +235,7 @@ void draw_text(Renderer* renderer, const char* text, int x, int y, uint32_t colo
                     uint8_t rowData = charData[row];  // No vertical flip
                     for (int col = 0; col < 8; col++) {
                         if (rowData & (1 << col)) {  // No horizontal flip either
-                            draw_pixel(renderer, x + col, y + row, color);
+                            draw_pixel(x + col, y + row, color);
                         }
                     }
                 }
