@@ -15,14 +15,14 @@ void gamelist(void)
 {
 	const char *titles[][2] = 
 	{
-		{ "FreeDoom Phase 1",    "freedoom1" },
-		{ "FreeDoom Phase 2",    "freedoom2" },
-		{ "LibreQuake",          "quake"     },
-		{ "Beats of Rage",       "bor"       },
-		{ "CyberDogs",           "cdogs"     },
-		{ "Cylindrix",           "cylindrix" },
-		{ "In Pursuit of GREED", "greed"     },
-		{ "Chasin' Gators",      "invade"    },
+		{ "FreeDoom Phase 1",    "sub/ports/freedoom1" },
+		{ "FreeDoom Phase 2",    "sub/ports/freedoom2" },
+		{ "LibreQuake",          "sub/ports/quake"     },
+		{ "Beats of Rage",       "sub/ports/bor"       },
+		{ "CyberDogs",           "sub/ports/cdogs"     },
+		{ "Cylindrix",           "sub/ports/cylindrix" },
+		{ "In Pursuit of GREED", "sub/ports/greed"     },
+		{ "Chasin' Gators",      "sub/goofs/invade"    },
 		{0}
 	};
 	

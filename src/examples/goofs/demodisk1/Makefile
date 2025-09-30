@@ -11,6 +11,7 @@ FIND   =$(PVMKSDK)/bin/pvmk-find
 MKDIR  =$(PVMKSDK)/bin/pvmk-mkdir
 CP     =$(PVMKSDK)/bin/pvmk-cp
 RM     =$(PVMKSDK)/bin/pvmk-rm
+MAKE   =$(PVMKSDK)/bin/pvmk-make
 
 #Directories used locally
 SRCDIR=./src
@@ -39,27 +40,20 @@ CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 
 #Games from the SDK we include as part of the build process (symlinks in cardroot)
-SUBBUILD:=cylindrix freedoom1 freedoom2 quake invade greed cdogs bor
-SUBBUILDNNE:=$(patsubst %, $(CARDROOT)/%/boot.nne, $(SUBBUILD)) 
+SUBBUILD:=ports/cylindrix ports/freedoom1 ports/freedoom2 ports/quake goofs/invade ports/greed ports/cdogs ports/bor
+SUBBUILDDIRS:=$(patsubst %, $(CARDROOT)/sub/%, $(SUBBUILD)) 
 
 #Name of ISO image to build
 GAMEIMG=$(IMGDIR)/game.iso
 
 
-
 #Build filesystem with the game contents
-$(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/name.txt $(SUBBUILDNNE) $(shell $(FIND) -H $(CARDROOT))
+$(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/name.txt $(SUBBUILDDIRS) $(shell $(FIND) -H $(CARDROOT))
 	$(MKDIR) -p $(@D)
 	$(MKISOFS) -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -eltorito-platform 0x22 -no-emul-boot -eltorito-boot neki_upd.tar -R -follow-links -o $@ $(CARDROOT)
 	
 #Copy built executable into card image dir
 $(CARDROOT)/boot.nne : $(BINDIR)/boot.nne
-	$(CP) $< $@
-
-$(CARDROOT)/doom.nne : ../../ports/freedoom1/bin/boot.nne
-	$(CP) $< $@
-
-$(CARDROOT)/fmv.nne : ../../goofs/sfilm/bin/boot.nne
 	$(CP) $< $@
 
 #Link post-process target - no-nonsense executable made by stripping the ELF
@@ -78,9 +72,13 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 	
 #How to build game targets
-$(CARDROOT)/%/boot.nne :
-	gmake -C $(realpath  $(@D)/..) cardroot/boot.nne
+$(CARDROOT)/sub/% : ../../%
+	$(MAKE) -C $<
+	$(MKDIR) -p $(@D)
+	$(CP) -rL $</cardroot $@
 	
 #Cleanup target
 clean:
 	$(RM) -rf $(BINDIR) $(OBJDIR) $(IMGDIR)
+	$(RM) -rf $(CARDROOT)/sub
+	$(RM) -rf $(CARDROOT)/boot.nne
