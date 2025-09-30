@@ -7732,9 +7732,9 @@ void view_stats_menu_left_arrow(void)
 
 void view_stats_menu_return_key(void)
 {
-    static char filename[512];
-    int i;
-    FILE *fp;
+//    static char filename[512];
+//    int i;
+//    FILE *fp;
 
     if( view_stats_menu_data.current_selection == 0 ) { /* output stats */
     #if 0
@@ -9897,9 +9897,9 @@ void custom_game_stat_menu_left_arrow(void)
 
 void custom_game_stat_menu_return_key(void)
 {
-    FILE *fp;
-    int i;
-    static char filename[512];
+//    FILE *fp;
+//    int i;
+//    static char filename[512];
 
     if( custom_game_stat_menu_data.current_selection == 0 ) { /* output stats */
 #if 0
@@ -10315,9 +10315,9 @@ void tournament_game_stat_menu_left_arrow(void)
 
 void tournament_game_stat_menu_return_key(void)
 {
-    FILE *fp;
-    int i;
-    static char filename[512];
+//    FILE *fp;
+//    int i;
+//    static char filename[512];
 
     if( tournament_game_stat_menu_data.current_selection == 0 ) { /* output stats */
 #if 0
