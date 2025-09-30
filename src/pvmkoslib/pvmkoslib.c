@@ -281,7 +281,18 @@ void _pvmk_callmain(void)
 	
 	//Validate filesystem on card
 	_cdfs_init();
+	
+	//Initialize working directory - from the environment if one was preserved, or default to root
 	_user_cwd = _cdfs_rootino();
+	const char *cwdino = getenv("CWDINO");
+	if(cwdino != NULL)
+	{
+		uint32_t parsed_cwd = strtoul(cwdino, NULL, 0);
+		if(parsed_cwd != 0)
+		{
+			_user_cwd = parsed_cwd;
+		}
+	}
 	
 	//Call constructors
 	extern void __libc_init_array();
@@ -1205,10 +1216,26 @@ clock_t times(struct tms *tp)
 }
 
 int chdir(const char *path)
-{
-	//Not implemented yet...
-	//We could keep our own pwd file descriptor and reflect it in the environment as well, to preserve it
-	(void)path;
-	errno = ENOSYS;
-	return -1;
+{	
+	//Validate that the given path is a directory
+	struct stat st = {0};
+	int statresult = stat(path, &st);
+	if(statresult < 0)
+		return -1; //stat sets errno
+	
+	if(!S_ISDIR(st.st_mode))
+	{
+		errno = ENOTDIR;
+		return -1;
+	}
+	
+	//Scoop out the inode number and make that our CWD
+	_user_cwd = st.st_ino;
+	
+	//Stash in environment to preserve across calls to exec
+	char cwdenv[10] = {0};
+	snprintf(cwdenv, sizeof(cwdenv)-1, "%" PRIu32 , _user_cwd);
+	setenv("CWDINO", cwdenv, 1);
+	
+	return 0;
 }
