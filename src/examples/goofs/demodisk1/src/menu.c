@@ -7,35 +7,25 @@
 #include "pads.h"
 #include "images.h"
 #include "trigfunc.h"
-
+#include <unistd.h>
+#include <fcntl.h>
 #include <stddef.h>
 
 void gamelist(void)
 {
-	const char *titles[] = 
+	const char *titles[][2] = 
 	{
-		"FreeDoom Phase 1",
-		"FreeDoom Phase 2",
-		"LibreQuake",
-		"Beats of Rage",
-		"CyberDogs",
-		"Cylindrix",
-		"In Pursuit of GREED",
-		"Chasin' Gators",
-		NULL
+		{ "FreeDoom Phase 1",    "freedoom1" },
+		{ "FreeDoom Phase 2",    "freedoom2" },
+		{ "LibreQuake",          "quake"     },
+		{ "Beats of Rage",       "bor"       },
+		{ "CyberDogs",           "cdogs"     },
+		{ "Cylindrix",           "cylindrix" },
+		{ "In Pursuit of GREED", "greed"     },
+		{ "Chasin' Gators",      "invade"    },
+		{0}
 	};
 	
-	const char *exes[] = 
-	{
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-	};
 	
 	int sel = 0;
 	while(1)
@@ -64,12 +54,12 @@ void gamelist(void)
 		}
 		
 		
-		for(int oo = 0; titles[oo] != NULL; oo++)
+		for(int oo = 0; titles[oo][0] != NULL; oo++)
 		{
 			int xbump = (oo == sel) ? trigfunc_cos8(tickphase*64)/32 : 0;
 			int color = (oo == sel) ? 0xEEEE : 0x8888;
-			font_draw(FS_SCIFI, titles[oo], 0, 50+128 + xbump+2, 128+(32*oo)+2);
-			font_draw(FS_SCIFI, titles[oo], color, 50+128 + xbump, 128+(32*oo));
+			font_draw(FS_SCIFI, titles[oo][0], 0, 50+128 + xbump+2, 128+(32*oo)+2);
+			font_draw(FS_SCIFI, titles[oo][0], color, 50+128 + xbump, 128+(32*oo));
 		}
 		
 		fbs_flip();
@@ -86,13 +76,16 @@ void gamelist(void)
 		
 		if(sel < 0)
 			sel = 0;
-		if(titles[sel] == NULL)
+		if(titles[sel][0] == NULL)
 			sel--;
 		
 		if(pads_detect(PAD_ANY, BTNBIT_A | BTNBIT_START))
 		{
-			(void)exes;
-			return;
+			if(titles[sel][1] != NULL)
+			{
+				chdir(titles[sel][1]);
+				execv("boot.elf", (char *const[]){"boot.elf", NULL});
+			}
 		}
 		
 	}

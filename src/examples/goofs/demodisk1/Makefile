@@ -38,11 +38,17 @@ BUILDUSER := $(shell whoami)@$(shell hostname)
 CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 
+#Games from the SDK we include as part of the build process (symlinks in cardroot)
+SUBBUILD:=cylindrix freedoom1 freedoom2 quake invade greed cdogs bor
+SUBBUILDNNE:=$(patsubst %, $(CARDROOT)/%/boot.nne, $(SUBBUILD)) 
+
 #Name of ISO image to build
 GAMEIMG=$(IMGDIR)/game.iso
 
+
+
 #Build filesystem with the game contents
-$(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/name.txt $(shell $(FIND) -H $(CARDROOT))
+$(GAMEIMG) : $(CARDROOT)/boot.nne $(CARDROOT)/name.txt $(SUBBUILDNNE) $(shell $(FIND) -H $(CARDROOT))
 	$(MKDIR) -p $(@D)
 	$(MKISOFS) -V "`cat $(CARDROOT)/name.txt`" -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -eltorito-platform 0x22 -no-emul-boot -eltorito-boot neki_upd.tar -R -follow-links -o $@ $(CARDROOT)
 	
@@ -70,6 +76,10 @@ $(BINDIR)/boot.elf : $(COBJ)
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(MKDIR) -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
+	
+#How to build game targets
+$(CARDROOT)/%/boot.nne :
+	gmake -C $(realpath  $(@D)/..) cardroot/boot.nne
 	
 #Cleanup target
 clean:
