@@ -45,6 +45,9 @@ void images_load(images_file_t fn)
 	if(images_info[fn].pixels != NULL)
 		return; //Already loaded
 	
+	printf("Loading %s\n", images_file_names[fn]);
+	fflush(stdout);
+	
 	int xx = 0;
 	int yy = 0;
 	int nn = 0;
@@ -52,6 +55,8 @@ void images_load(images_file_t fn)
 	if(data == NULL)
 	{
 		//Failed to load image
+		printf("\tFailed\n");
+		fflush(stdout);
 		return;
 	}
 	
@@ -59,6 +64,8 @@ void images_load(images_file_t fn)
 	if(images_info[fn].pixels == NULL)
 	{
 		//Out of memory
+		printf("\tOOM\n");
+		fflush(stdout);
 		stbi_image_free(data);
 		return;
 	}
@@ -80,6 +87,8 @@ void images_load(images_file_t fn)
 	
 	images_info[fn].x = xx;
 	images_info[fn].y = yy;
+	printf("\tGood\n");
+	fflush(stdout);
 	return; //Success
 }
 
@@ -97,34 +106,41 @@ void images_draw(images_file_t fn, int x, int y)
 	if(images_info[fn].pixels == NULL)
 		return;
 	
-	uint16_t *image_line = images_info[fn].pixels;
-	for(int yy = y; yy < y + images_info[fn].y; yy++)
+	const uint16_t *image_line = images_info[fn].pixels;
+	int drawwidth = images_info[fn].x;
+	int drawheight = images_info[fn].y;
+	if(y < 0)
 	{
-		if(yy < 0)
+		image_line += (images_info[fn].x) * -y; //Advances by how much we're off the top
+		drawheight += y; //Reduces by how much we're off the top
+		y = 0; //No longer off the top
+	}
+	if(x < 0)
+	{
+		image_line += -x; //Advances by how much we're off the left
+		drawwidth += x; //Reduces by how much we're off the left
+		x = 0; //No longer off the left
+	}
+	if(x + drawwidth > SCREENX)
+	{
+		drawwidth = SCREENX - x; //Stop at right side
+	}
+	if(y + drawheight > SCREENY)
+	{
+		drawheight = SCREENY - y; //Stop at bottom
+	}
+	
+	for(int yy = y; yy < y + drawheight; yy++)
+	{
+		const uint16_t *image_pixel = image_line;
+		uint16_t *fb_pixel = &(BACKBUF[yy][x]);
+		for(int ii = 0; ii < drawwidth; ii++)
 		{
-			image_line += images_info[fn].x;
-			continue;
-		}
-		
-		if(yy >= SCREENY)
-			break;
-		
-		uint16_t *image_pixel = image_line;
-		for(int xx = x; xx < x + images_info[fn].x; xx++)
-		{
-			if(xx < 0)
-			{
-				image_pixel++;
-				continue;
-			}
-			
-			if(xx >= SCREENX)
-				break;
-			
 			if(*image_pixel)
-				BACKBUF[yy][xx] = *image_pixel;
+				*fb_pixel = *image_pixel;
 			
 			image_pixel++;
+			fb_pixel++;
 		}
 		image_line += images_info[fn].x;
 	}
