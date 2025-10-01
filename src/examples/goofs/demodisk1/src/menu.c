@@ -84,7 +84,7 @@ void gamelist(void)
 			if(titles[sel][1] != NULL)
 			{
 				chdir(titles[sel][1]);
-				execv("boot.elf", (char *const[]){"boot.elf", NULL});
+				execv("boot.nne", (char *const[]){"boot.nne", NULL});
 			}
 		}
 		
@@ -176,7 +176,7 @@ void mmenu(void)
 	{
 		"Game Demos",
 		//"About Neki32",
-		"A Message from BETOPP",
+		"A Message from Bryan",
 		NULL
 	};
 	void (*optptrs[])(void) = 
