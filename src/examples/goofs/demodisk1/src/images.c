@@ -14,8 +14,6 @@ static const char *images_file_names[IMF_MAX] =
 {
 	
 	[IMF_BG1] = "gfx/bg1.png",
-	[IMF_BG2] = "gfx/bg2.png",
-	[IMF_BG3] = "gfx/bg3.png",
 	[IMF_LOGO] = "gfx/neki32.png",
 
 };
@@ -26,6 +24,7 @@ typedef struct images_info_s
 	uint16_t *pixels;
 	int x;
 	int y;
+	int solid;
 } images_info_t;
 images_info_t images_info[IMF_MAX];
 
@@ -40,7 +39,7 @@ void images_purge(void)
 	}
 }
 
-void images_load(images_file_t fn)
+static void images_load(images_file_t fn)
 {
 	if(images_info[fn].pixels != NULL)
 		return; //Already loaded
@@ -70,6 +69,7 @@ void images_load(images_file_t fn)
 		return;
 	}
 	
+	images_info[fn].solid = 1;
 	for(int pp = 0; pp < (xx*yy); pp++)
 	{
 		uint16_t rgb565 = 0;
@@ -82,6 +82,8 @@ void images_load(images_file_t fn)
 			rgb565 = 1;
 		
 		images_info[fn].pixels[pp] = rgb565;
+		if(rgb565 == 0)
+			images_info[fn].solid = 0;
 	}
 	stbi_image_free(data);
 	
@@ -90,14 +92,6 @@ void images_load(images_file_t fn)
 	printf("\tGood\n");
 	fflush(stdout);
 	return; //Success
-}
-
-void images_loadrange(images_file_t min, images_file_t max)
-{
-	for(int rr = (int)min; rr <= (int)max; rr++)
-	{
-		images_load(rr);
-	}
 }
 
 void images_draw(images_file_t fn, int x, int y)
@@ -130,21 +124,29 @@ void images_draw(images_file_t fn, int x, int y)
 		drawheight = SCREENY - y; //Stop at bottom
 	}
 	
-	for(int yy = y; yy < y + drawheight; yy++)
+	uint16_t *fb_line = &(BACKBUF[y][x]);
+	if(images_info[fn].solid)
 	{
-		const uint16_t *image_pixel = image_line;
-		uint16_t *fb_pixel = &(BACKBUF[yy][x]);
-		for(int ii = 0; ii < drawwidth; ii++)
+		for(int jj = 0; jj < drawheight; jj++)
 		{
-			if(*image_pixel)
-				*fb_pixel = *image_pixel;
-			
-			image_pixel++;
-			fb_pixel++;
+			memcpy(fb_line, image_line, 2*drawwidth);
+			image_line += images_info[fn].x;
+			fb_line += SCREENX;
 		}
-		image_line += images_info[fn].x;
 	}
-	
+	else
+	{
+		for(int jj = 0; jj < drawheight; jj++)
+		{
+			for(int ii = 0; ii < drawwidth; ii++)
+			{
+				if(image_line[ii])
+					fb_line[ii] = image_line[ii];
+			}
+			image_line += images_info[fn].x;
+			fb_line += SCREENX;
+		}
+	}
 }
 
 void images_card(images_file_t fn, int x, int y, int height)

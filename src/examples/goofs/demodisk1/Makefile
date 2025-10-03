@@ -1,17 +1,8 @@
 #Makefile for card-based application
 #Bryan E. Topp <betopp@betopp.com> 2024
 
-#Find toolchain by locating "bin/pvmk-sdkversion" in the PATH or parent directories
-WHICH:=$(if $(findstring Windows, $(OS)), where, which)
-SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(firstword $(shell $(WHICH) pvmk-sdkversion)))
-SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../bin/pvmk-sdkversion))
-SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../bin/pvmk-sdkversion))
-SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../../bin/pvmk-sdkversion))
-SDKVER:=$(if $(strip $(SDKVER)), $(SDKVER), $(realpath ../../../../bin/pvmk-sdkversion))
-PVMKSDK?=$(realpath $(dir $(SDKVER))/..)
-SDKROOT?=$(PVMKSDK)
-
-#Use only utilities from the PVMK SDK, to avoid issues when building on WindowsNT systems
+#Toolchain location
+PVMKSDK=../../..
 CC     =$(PVMKSDK)/bin/pvmk-cc
 OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy
 MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
@@ -36,7 +27,7 @@ COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
 #Flags to use when compiling
 CFLAGS += -std=c99 -pedantic -D_DEFAULT_SOURCE=1
 CFLAGS += -Wall -Werror -Wextra
-CFLAGS += -O2 -g
+CFLAGS += -O3 -g
 CFLAGS += -fstack-usage
 
 #Flags to use when linking
@@ -49,7 +40,7 @@ CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 
 #Games from the SDK we include as part of the build process (symlinks in cardroot)
-SUBBUILD:=ports/cylindrix ports/freedoom1 ports/freedoom2 ports/quake goofs/invade ports/greed ports/cdogs ports/bor
+SUBBUILD:=ports/cylindrix ports/freedoom1 ports/freedoom2 ports/quake goofs/invade ports/greed ports/cdogs ports/bor sysusage/showinput goofs/neki3d
 SUBBUILDDIRS:=$(patsubst %, $(CARDROOT)/sub/%, $(SUBBUILD)) 
 
 #Name of ISO image to build

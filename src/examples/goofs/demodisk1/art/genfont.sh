@@ -17,7 +17,7 @@ do
 	do
 		if [ ${HHA}${HHB} != 00 ]
 		then
-			echo 00 ${HHA}${HHB} | xxd -rg1  | magick -background black -fill white -font "$1" -size 32x32 -pointsize 32 -gravity west label:@- ${TMPD}/${HHA}${HHB}.png 
+			echo 00 ${HHA}${HHB} | xxd -rg1  | magick -background black -fill white -font "$1" -size 32x32 -pointsize 30 -gravity west label:@- ${TMPD}/${HHA}${HHB}.png 
 		fi
 	done
 done

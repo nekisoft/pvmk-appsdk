@@ -11,31 +11,16 @@
 #include <fcntl.h>
 #include <stddef.h>
 
-void gamelist(void)
+void gamelist(const char *heading, const char *titles[][2])
 {
-	const char *titles[][2] = 
-	{
-		{ "FreeDoom Phase 1",    "sub/ports/freedoom1" },
-		{ "FreeDoom Phase 2",    "sub/ports/freedoom2" },
-		{ "LibreQuake",          "sub/ports/quake"     },
-		{ "Beats of Rage",       "sub/ports/bor"       },
-		{ "CyberDogs",           "sub/ports/cdogs"     },
-		{ "Cylindrix",           "sub/ports/cylindrix" },
-		{ "In Pursuit of GREED", "sub/ports/greed"     },
-		{ "Chasin' Gators",      "sub/goofs/invade"    },
-		{0}
-	};
-	
-	
 	int sel = 0;
 	while(1)
 	{
 		int ticks = _sc_getticks();
 		int tickphase = ticks % 65536;
 		
-		images_draw(IMF_BG3, 0, 0);
+		images_draw(IMF_BG1, 0, 0);
 		
-		const char *heading = "Game Demos";
 		font_draw(FS_SCIFI, heading, 0x0000, 50+64, 64);
 		font_draw(FS_SCIFI, heading, 0xFFFF, 50+62, 62);
 		
@@ -50,7 +35,7 @@ void gamelist(void)
 		for(int mm = 0; bottomtext[mm] != NULL; mm++)
 		{		
 			font_draw(FS_SCIFI, bottomtext[mm], 0x0000, 64, 364+(32*mm));
-			font_draw(FS_SCIFI, bottomtext[mm], 0x2222, 62, 362+(32*mm));
+			font_draw(FS_SCIFI, bottomtext[mm], 0x2234, 62, 362+(32*mm));
 		}
 		
 		
@@ -89,9 +74,6 @@ void gamelist(void)
 		}
 		
 	}
-	
-	
-	
 }
 
 void message(void)
@@ -99,24 +81,24 @@ void message(void)
 	while(1)
 	{
 		
-		images_draw(IMF_BG2, 0, 0);
+		images_draw(IMF_BG1, 0, 0);
 		
 		
 		static const char *lines[] = 
 		{
 			"Thank you for your interest in Neki32!",
 			"",
-			"This system is the result of many long",
-			"experiments in game development. I've",
-			"found what worked, kept the best, and",
-			"thrown out everything else.",
+			"The Neki32 Video Game System is designed",
+			"to be fast, easy, and reliable, for both",
+			"gamers and game developers. This card",
+			"includes some examples from the Neki32",
+			"software development kit, as well as some",
+			"ports of old and open-source games.",
 			"",
-			"With any luck, I'm not alone - and other",
-			"programmers will find and appreciate",
-			"this development style too.",
-			"",
+			"More software will be available soon from",
+			"Nekisoft Pty Ltd and other developers too!",
 			"I hope you enjoy using your Neki32.",
-			"           - Bryan E. Topp, 2025",
+			"                    - Bryan E. Topp, 2025",
 			NULL
 		};
 		
@@ -144,7 +126,7 @@ void intro(void)
 		int tickphase=ticks % 65536;
 		
 		images_draw(IMF_BG1, 0, 0);
-		images_draw(IMF_LOGO, (256 + trigfunc_sin8(tickphase*8))/4, (256+trigfunc_cos8(tickphase*32))/4);
+		images_draw(IMF_LOGO, 120 + trigfunc_sin8(tickphase*8)/8, 100);
 		
 		int xscroll = -(ticks/8) % 640;
 		int fontcol = ((1u << 0) | (1u << 6) | (1u << 11)) * ((256+trigfunc_cos8(tickphase*64))/16);
@@ -166,6 +148,47 @@ void intro(void)
 	}
 }
 
+void gamelist_ports(void)
+{
+	static const char *titles_ports[][2] = 
+	{
+		{ "FreeDoom Phase 1",    "sub/ports/freedoom1" },
+		{ "FreeDoom Phase 2",    "sub/ports/freedoom2" },
+		{ "LibreQuake",          "sub/ports/quake"     },
+		{ "Beats of Rage",       "sub/ports/bor"       },
+		{ "CyberDogs",           "sub/ports/cdogs"     },
+		{ "Cylindrix",           "sub/ports/cylindrix" },
+		{ "In Pursuit of GREED", "sub/ports/greed"     },
+		{0}
+	};
+
+	gamelist("Game Ports", titles_ports);
+}
+
+void gamelist_goofs(void)
+{
+	const char *titles_goofs[][2] = 
+	{
+		{ "Chasin' Gators",      "sub/goofs/invade"    },
+		{ "Sausage Tosser",      "sub/goofs/sausage"   },
+		{0}
+	};	
+	
+	gamelist("Mini Games", titles_goofs);
+}
+
+void gamelist_bits(void)
+{
+	const char *titles_bits[][2] = 
+	{
+		{ "Gamepad Test", "sub/sysusage/showinput" },
+		{ "3D Test",      "sub/goofs/neki3d" },
+		{0}
+	};
+	
+	gamelist("Bits 'n' Bobs", titles_bits);
+	
+}
 void mmenu(void)
 {
 	
@@ -174,15 +197,17 @@ void mmenu(void)
 	int sel = 0;
 	const char *options[] = 
 	{
-		"Game Demos",
-		//"About Neki32",
-		"A Message from Bryan",
+		"Game Ports",
+		"Mini Games",
+		"Bits 'n' Bobs",
+		"About Neki32",
 		NULL
 	};
 	void (*optptrs[])(void) = 
 	{
-		gamelist,
-		//NULL,
+		gamelist_ports,
+		gamelist_goofs,
+		gamelist_bits,
 		message,
 		NULL,
 	};
