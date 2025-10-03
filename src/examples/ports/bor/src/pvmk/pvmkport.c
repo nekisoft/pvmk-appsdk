@@ -63,7 +63,7 @@ int main(int argc, char * argv[])
 	char root[MAX_FILENAME_LEN];
 	memset(root, '\0', sizeof(root));
 	
-	strcpy(root, "/");
+	strcpy(root, "./");
 	
 	// Root path sent by the loader's argument(apps/OpenBOR by default)
 	//if(directlaunch)
@@ -75,11 +75,11 @@ int main(int argc, char * argv[])
 	//	strncpy(root, argv[0], strrchr(argv[0], '/') - argv[0]);
 	//}
 
-	strcpy(rootDir, "/");
-	strcpy(savesDir, "/");
-	strcpy(paksDir, "/paks");
-	strcpy(logsDir, "/logs");
-	strcpy(screenShotsDir, "/screenshots");
+	strcpy(rootDir, "./");
+	strcpy(savesDir, "./");
+	strcpy(paksDir, "./paks/");
+	strcpy(logsDir, "./logs/");
+	strcpy(screenShotsDir, "./screenshots/");
 		
 
 	dirExists(paksDir, 1);
@@ -88,7 +88,7 @@ int main(int argc, char * argv[])
 	dirExists(screenShotsDir, 1);
 	
 	// Pack's name sent by the loader's argument
-	strcpy(packfile, "/paks/bor.pak");
+	strcpy(packfile, "./paks/bor.pak");
 	
 	//if(directlaunch)
 	//{
