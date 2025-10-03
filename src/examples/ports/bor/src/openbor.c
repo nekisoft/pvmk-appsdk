@@ -49992,11 +49992,11 @@ void menu_options_system()
     #define SYS_OPT_Y_POS -4
 
     enum {
-        SYS_OPT_LOG,
+       // SYS_OPT_LOG,
         SYS_OPT_VSDAMAGE,
         SYS_OPT_CHEATS,
-        SYS_OPT_DEBUG,
-        SYS_OPT_CONFIG,
+    //    SYS_OPT_DEBUG,
+     //   SYS_OPT_CONFIG,
         SYS_OPT_BACK
     };
 
@@ -50019,20 +50019,20 @@ void menu_options_system()
 
         _menutextm(2, SYS_OPT_Y_POS-2, 0, Tr("System Options"));
 
-        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Total RAM:"));
-        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getSystemRam(KBYTES)));
+     //   _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Total RAM:"));
+     //   _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getSystemRam(KBYTES)));
         line++;
         
-        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Used RAM:"));
-        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getUsedRam(KBYTES)));
+      //  _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Used RAM:"));
+      //  _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getUsedRam(KBYTES)));
         line++;
 
-        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Max Players:"));
-        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%i"), levelsets[current_set].maxplayers);
+    //    _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Max Players:"));
+     //   _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%i"), levelsets[current_set].maxplayers);
         line++;
 
-        _menutext((selector == SYS_OPT_LOG), col1, SYS_OPT_Y_POS + line, Tr("File Logging:"));
-        _menutext((selector == SYS_OPT_LOG), col2, SYS_OPT_Y_POS + line, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
+     //   _menutext((selector == SYS_OPT_LOG), col1, SYS_OPT_Y_POS + line, Tr("File Logging:"));
+    //    _menutext((selector == SYS_OPT_LOG), col2, SYS_OPT_Y_POS + line, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
         line++;
 
         _menutext((selector == SYS_OPT_VSDAMAGE), col1, SYS_OPT_Y_POS + line, Tr("Versus Damage:"), 0);
@@ -50063,13 +50063,13 @@ void menu_options_system()
             line++;
         }
 
-        if (!nodebugoptions)
-        {
-            _menutext((selector == SYS_OPT_DEBUG), col1, SYS_OPT_Y_POS + line, Tr("Debug Settings..."));
-            line++;
-        }
+       // if (!nodebugoptions)
+     //   {
+      //      _menutext((selector == SYS_OPT_DEBUG), col1, SYS_OPT_Y_POS + line, Tr("Debug Settings..."));
+      //      line++;
+     //   }
 
-        _menutext((selector == SYS_OPT_CONFIG), col1, SYS_OPT_Y_POS + line, Tr("Config Settings..."));
+      //  _menutext((selector == SYS_OPT_CONFIG), col1, SYS_OPT_Y_POS + line, Tr("Config Settings..."));
 
         /* Extra lines for spacing. */
         line += 2;
@@ -50094,10 +50094,10 @@ void menu_options_system()
                 --selector;
             }
 
-            if (selector == SYS_OPT_DEBUG && nodebugoptions)
-            {
-                --selector;
-            }
+        //    if (selector == SYS_OPT_DEBUG && nodebugoptions)
+          //  {
+          //      --selector;
+          //  }
 
             sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
@@ -50113,10 +50113,10 @@ void menu_options_system()
                 ++selector;
             }
 
-            if (selector == SYS_OPT_DEBUG && nodebugoptions)
-            {
-                ++selector;
-            }                        
+         //   if (selector == SYS_OPT_DEBUG && nodebugoptions)
+         //   {
+           //     ++selector;
+          //  }                        
 
             sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
@@ -50135,7 +50135,7 @@ void menu_options_system()
             sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
             if (selector == RET) quit = 1;
-            else if (selector == SYS_OPT_LOG) savedata.uselog = !savedata.uselog;
+         //   else if (selector == SYS_OPT_LOG) savedata.uselog = !savedata.uselog;
             else if (selector == SYS_OPT_VSDAMAGE)
             {
                 if (versusdamage > 1)
@@ -50154,16 +50154,16 @@ void menu_options_system()
             {
                 menu_options_cheats();
             }
-            else if (selector == SYS_OPT_DEBUG && !nodebugoptions)
-            {
-                menu_options_debug();
-            }
+        //    else if (selector == SYS_OPT_DEBUG && !nodebugoptions)
+         //   {
+          //      menu_options_debug();
+         //   }
             else if (selector == SYS_OPT_CHEATS)
             {
                 menu_options_cheats();
             }
-            else if (selector == SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
-            else if (selector==SYS_OPT_CONFIG) menu_options_config();
+        //    else if (selector == SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
+          //  else if (selector==SYS_OPT_CONFIG) menu_options_config();
             else quit = 1;
         }
     }
@@ -50501,9 +50501,9 @@ void menu_options()
     #define OPT_X_POS          -7
     
     typedef enum {
-        VIDEO_OPTION,
+        //VIDEO_OPTION,
         SOUND_OPTION,
-        CONTROL_OPTION,
+       // CONTROL_OPTION,
         SYSTEM_OPTION,
 
         END_OPTION
@@ -50512,16 +50512,16 @@ void menu_options()
     int quit = 0;
     int y_offset = OPT_Y_POS;
     int BACK_OPTION = END_OPTION;
-    e_selector selector = VIDEO_OPTION;
+    e_selector selector = SOUND_OPTION; //VIDEO_OPTION;
 
     screen_status |= IN_SCREEN_OPTIONS_MENU;
     bothnewkeys = 0;    
     
     while(!quit)
     {        
-        _menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
+        //_menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
         _menutextm((selector == SOUND_OPTION), y_offset+SOUND_OPTION, 0, Tr("Sound Options..."));
-        _menutextm((selector == CONTROL_OPTION), y_offset+CONTROL_OPTION, 0, Tr("Control Options..."));
+       // _menutextm((selector == CONTROL_OPTION), y_offset+CONTROL_OPTION, 0, Tr("Control Options..."));
         _menutextm((selector == SYSTEM_OPTION), y_offset+SYSTEM_OPTION, 0, Tr("System Options..."));
                
         _menutextm((selector == BACK_OPTION), y_offset+BACK_OPTION+2, 0, Tr("Back"));
@@ -50534,7 +50534,7 @@ void menu_options()
         }
         if(bothnewkeys & FLAG_MOVEUP)
         {
-            if(selector <= VIDEO_OPTION)
+            if(selector <= SOUND_OPTION) //VIDEO_OPTION)
             {
                 selector = BACK_OPTION;
             }
@@ -50550,7 +50550,7 @@ void menu_options()
             ++selector;
             if(selector > BACK_OPTION)
             {
-                selector = VIDEO_OPTION;
+                selector = SOUND_OPTION; // VIDEO_OPTION;
             }
 
             if(global_sample_list.beep >= 0)
@@ -50567,9 +50567,9 @@ void menu_options()
             }
 
                 if(selector==BACK_OPTION) quit = 1;
-            else if(selector==VIDEO_OPTION) menu_options_video();
+            //else if(selector==VIDEO_OPTION) menu_options_video();
             else if(selector==SOUND_OPTION) menu_options_sound();
-            else if(selector==CONTROL_OPTION) menu_options_input();
+           // else if(selector==CONTROL_OPTION) menu_options_input();
             else if(selector==SYSTEM_OPTION)
             {
                 menu_options_system();                
@@ -50730,12 +50730,12 @@ void openborMain(int argc, char **argv)
             _menutextm((selector == 1), 3, 0, Tr("Options"));
             _menutextm((selector == 2), 4, 0, Tr("How To Play"));
             _menutextm((selector == 3), 5, 0, Tr("Hall Of Fame"));
-            _menutextm((selector == 4), 6, 0, Tr("Quit"));
+           // _menutextm((selector == 4), 6, 0, Tr("Quit"));
             if(selector < 0)
             {
-                selector = 4;
+                selector = 3;
             }
-            if(selector > 4)
+            if(selector > 3)
             {
                 selector = 0;
             }
