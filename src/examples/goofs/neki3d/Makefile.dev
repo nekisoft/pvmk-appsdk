@@ -7,6 +7,7 @@ DATE   =date
 FIND   =find
 MKDIR  =mkdir
 RM     =rm
+CP     =cp
 
 #Directories used locally
 SRCDIR=./src
@@ -30,7 +31,7 @@ CFLAGS += -O2 -g
 CFLAGS += -fstack-usage
 
 #Phony system call library
-CFLAGS += -I../../sdlsc/include
+CFLAGS += -I../../../sdlsc/include
 CFLAGS += -DUSE_SDLSC=1
 CFLAGS += $(shell sdl2-config --cflags)
 
