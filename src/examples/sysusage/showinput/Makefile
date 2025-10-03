@@ -29,12 +29,12 @@ CSRC:=$(shell $(FIND) src -name *.c)
 COBJ:=$(patsubst src/%.c, obj/%.o, $(CSRC))
 
 #Make output ISO using mkisofs
-img/game.iso: bin/boot.nne isoroot/BOOT.NNE
+img/game.iso: bin/boot.nne cardroot/boot.nne
 	$(MKDIR) -p $(@D)
-	$(MKISOFS) -follow-links -eltorito-platform 0x92 -no-emul-boot -eltorito-boot BOOT.NNE -o $@ isoroot
+	$(MKISOFS) -follow-links -eltorito-platform 0x92 -no-emul-boot -eltorito-boot boot.nne -o $@ cardroot
 	
 #Including binary as built into the ISO
-isoroot/BOOT.NNE : bin/boot.nne
+cardroot/boot.nne : bin/boot.nne
 	$(CP) $< $@
 
 #Make output ISO image from the compiled ELF, stripping the ELF format
