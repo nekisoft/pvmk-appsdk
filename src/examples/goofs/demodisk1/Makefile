@@ -40,7 +40,7 @@ CFLAGS += -DBUILDDATE=\"$(BUILDDATE)\"
 CFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 
 #Games from the SDK we include as part of the build process (symlinks in cardroot)
-SUBBUILD:=ports/cylindrix ports/freedoom1 ports/freedoom2 ports/quake goofs/invade ports/greed ports/cdogs ports/bor sysusage/showinput goofs/neki3d
+SUBBUILD:=ports/cylindrix ports/freedoom1 ports/freedoom2 goofs/invade ports/greed ports/cdogs ports/bor sysusage/showinput goofs/neki3d
 SUBBUILDDIRS:=$(patsubst %, $(CARDROOT)/sub/%, $(SUBBUILD)) 
 
 #Name of ISO image to build

@@ -154,7 +154,6 @@ void gamelist_ports(void)
 	{
 		{ "FreeDoom Phase 1",    "sub/ports/freedoom1" },
 		{ "FreeDoom Phase 2",    "sub/ports/freedoom2" },
-		{ "LibreQuake",          "sub/ports/quake"     },
 		{ "Beats of Rage",       "sub/ports/bor"       },
 		{ "CyberDogs",           "sub/ports/cdogs"     },
 		{ "Cylindrix",           "sub/ports/cylindrix" },
