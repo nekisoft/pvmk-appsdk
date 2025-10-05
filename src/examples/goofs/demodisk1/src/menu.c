@@ -10,6 +10,65 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stddef.h>
+#include <string.h>
+#include <ctype.h>
+#include <sc.h>
+
+//Hackhack - we set up NVM ourselves unlike a typical game
+//This shouldn't be used normally
+SYSCALL_DECL int _sc_nvm_ident(const char *name)
+	#define _SC_NVM_IDENT_N 0x80
+	{ return _SC(_SC_NVM_IDENT_N, name, 0, 0, 0, 0); }
+
+int prepnvm(const char *nvmname)
+{
+	int result = _sc_nvm_ident(nvmname);
+	if(result >= 0)
+	{
+		//All good
+		return 0;
+	}
+	else
+	{
+		//Failed to set up NVM... warn about it
+		//Show warning and wait for them to press start
+		while(1)
+		{
+			images_draw(IMF_BG1, 0, 0);
+			
+			
+			const char *warntxt[] = 
+			{
+				nvmname,
+				"WARNING: No space to save!",
+				"",
+				"There is no space to save your game.",
+				"To continue anyway, press START.",
+				"To choose something else, press B.",
+				"",
+				"To make room, remove the game card,",
+				"then access the system menu by pushing",
+				"UP on the control pad A. From the",
+				"menu, select SAVED DATA and delete",
+				"unwanted data to make room.",
+				NULL,
+			};
+			
+			for(int mm = 0; warntxt[mm] != NULL; mm++)
+			{
+				font_draw(FS_SCIFI, warntxt[mm], 0x0000, 64, 32+(32*mm));
+				font_draw(FS_SCIFI, warntxt[mm], 0xEE00, 62, 32+(32*mm));
+			}
+			
+			fbs_flip();
+			if(pads_detect(PAD_ANY, BTNBIT_START))
+				return 0; //They don't care
+			if(pads_detect(PAD_ANY, BTNBIT_B))
+				return -1; //Nope
+		}
+	}
+}
+
 
 void gamelist(const char *heading, const char *titles[][2])
 {
@@ -68,8 +127,40 @@ void gamelist(const char *heading, const char *titles[][2])
 		{
 			if(titles[sel][1] != NULL)
 			{
+				//Change to the subdirectory for this game
 				chdir(titles[sel][1]);
-				execv("boot.nne", (char *const[]){"boot.nne", NULL});
+				
+				//Read its NVM name
+				char gamename[64] = {0};
+				int namefd = open("name.txt", O_RDONLY);
+				if(namefd >= 0)
+				{
+					read(namefd, gamename, sizeof(gamename)-1);
+					close(namefd);
+				}
+				char *nameptr = gamename;
+				
+				//Trim left side of NVM name
+				while(isspace(*nameptr))
+					nameptr++;
+				
+				//Trim right side of NVM name
+				while(strlen(nameptr) > 0 && isspace(nameptr[strlen(nameptr)-1]))
+					nameptr[strlen(nameptr)-1] = '\0';
+				
+				//Check if NVM name is valid. Try to load if so.
+				int nvm_fail = 0;
+				if(nameptr[0] != '-' && nameptr[0] != '\0' && nameptr[0] != ' ')
+					nvm_fail = prepnvm(nameptr);
+				
+				//Boot the game
+				if(!nvm_fail)
+					execv("boot.nne", (char *const[]){"boot.nne", NULL});
+					
+				//Back out if failed
+				chdir("..");
+				chdir("..");
+				chdir("..");
 			}
 		}
 		
