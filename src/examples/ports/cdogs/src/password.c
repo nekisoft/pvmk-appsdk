@@ -216,6 +216,13 @@ int EnterPassword( void *bkg, const char *password )
 
     if (AnyButton( cmd))
     {
+	    //Added - "abort" button to return to main menu
+	    if(index == 2)
+	    {
+		    WaitForRelease();
+		    return -1;
+	    }
+	    
       if (index == 1)
       {
         WaitForRelease();
@@ -231,7 +238,7 @@ int EnterPassword( void *bkg, const char *password )
       index--;
       PlaySound( SND_SWITCH, 0, 255);
     }
-    else if (index == 0 && (Right( cmd) || Down( cmd)))
+    else if (index < 2 && (Right( cmd) || Down( cmd)))
     {
       index++;
       PlaySound( SND_SWITCH, 0, 255);
@@ -239,6 +246,7 @@ int EnterPassword( void *bkg, const char *password )
 
     DisplayMenuItem( 125, 50, "Start campaign", index == 0);
     DisplayMenuItem( 125, 50 + TextHeight(), "Enter code...", index == 1);
+    DisplayMenuItem( 125, 50 + 2*TextHeight(), "Abort", index == 2);
     ShowControls();
 
     vsync();

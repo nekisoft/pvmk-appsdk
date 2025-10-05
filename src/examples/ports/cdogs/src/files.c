@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include "files.h"
 #include <unistd.h>
+#include <ctype.h>
 
 
 #define CAMPAIGN_MAGIC    690304
@@ -346,11 +347,36 @@ struct FileEntry *GetFilesFromDirectory( const char *directory )
   struct dirent *d;
   struct FileEntry *list = NULL;
 
-  dir = opendir( directory);
+//Major hack - dunno what OS supports "opendir" with a wildcard...!?
+//Only used here to find files ending in a particular extension (*.etc)
+//Just implement this ourselves...
+  dir = opendir( /*directory*/ "." );
   if (dir != NULL)
   {
     while ((d = readdir( dir)) != NULL)
-      AddFileEntry( &list, d->d_name, "", 0);
+    {
+
+	    int strlen_pattern = strlen(directory);
+	    int strlen_filename = strlen(d->d_name);
+	    int matches = 0;
+	    for(int fromback = 0; fromback < 5 && fromback < strlen_pattern && fromback < strlen_filename; fromback++)
+	    {
+		    char pattern_ch = directory[strlen_pattern-fromback-1];
+		    char filename_ch = d->d_name[strlen_filename-fromback-1];
+		    if(pattern_ch == '*')
+		    {
+			    matches = 1;
+			    break;
+		    }		   
+		    if(tolower(pattern_ch) != tolower(filename_ch))
+		    {
+			    matches = 0;
+			    break;
+		    }
+	    }
+	    if(matches)
+		AddFileEntry( &list, d->d_name, "", 0);
+    }
     closedir( dir);
   }
   return list;

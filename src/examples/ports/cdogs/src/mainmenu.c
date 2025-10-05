@@ -39,7 +39,7 @@
 
 
 //#define MAIN_COUNT      7
-#define MAIN_COUNT      5
+#define MAIN_COUNT      4
 
 static const char *mainMenu[ MAIN_COUNT] =
 {
@@ -48,19 +48,19 @@ static const char *mainMenu[ MAIN_COUNT] =
   "Dog fight",
   "Game options...",
   //"Controls...",
-  "Sound...",
+//  "Sound...",
   //"Quit"
 };
 
-#define OPTIONS_COUNT   13
+#define OPTIONS_COUNT   9
 
 static const char *optionsMenu[ OPTIONS_COUNT] =
 {
   "Players shots hurt",
-  "FPS monitor",
-  "Clock",
-  "Copy to video",
-  "Brightness",
+//  "FPS monitor",
+//  "Clock",
+//  "Copy to video",
+//  "Brightness",
   "Splitscreen always",
   "Random seed",
   "Difficulty",
@@ -186,8 +186,16 @@ int SelectCampaign( int dogFight, int cmd )
     return MODE_MAIN;
   if (AnyButton( cmd))
   {
+	if(*index >= count)
+	{
+		*index = 0;
+		return MODE_MAIN; //back
+	}
+		  
     for (i = 0, f = list; f != NULL && i < *index; f = f->next, i++);
 
+
+	  
     if (f && f->name[0])
     {
       if (customSetting.missions)
@@ -213,13 +221,13 @@ int SelectCampaign( int dogFight, int cmd )
   {
     (*index)--;
     if (*index < 0)
-    	*index = count-1;
+    	*index = count;
     PlaySound( SND_SWITCH, 0, 255);
   }
   else if (Right( cmd) || Down( cmd))
   {
     (*index)++;
-    if (*index >= count)
+    if (*index >= count+1)
     	*index = 0;
     PlaySound( SND_SWITCH, 0, 255);
   }
@@ -236,12 +244,15 @@ int SelectCampaign( int dogFight, int cmd )
 
   for (j = 0; f != NULL && j < 12; f = f->next, i++, j++)
   {
-    DisplayMenuItem(  25, y, f->name, i == *index);
+    //DisplayMenuItem(  25, y, f->name, i == *index);
     DisplayMenuItem( 125, y, f->info, i == *index);
     y += TextHeight();
   }
   if (f)
     DisplayMenuItem( 25, y, "\037", 0);
+  
+  y+=TextHeight();
+  DisplayMenuItem( 125, y, "Back", *index == i);
 
   return dogFight ? MODE_DOGFIGHT : MODE_CAMPAIGN;
 }
@@ -307,6 +318,7 @@ unsigned char FitColor( int c )
     return (c&0xFF);
 }
 
+/*
 static void PaletteAdjust( void )
 {
   int i;
@@ -321,6 +333,7 @@ static void PaletteAdjust( void )
   }
   SetPalette( gPalette);
 }
+*/
 
 int SelectOptions( int cmd )
 {
@@ -337,7 +350,7 @@ int SelectOptions( int cmd )
         gOptions.playersHurt = !gOptions.playersHurt;
         PlaySound( SND_KILL, 0, 255);
         break;
-      case 1:
+    /*  case 1:
         gOptions.displayFPS = !gOptions.displayFPS;
         PlaySound( SND_FLAMER, 0, 255);
         break;
@@ -362,7 +375,8 @@ int SelectOptions( int cmd )
         PlaySound( SND_POWERGUN, 0, 255);
         PaletteAdjust();
         break;
-      case 5:
+	*/
+      case 1: //5:
         if (gOptions.xSplit == 0)
         {
           gOptions.xSplit = SPLIT_X;
@@ -372,7 +386,7 @@ int SelectOptions( int cmd )
           gOptions.xSplit = gOptions.ySplit = 0;
         PlaySound( SND_KILL3, 0, 255);
         break;
-      case 6:
+      case 2: //6:
         if (Left( cmd))
         {
           if (Button1( cmd) && Button2( cmd))
@@ -396,22 +410,26 @@ int SelectOptions( int cmd )
             gCampaign.seed++;
         }
         break;
-      case 7:
+      case 3: //7:
       	if (Left( cmd))
       	{
       		if (gOptions.difficulty > DIFFICULTY_VERYEASY)
       			gOptions.difficulty--;
+		else
+			gOptions.difficulty = DIFFICULTY_VERYEASY;
       	}
       	else if (Right( cmd))
       	{
       		if (gOptions.difficulty < DIFFICULTY_VERYHARD)
       			gOptions.difficulty++;
+		else
+			gOptions.difficulty = DIFFICULTY_VERYHARD;
       	}
       	break;
-     case 8:
+     case 4: //8:
      	gOptions.slowmotion = !gOptions.slowmotion;
      	break;
-     case 9:
+     case 5: //9:
       	if (Left( cmd))
       	{
       		if (gOptions.density > 25)
@@ -423,7 +441,7 @@ int SelectOptions( int cmd )
       			gOptions.density += 25;
       	}
       	break;
-     case 10:
+     case 6: //10:
       	if (Left( cmd))
       	{
       		if (gOptions.npcHp > 25)
@@ -435,7 +453,7 @@ int SelectOptions( int cmd )
       			gOptions.npcHp += 25;
       	}
       	break;
-     case 11:
+     case 7: //11:
       	if (Left( cmd))
       	{
       		if (gOptions.playerHp > 25)
@@ -471,14 +489,14 @@ int SelectOptions( int cmd )
   DisplayMenu( 75, optionsMenu, OPTIONS_COUNT, index);
 
   TextStringAt( 230, 50, gOptions.playersHurt ? "Yes" : "No");
-  TextStringAt( 230, 50 + TextHeight(), gOptions.displayFPS ? "On" : "Off");
-  TextStringAt( 230, 50 + 2*TextHeight(), gOptions.displayTime ? "On" : "Off");
-  TextStringAt( 230, 50 + 3*TextHeight(), gOptions.copyMode == COPY_REPMOVSD ? "rep movsd" : "dec/jnz");
-  sprintf( s, "%d", gOptions.brightness);
-  TextStringAt( 230, 50 + 4*TextHeight(), s);
-  TextStringAt( 230, 50 + 5*TextHeight(), gOptions.xSplit ? "No" : "Yes");
+  //TextStringAt( 230, 50 + TextHeight(), gOptions.displayFPS ? "On" : "Off");
+  //TextStringAt( 230, 50 + 2*TextHeight(), gOptions.displayTime ? "On" : "Off");
+  //TextStringAt( 230, 50 + 3*TextHeight(), gOptions.copyMode == COPY_REPMOVSD ? "rep movsd" : "dec/jnz");
+  //sprintf( s, "%d", gOptions.brightness);
+  //TextStringAt( 230, 50 + 4*TextHeight(), s);
+  TextStringAt( 230, 50 + /*5*/ 1*TextHeight(), gOptions.xSplit ? "No" : "Yes");
   sprintf( s, "%u", gCampaign.seed);
-  TextStringAt( 230, 50 + 6*TextHeight(), s);
+  TextStringAt( 230, 50 + /*6*/ 2*TextHeight(), s);
   switch (gOptions.difficulty)
   {
   	case DIFFICULTY_VERYEASY:
@@ -497,14 +515,14 @@ int SelectOptions( int cmd )
   	  strcpy( s, "Normal");
   	  break;
   }
-  TextStringAt( 230, 50 + 7*TextHeight(), s);
-  TextStringAt( 230, 50 + 8*TextHeight(), gOptions.slowmotion ? "Yes" : "No");
+  TextStringAt( 230, 50 + /*7*/ 3*TextHeight(), s);
+  TextStringAt( 230, 50 + /*8*/ 4*TextHeight(), gOptions.slowmotion ? "Yes" : "No");
   sprintf( s, "%u%%", gOptions.density);
-  TextStringAt( 230, 50 + 9*TextHeight(), s);
+  TextStringAt( 230, 50 + /*9*/ 5*TextHeight(), s);
   sprintf( s, "%u%%", gOptions.npcHp);
-  TextStringAt( 230, 50 + 10*TextHeight(), s);
+  TextStringAt( 230, 50 + /*10*/ 6*TextHeight(), s);
   sprintf( s, "%u%%", gOptions.playerHp);
-  TextStringAt( 230, 50 + 11*TextHeight(), s);
+  TextStringAt( 230, 50 + /*11*/ 7*TextHeight(), s);
 
   return MODE_OPTIONS;
 }

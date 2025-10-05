@@ -638,6 +638,8 @@ int Campaign( void )
 
   mission = EnterPassword( bkg, lastPassword);
   lastPassword[0] = 0;
+	if(mission < 0)
+		return 0;
 
   return Game( mission);
 }
