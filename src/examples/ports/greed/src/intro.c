@@ -815,6 +815,7 @@ void LoadData(void)
     if (MS_CheckParm("ticker"))
         ticker = true;
     CA_InitFile("GREED.BLO");
+    NetInit(NULL); //PVMK
     if (netplay)
     {
         NetInit((void*) netaddr);

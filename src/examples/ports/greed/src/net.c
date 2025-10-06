@@ -304,8 +304,8 @@ void NetInit(void* addr)
     printf("Multiplayer:\n");
 	(void)addr;
     //greedcom = (greedcom_t*) addr; //pvmk - nope
-    if (greedcom->id != (int)GREEDCOM_ID)
-        MS_Error("Invalid ComData Address! ID=0x%X", greedcom->id);
+   // if (greedcom->id != (int)GREEDCOM_ID)
+   //     MS_Error("Invalid ComData Address! ID=0x%X", greedcom->id);
     printf("\tPlayers=%i\n", greedcom->numplayers);
     playernum = greedcom->consoleplayer;
     printf("\tYou are player #%i\n", playernum + 1);
@@ -316,11 +316,11 @@ void NetInit(void* addr)
         printf("Serial");
     else if (greedcom->nettype == NETMODEM)
         printf("Modem");
-    else
-        MS_Error("Unknown net type!");
+    //else
+      //  MS_Error("Unknown net type!");
     printf("\n");
-    if (greedcom->nettype == NETMODEM || greedcom->nettype == NETSERIAL)
-        SetupModem();
+    //if (greedcom->nettype == NETMODEM || greedcom->nettype == NETSERIAL)
+      //  SetupModem();
 
     pevent  = (pevent_t*) greedcom->data;
     sevent  = (sevent_t*) greedcom->data;
