@@ -1,22 +1,6 @@
 /*
-  Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
-
-  This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
-  arising from the use of this software.
-
-  Permission is granted to anyone to use this software for any purpose,
-  including commercial applications, and to alter it and redistribute it
-  freely, subject to the following restrictions:
-
-  1. The origin of this software must not be misrepresented; you must not
-     claim that you wrote the original software. If you use this software
-     in a product, an acknowledgment in the product documentation would be
-     appreciated but is not required.
-  2. Altered source versions must be plainly marked as such, and must not be
-     misrepresented as being the original software.
-  3. This notice may not be removed or altered from any source distribution.
+	Neki32 Application SDK - This file placed in the public domain.
+	Bryan Topp <betopp@betopp.com>, Nekisoft Pty Ltd (ACN 680 583 251) 2025
 */
 #include "../../SDL_internal.h"
 
@@ -24,50 +8,50 @@
 
 #include <sc.h>
 
-static SDL_bool ticks_started = SDL_FALSE;
-static u64 start_tick;
-
-#define NSEC_PER_MSEC 1000000ULL
+static int last_ticks = 0;
+static uint64_t accum_ticks64 = 0;
 
 void SDL_TicksInit(void)
 {
-    if (ticks_started) {
-        return;
-    }
-    ticks_started = SDL_TRUE;
-
-    start_tick = svcGetSystemTick();
+	last_ticks = _sc_getticks();
+	accum_ticks64 = 0;
 }
 
 void SDL_TicksQuit(void)
 {
-    ticks_started = SDL_FALSE;
+	last_ticks = _sc_getticks();
+	accum_ticks64 = 0;
 }
 
 Uint64 SDL_GetTicks64(void)
 {
-    u64 elapsed;
-    if (!ticks_started) {
-        SDL_TicksInit();
-    }
-
-    elapsed = svcGetSystemTick() - start_tick;
-    return elapsed / CPU_TICKS_PER_MSEC;
+	int new_ticks = _sc_getticks();
+	int elapsed = new_ticks - last_ticks;
+	last_ticks = new_ticks;
+	
+	if(elapsed > 0)
+		accum_ticks64 += elapsed;
+		
+	return accum_ticks64;
 }
 
 Uint64 SDL_GetPerformanceCounter(void)
 {
-    return svcGetSystemTick();
+    return SDL_GetTicks64();
 }
 
 Uint64 SDL_GetPerformanceFrequency(void)
 {
-    return SYSCLOCK_ARM11;
+    return 1000;
 }
 
 void SDL_Delay(Uint32 ms)
 {
-    svcSleepThread(ms * NSEC_PER_MSEC);
+	uint64_t target = SDL_GetTicks64() + (uint64_t)ms;
+	while(SDL_GetTicks64() < target)
+	{
+		_sc_pause();
+	}
 }
 
 #endif /* SDL_TIMER_PVMK */

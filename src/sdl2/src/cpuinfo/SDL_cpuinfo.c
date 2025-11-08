@@ -436,7 +436,7 @@ static int CPU_haveARMSIMD(void)
 #else
 static int CPU_haveARMSIMD(void)
 {
-#warning SDL_HasARMSIMD is not implemented for this ARM platform. Write me.
+//#warning SDL_HasARMSIMD is not implemented for this ARM platform. Write me.
     return 0;
 }
 #endif
@@ -528,7 +528,7 @@ static int CPU_haveNEON(void)
         return 0;
     }
 #else
-#warning SDL_HasNEON is not implemented for this ARM platform. Write me.
+//#warning SDL_HasNEON is not implemented for this ARM platform. Write me.
     return 0;
 #endif
 }

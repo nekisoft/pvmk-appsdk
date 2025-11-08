@@ -31,19 +31,7 @@
 
 struct SDL_PrivateAudioData
 {
-    /* Speaker data */
-    Uint8 *mixbuf;
-    Uint32 mixlen;
-    Uint32 format;
-    Uint32 samplerate;
-    Uint32 channels;
-    Uint8 bytePerSample;
-    Uint32 isSigned;
-    Uint32 nextbuf;
-    ndspWaveBuf waveBuf[NUM_BUFFERS];
-    LightLock lock;
-    CondVar cv;
-    SDL_bool isCancelled;
+	void *mixbuf;
 };
 
 #endif /* _SDL_pvmkaudio_h_ */

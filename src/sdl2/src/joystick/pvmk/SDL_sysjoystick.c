@@ -29,7 +29,7 @@
 #include "../SDL_sysjoystick.h"
 #include "SDL_events.h"
 
-#define NB_BUTTONS 23
+#define NB_BUTTONS 12
 
 static int PVMK_JoystickInit(void)
 {
@@ -38,17 +38,28 @@ static int PVMK_JoystickInit(void)
 
 static const char *PVMK_JoystickGetDeviceName(int device_index)
 {
-    return "Neki32";
+    static const char *names[] =
+    {
+	"Neki32 Pad A",
+	"Neki32 Pad B",
+	"Neki32 Pad C",
+	"Neki32 Pad D",
+    };
+    if(device_index < 0 || device_index >= (int)SDL_arraysize(names))
+	return "";
+    else
+	return names[device_index];
+	
 }
 
 static int PVMK_JoystickGetCount(void)
 {
-    return 1;
+    return 4;
 }
 
 static SDL_JoystickGUID PVMK_JoystickGetDeviceGUID(int device_index)
 {
-    SDL_JoystickGUID guid = SDL_CreateJoystickGUIDForName("Neki32");
+    SDL_JoystickGUID guid = SDL_CreateJoystickGUIDForName(PVMK_JoystickGetDeviceName(device_index));
     return guid;
 }
 
@@ -60,10 +71,9 @@ static SDL_JoystickID PVMK_JoystickGetDeviceInstanceID(int device_index)
 static int PVMK_JoystickOpen(SDL_Joystick *joystick, int device_index)
 {
     joystick->nbuttons = NB_BUTTONS;
-    joystick->naxes = 4;
+    joystick->naxes = 0;
     joystick->nhats = 0;
     joystick->instance_id = device_index;
-
     return 0;
 }
 
@@ -74,8 +84,42 @@ static int PVMK_JoystickSetSensorsEnabled(SDL_Joystick *joystick, SDL_bool enabl
 
 static void PVMK_JoystickUpdate(SDL_Joystick *joystick)
 {
-//SDL_PrivateJoystickButton(joystick, i, SDL_RELEASED);
-//SDL_PrivateJoystickAxis(joystick, 1, Correct_Axis_Y(current_state.dy));
+	(void)joystick;
+	static uint16_t last_buttons[4] = {0};
+	
+	int ticks = _sc_getticks();
+	_sc_input_t input = {0};
+	while(_sc_input(&input, sizeof(input), sizeof(input)) > 0)
+	{
+		switch(input.format)
+		{
+			case 'A':
+			case 'B':
+			case 'C':
+			case 'D':
+			{
+				int player = input.format - 'A';
+				SDL_Joystick *js = SDL_GetJoystickFromID(1 + player);
+				if(js)
+				{
+					int presses = input.buttons & ~last_buttons[player];
+					int releases = last_buttons[player] & ~input.buttons;
+					for(int bit = 0; bit < NB_BUTTONS; bit++)
+					{
+						if(presses & (1u << bit))
+							SDL_PrivateJoystickButton(js, bit, SDL_PRESSED);
+						if(releases & (1u << bit))
+							SDL_PrivateJoystickButton(js, bit, SDL_RELEASED);
+					}
+				}
+				last_buttons[player] = input.buttons;
+			}
+			break;
+			
+			default:
+			break;
+		}
+	}
 }
 
 static void PVMK_JoystickClose(SDL_Joystick *joystick)
@@ -90,32 +134,42 @@ static SDL_bool PVMK_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapp
 {
     /* There is only one possible mapping. */
     *out = (SDL_GamepadMapping){
-        .a = { EMappingKind_Button, 0 },
-        .b = { EMappingKind_Button, 1 },
-        .x = { EMappingKind_Button, 10 },
-        .y = { EMappingKind_Button, 11 },
-        .back = { EMappingKind_Button, 2 },
-        .guide = { EMappingKind_None, 255 },
-        .start = { EMappingKind_Button, 3 },
-        .leftstick = { EMappingKind_None, 255 },
-        .rightstick = { EMappingKind_None, 255 },
-        .leftshoulder = { EMappingKind_Button, 9 },
-        .rightshoulder = { EMappingKind_Button, 8 },
-        .dpup = { EMappingKind_Button, 6 },
-        .dpdown = { EMappingKind_Button, 7 },
-        .dpleft = { EMappingKind_Button, 5 },
-        .dpright = { EMappingKind_Button, 4 },
-        .misc1 = { EMappingKind_None, 255 },
-        .paddle1 = { EMappingKind_None, 255 },
-        .paddle2 = { EMappingKind_None, 255 },
-        .paddle3 = { EMappingKind_None, 255 },
-        .paddle4 = { EMappingKind_None, 255 },
-        .leftx = { EMappingKind_Axis, 0 },
-        .lefty = { EMappingKind_Axis, 1 },
-        .rightx = { EMappingKind_Axis, 2 },
-        .righty = { EMappingKind_Axis, 3 },
-        .lefttrigger = { EMappingKind_Button, 14 },
-        .righttrigger = { EMappingKind_Button, 15 },
+       
+        .dpup          = { EMappingKind_Button, _SC_BTNIDX_UP },
+        .dpdown        = { EMappingKind_Button, _SC_BTNIDX_DOWN },
+        .dpleft        = { EMappingKind_Button, _SC_BTNIDX_LEFT },
+        .dpright       = { EMappingKind_Button, _SC_BTNIDX_RIGHT },
+    
+        .a             = { EMappingKind_Button, _SC_BTNIDX_A },
+        .b             = { EMappingKind_Button, _SC_BTNIDX_B },
+	.rightshoulder = { EMappingKind_Button, _SC_BTNIDX_C },
+	
+        .x             = { EMappingKind_Button, _SC_BTNIDX_X },
+        .y             = { EMappingKind_Button, _SC_BTNIDX_Y },
+	.leftshoulder  = { EMappingKind_Button, _SC_BTNIDX_Z },
+	 
+        .back          = { EMappingKind_Button, _SC_BTNIDX_MODE },
+        .start         = { EMappingKind_Button, _SC_BTNIDX_START },
+	
+        .guide         = { EMappingKind_None, 255 },
+        .leftstick     = { EMappingKind_None, 255 },
+        .rightstick    = { EMappingKind_None, 255 },
+	
+        .righttrigger  = { EMappingKind_None, 255 },
+	.lefttrigger   = { EMappingKind_None, 255 },
+	
+        .misc1         = { EMappingKind_None, 255 },
+        .paddle1       = { EMappingKind_None, 255 },
+        .paddle2       = { EMappingKind_None, 255 },
+        .paddle3       = { EMappingKind_None, 255 },
+        .paddle4       = { EMappingKind_None, 255 },
+	
+        .leftx         = { EMappingKind_None, 255 },
+        .lefty         = { EMappingKind_None, 255 },
+        .rightx        = { EMappingKind_None, 255 },
+        .righty        = { EMappingKind_None, 255 },
+       
+        
     };
     return SDL_TRUE;
 }
