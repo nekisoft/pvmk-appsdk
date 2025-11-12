@@ -1,0 +1,983 @@
+//
+// Copyright(C) 2001-2005 Simon Howard
+//
+// You can redistribute and/or modify this program under the terms of the
+// GNU General Public License version 2 as published by the Free Software
+// Foundation, or any later version. This program is distributed WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.
+//
+//
+// SDL Video Code
+//
+
+#include <string.h>
+#include <time.h>
+#include <SDL.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "../video.h"
+#include "../sw.h"
+#include "../swinit.h"
+#include "../swmain.h"
+
+#define INPUT_BUFFER_LEN 32
+
+void Vid_ControllerButtonDown(SDL_ControllerButtonEvent *event);
+void Vid_ControllerButtonUp(SDL_ControllerButtonEvent *event);
+void Vid_ControllerAdded(SDL_ControllerDeviceEvent *event);
+void Vid_ControllerRemoved(SDL_ControllerDeviceEvent *event);
+void Vid_ControllerInit(void);
+
+struct palette {
+	char name[13]; // Up to 12 characters will display correctly on the menu
+	SDL_Color color[4];
+};
+
+static const struct palette video_palettes[] = {
+	{"CGA 1", 		// CGA black, cyan, magenta, white (Sopwith's default color scheme)
+		{{0, 0, 0, 0xFF}, {0, 255, 255, 0xFF}, {255, 0, 255, 0xFF}, {255, 255, 255, 0xFF}}},
+	{"CGA 2", 		// CGA black, red, green, yellow
+		{{0, 0, 0, 0xFF}, {0, 255, 0, 0xFF}, {255, 0, 0, 0xFF}, {255, 255, 0, 0xFF}}},
+	{"CGA 3", 		// CGA black, cyan, red, white (aka CGA mode 5)
+		{{0, 0, 0, 0xFF}, {0, 255, 255, 0xFF}, {255, 0, 0, 0xFF}, {255, 255, 255, 0xFF}}},
+	{"Mono Amber",   // Shades of amber from a monochrome CGA display
+		{{0, 0, 0, 0xFF}, {255, 170, 16, 0xFF}, {242, 125, 0, 0xFF}, {255, 226, 52, 0xFF}}},
+	{"Mono Green", 	// Shades of green from a monochrome CGA display
+		{{0, 0, 0, 0xFF}, {12, 238, 56, 0xFF}, {8, 202, 48, 0xFF}, {49, 253, 90, 0xFF}}},
+	{"Mono Grey", 	// Shades of grey from a monochrome CGA display
+		{{0, 0, 0, 0xFF}, {222, 222, 210, 0xFF}, {182, 186, 182, 0xFF}, {255, 255, 255, 0xFF}}},
+	{"Tosh LCD 1",		// Toshiba laptop with STN panel
+		{{213, 226, 138, 0xFF}, {150, 160, 150, 0xFF}, {120, 120, 160, 0xFF}, {0, 20, 200, 0xFF}}},
+	{"Tosh LCD 2",		// Toshiba laptop with STN panel, reversed
+		{{0, 20, 200, 0xFF}, {120, 120, 160, 0xFF}, {150, 160, 150, 0xFF}, {213, 226, 138, 0xFF}}},
+	{"Tosh LCD 3",		// Toshiba T1000 with no backlight
+		{{0x72, 0x88, 0x79, 0xFF}, {0x4b, 0x6e, 0x75, 0xFF},
+		 {0x42, 0x5a, 0x75, 0xFF}, {0x27, 0x46, 0x6d, 0xFF}}},
+	{"IBM LCD",  // IBM PC Convertible
+		{{0x6b, 0x85, 0x88, 0xFF}, {0x56, 0x6b, 0x6e, 0xFF},
+		 {0x42, 0x52, 0x54, 0xFF}, {0x2e, 0x39, 0x3b, 0xFF}}},
+	{"Tandy LCD", // Tandy 1100FD
+		{{0x48, 0xad, 0x68, 0xFF}, {0x36, 0x8c, 0x61, 0xFF},
+		 {0x24, 0x6c, 0x5a, 0xFF}, {0x13, 0x4a, 0x54, 0xFF}}},
+	{"Gas Plasma",
+		{{0x7d, 0x1b, 0x02, 0xFF}, {0xd3, 0x41, 0x00, 0xFF},
+		 {0xa8, 0x2e, 0x01, 0xFF}, {0xfe, 0x54, 0x00, 0xFF}}},
+	// Palette from swgrapha.c in the original source, the colors
+	// that would have appeared in the Atari port.
+	{"Atari",
+		{{0x00, 0x00, 0x00, 0xFF}, {0x00, 0x77, 0xff, 0xFF},
+		 {0xff, 0x00, 0x00, 0xFF}, {0xff, 0xff, 0xff, 0xFF}}},
+	{"Muted",
+		{{0x00, 0x00, 0x00, 0xFF}, {0x78, 0xc3, 0xd6, 0xFF},
+		 {0xc5, 0x51, 0xc5, 0xFF}, {0xc7, 0xc7, 0xc7, 0xFF}}},
+};
+
+extern bool isNetworkGame(void);
+
+int keybindings[NUM_KEYS] = {
+	0,                    // KEY_UNKNOWN
+	SDL_SCANCODE_COMMA,   // KEY_PULLUP
+	SDL_SCANCODE_SLASH,   // KEY_PULLDOWN
+	SDL_SCANCODE_PERIOD,  // KEY_FLIP
+	SDL_SCANCODE_B,       // KEY_BOMB
+	SDL_SCANCODE_SPACE,   // KEY_FIRE
+	SDL_SCANCODE_H,       // KEY_HOME
+	SDL_SCANCODE_V,       // KEY_MISSILE
+	SDL_SCANCODE_C,       // KEY_STARBURST
+	SDL_SCANCODE_X,       // KEY_ACCEL
+	SDL_SCANCODE_Z,       // KEY_DECEL
+	SDL_SCANCODE_S,       // KEY_SOUND
+};
+
+// Button that each finger is currently pressing. We assume the user does
+// not have more than 16 fingers.
+//static const struct touch_button *pressed_buttons[16];
+
+bool vid_fullscreen = false;
+static bool touch_area_enabled = false;
+static int ctrlbreak = 0;
+static bool initted = false;
+static SDL_Window *window = NULL;
+static uint32_t pixel_format;
+static SDL_Renderer *renderer;
+static SDL_Keysym input_buffer[INPUT_BUFFER_LEN];
+static int input_buffer_head = 0, input_buffer_tail = 0;
+
+// Maximum number of pixels to use for intermediate scale buffer.
+static int max_scaling_buffer_pixels = 16000000;
+
+// These are (1) the 320x200x8 paletted buffer that we draw to (i.e. the one
+// that holds vid_vram), (2) the 320x200x32 RGBA intermediate buffer that
+// we blit the former buffer to, (3) the intermediate 320x200 texture that we
+// load the RGBA buffer to and that we render into another texture (4) which
+// is upscaled by an integer factor UPSCALE using "nearest" scaling and which
+// in turn is finally rendered to screen using "linear" scaling.
+static SDL_Surface *screenbuf = NULL;
+static SDL_Surface *argbbuffer = NULL;
+static SDL_Texture *texture = NULL;
+static SDL_Texture *texture_upscaled = NULL;
+
+// convert a sopsym_t into a surface
+#define ICON_SCALE 4
+static SDL_Surface *SurfaceFromSopsym(sopsym_t *sym)
+{
+	const SDL_Color *pal = video_palettes[0].color;
+	SDL_Surface *surface = SDL_CreateRGBSurface(
+		0, sym->w * ICON_SCALE, sym->h * ICON_SCALE, 32,
+		0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+
+	uint8_t *src;
+	uint32_t *dst;
+	int x, y, sx, sy;
+
+	if (surface == NULL) {
+		return NULL;
+	}
+
+	// set palette
+	SDL_LockSurface(surface);
+
+	// copy data from symbol into surface
+	for (y = 0; y < surface->h; ++y) {
+		sy = y / ICON_SCALE;
+		src = sym->data + sy * sym->w;
+		dst = (uint32_t *) ((uint8_t *) surface->pixels +
+		                    y * surface->pitch);
+		for (x = 0; x < surface->w; ++x) {
+			const SDL_Color *p;
+			sx = x / ICON_SCALE;
+			if (src[sx] == 0) {
+				dst[x] = 0;
+				continue;
+			}
+			p = &pal[src[sx]];
+			dst[x] = (p->r << 24) | (p->g << 16)
+			       | (p->b << 8) | 0xff;
+		}
+	}
+
+	SDL_UnlockSurface(surface);
+
+	return surface;
+}
+
+static int TouchAreaHeight(void)
+{
+	if (touch_area_enabled) {
+		return TOUCH_AREA_HEIGHT;
+	}
+
+	return 0;
+}
+
+void Vid_Update(void)
+{
+	SDL_Rect blit_rect = {0, 0, SCR_WDTH, SCR_HGHT + TouchAreaHeight()};
+
+	if (!initted) {
+		Vid_Init();
+	}
+
+	SDL_UnlockSurface(screenbuf);
+/*
+	if (touch_area_enabled) {
+		vid_vram += SCR_HGHT * vid_pitch;
+		Vid_DrawTouchControls();
+		vid_vram -= SCR_HGHT * vid_pitch;
+	}
+*/
+	// Blit from the paletted 8-bit screen buffer to the intermediate
+	// 32-bit RGBA buffer that we can load into the texture.
+	SDL_LowerBlit(screenbuf, &blit_rect, argbbuffer, &blit_rect);
+
+	// Update intermediate texture with the contents of the RGBA buffer.
+	SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
+
+	// Make sure the pillarboxes are kept clear each frame.
+	SDL_RenderClear(renderer);
+
+	// Render this intermediate texture into the upscaled texture
+	// using "nearest" integer scaling.
+	SDL_SetRenderTarget(renderer, texture_upscaled);
+	SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+	// Finally, render this upscaled texture to screen using linear scaling.
+	SDL_SetRenderTarget(renderer, NULL);
+	SDL_RenderCopy(renderer, texture_upscaled, NULL, NULL);
+
+	// Draw!
+	SDL_RenderPresent(renderer);
+
+	SDL_LockSurface(screenbuf);
+}
+
+static bool IsSpecialDay(void)
+{
+	time_t now = time(NULL);
+	struct tm *t = localtime(&now);
+
+	return
+	    // 18 January 1888, birth date of Thomas Sopwith:
+	    (t->tm_mon == 0 && t->tm_mday == 18)
+	    // 15 December 1913, founding of the Sopwith Aviation Company:
+	 || (t->tm_mon == 11 && t->tm_mday == 15)
+	    // 22 December 1916, first flight of the Sopwith Camel:
+	 || (t->tm_mon == 11 && t->tm_mday == 22)
+	    // 11 November 1918, Armistice Day:
+	 || (t->tm_mon == 10 && t->tm_mday == 11)
+	    // 24 April 1984, date from the original Sopwith documentation
+	    // and assumed to be the original Sopwith release date?
+	 || (t->tm_mon == 3 && t->tm_mday == 24);
+}
+
+static void SetIcon(void)
+{
+	SDL_Surface *icon;
+	sopsym_t *sym;
+
+	if (IsSpecialDay()) {
+		sym = &symbol_plane[0].sym[4];
+	} else {
+		sym = &symbol_plane[0].sym[0];
+	}
+
+	icon = SurfaceFromSopsym(sym);
+	if (icon == NULL) {
+		return;
+	}
+
+	// set icon
+	SDL_SetWindowIcon(window, icon);
+	SDL_FreeSurface(icon);
+}
+
+static void LimitTextureSize(int *w_upscale, int *h_upscale)
+{
+	SDL_RendererInfo rinfo;
+	int height = SCR_HGHT + TouchAreaHeight();
+	int orig_w, orig_h;
+
+	orig_w = *w_upscale;
+	orig_h = *h_upscale;
+
+	// Query renderer and limit to maximum texture dimensions of hardware:
+	if (SDL_GetRendererInfo(renderer, &rinfo) != 0) {
+		ErrorExit("CreateUpscaledTexture: SDL_GetRendererInfo() "
+		          "call failed: %s", SDL_GetError());
+	}
+
+	while (*w_upscale * SCR_WDTH > rinfo.max_texture_width) {
+		--*w_upscale;
+	}
+	while (*h_upscale * height > rinfo.max_texture_height) {
+		--*h_upscale;
+	}
+
+	if ((*w_upscale < 1 && rinfo.max_texture_width > 0)
+	 || (*h_upscale < 1 && rinfo.max_texture_height > 0)) {
+		ErrorExit("CreateUpscaledTexture: Can't create a "
+		          "texture big enough for the whole screen! "
+		          "Maximum texture size %dx%d",
+		          rinfo.max_texture_width, rinfo.max_texture_height);
+	}
+
+	// We limit the amount of texture memory used for the intermediate buffer,
+	// since beyond a certain point there are diminishing returns. Also,
+	// depending on the hardware there may be performance problems with very
+	// huge textures, so the user can use this to reduce the maximum texture
+	// size if desired.
+	if (max_scaling_buffer_pixels < SCR_WDTH * height) {
+		ErrorExit("CreateUpscaledTexture: max_scaling_buffer_"
+		          "pixels too small to create a texture buffer:"
+		          " %d < %d", max_scaling_buffer_pixels,
+		          SCR_WDTH * height);
+	}
+
+	while (*w_upscale * *h_upscale * SCR_WDTH * height
+	       > max_scaling_buffer_pixels) {
+		if (*w_upscale > *h_upscale) {
+			--*w_upscale;
+		} else {
+			--*h_upscale;
+		}
+	}
+
+	if (*w_upscale != orig_w || *h_upscale != orig_h) {
+		printf("CreateUpscaledTexture: Limited texture size to %dx%d "
+		       "(max %d pixels, max texture size %dx%d)",
+		       *w_upscale * SCR_WDTH, *h_upscale * height,
+		       max_scaling_buffer_pixels, rinfo.max_texture_width,
+		       rinfo.max_texture_height);
+	}
+}
+
+static void CreateUpscaledTexture(int force)
+{
+	static int h_upscale_old, w_upscale_old;
+	int height = SCR_HGHT + TouchAreaHeight();
+	int w, h;
+	int h_upscale, w_upscale;
+	SDL_Texture *new_texture, *old_texture;
+
+	// Get the size of the renderer output. The units this gives us will be
+	// real world pixels, which are not necessarily equivalent to the
+	// screen's window size (because of highdpi).
+	if (SDL_GetRendererOutputSize(renderer, &w, &h) != 0) {
+		ErrorExit("failed to get renderer size: %s", SDL_GetError());
+	}
+
+	// When the screen or window dimensions do not match the aspect ratio
+	// of the texture, the rendered area is scaled down to fit. Calculate
+	// the actual dimensions of the rendered area.
+	if (w * height < h * SCR_WDTH) {
+		// Tall window.
+		h = w * height / SCR_WDTH;
+	} else {
+		// Wide window.
+		w = h * SCR_WDTH / height;
+	}
+
+	// Pick texture size the next integer multiple of the screen dimensions.
+	// If one screen dimension matches an integer multiple of the original
+	// resolution, there is no need to overscale in this direction.
+	// Minimum texture dimensions of 320x200.
+	w_upscale = clamp_min(1, (w + SCR_WDTH - 1) / SCR_WDTH);
+	h_upscale = clamp_min(1, (h + height - 1) / height);
+
+	LimitTextureSize(&w_upscale, &h_upscale);
+
+	// Create a new texture only if the upscale factors have actually changed.
+	if (h_upscale == h_upscale_old && w_upscale == w_upscale_old && !force) {
+		return;
+	}
+
+	h_upscale_old = h_upscale;
+	w_upscale_old = w_upscale;
+
+	// Set the scaling quality for rendering the upscaled texture to "linear",
+	// which looks much softer and smoother than "nearest" but does a better
+	// job at downscaling from the upscaled texture to screen.
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
+	new_texture = SDL_CreateTexture(
+		renderer, pixel_format, SDL_TEXTUREACCESS_TARGET,
+		w_upscale*SCR_WDTH, h_upscale*height);
+
+	old_texture = texture_upscaled;
+	texture_upscaled = new_texture;
+
+	if (old_texture != NULL) {
+		SDL_DestroyTexture(old_texture);
+	}
+}
+
+static void GetWindowSize(int *w, int *h)
+{
+	SDL_DisplayMode mode;
+	int factor;
+
+	*w = SCR_WDTH;
+	*h = SCR_HGHT + TouchAreaHeight();
+
+	if (SDL_GetDesktopDisplayMode(0, &mode) != 0) {
+		return;
+	}
+
+	for (factor = 1; *w * factor < (mode.w / 2)
+	              && *h * factor < (mode.h / 2); ++factor);
+
+	*w *= factor;
+	*h *= factor;
+}
+
+static void Vid_SetMode(void)
+{
+	int n;
+	int w, h;
+	int flags = 0, renderer_flags = 0;
+	uint32_t rmask, gmask, bmask, amask;
+	int bpp;
+
+	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		ErrorExit("Unable to initialize video subsystem: %s",
+		          SDL_GetError());
+	}
+	srand(time(NULL));
+
+	GetWindowSize(&w, &h);
+
+	flags = SDL_WINDOW_RESIZABLE;
+	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+	if (vid_fullscreen) {
+		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	}
+
+	if (window == NULL) {
+		window = SDL_CreateWindow(PACKAGE_STRING, SDL_WINDOWPOS_CENTERED,
+		                          SDL_WINDOWPOS_CENTERED, w, h, flags);
+	} else {
+		SDL_SetWindowFullscreen(window, flags);
+#ifndef __EMSCRIPTEN__
+		// SDL's Emscripten backend automatically resizes windows if
+		// they are created with SDL_WINDOW_RESIZABLE, but this gets
+		// overridden if we call SDL_SetWindowSize() without actually
+		// changing the canvas size, leading to a stretched out image
+		// in the wrong aspect ratio.
+		SDL_SetWindowSize(window, w, h);
+#endif
+	}
+
+	if (window == NULL) {
+		ErrorExit("Failed to open SDL window: %s", SDL_GetError());
+	}
+
+	SDL_StopTextInput();
+
+	pixel_format = SDL_GetWindowPixelFormat(window);
+
+	for (n = 0; n < NUM_KEYS; ++n) {
+		keysdown[n] = 0;
+	}
+
+	SetIcon();
+	SDL_ShowCursor(0);
+
+	if (renderer == NULL) {
+		renderer_flags = SDL_RENDERER_PRESENTVSYNC;
+		renderer = SDL_CreateRenderer(window, -1, renderer_flags);
+	}
+
+	// Important: Set the "logical size" of the rendering context. At the
+	// same time this also defines the aspect ratio that is preserved while
+	// scaling and stretching the texture into the window.
+	SDL_RenderSetLogicalSize(renderer, SCR_WDTH,
+	                         SCR_HGHT + TouchAreaHeight());
+
+	// Blank out the full screen area in case there is any junk in
+	// the borders that won't otherwise be overwritten.
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
+
+	// Format of argbbuffer must match the screen pixel format because we
+	// import the surface data into the texture.
+	if (argbbuffer != NULL) {
+		SDL_FreeSurface(argbbuffer);
+		argbbuffer = NULL;
+	}
+
+	if (argbbuffer == NULL) {
+		SDL_PixelFormatEnumToMasks(
+			pixel_format, &bpp, &rmask, &gmask,
+			&bmask, &amask);
+		// The texture we create is larger than the screen in height,
+		// so that we can display the touch controls if enabled.
+		argbbuffer = SDL_CreateRGBSurface(
+			0, SCR_WDTH, SCR_HGHT + TOUCH_AREA_HEIGHT, bpp,
+			rmask, gmask, bmask, amask);
+		SDL_FillRect(argbbuffer, NULL, 0);
+	}
+
+	if (texture != NULL) {
+		SDL_DestroyTexture(texture);
+	}
+
+	// Set the scaling quality for rendering the intermediate texture into
+	// the upscaled texture to "nearest", which is gritty and pixelated and
+	// resembles software scaling pretty well.
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+
+	// Create the intermediate texture that the RGBA surface gets loaded
+	// into. The SDL_TEXTUREACCESS_STREAMING flag means that this
+	// texture's content is going to change frequently.
+	texture = SDL_CreateTexture(renderer, pixel_format,
+	                            SDL_TEXTUREACCESS_STREAMING,
+	                            SCR_WDTH, SCR_HGHT + TouchAreaHeight());
+
+	// Initially create the upscaled texture for rendering to screen
+	CreateUpscaledTexture(1);
+}
+
+void Vid_Shutdown(void)
+{
+	if (!initted) {
+		return;
+	}
+
+	SDL_DestroyRenderer(renderer);
+	renderer = NULL;
+	SDL_DestroyWindow(window);
+	window = NULL;
+	SDL_FreeSurface(screenbuf);
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+
+	initted = false;
+}
+
+void Vid_Init(void)
+{
+	if (initted) {
+		return;
+	}
+
+	fflush(stdout);
+	touch_area_enabled = SDL_GetNumTouchDevices() > 0;
+
+	Vid_SetMode();
+
+	screenbuf = SDL_CreateRGBSurface(
+		0, SCR_WDTH, SCR_HGHT + TOUCH_AREA_HEIGHT, 8, 0, 0, 0, 0);
+	vid_vram = screenbuf->pixels;
+	vid_pitch = screenbuf->pitch;
+	SDL_SetPaletteColors(screenbuf->format->palette,
+	                     video_palettes[0].color, 0,
+	                     arrlen(video_palettes[0].color));
+
+	initted = true;
+
+	atexit(Vid_Shutdown);
+
+	Vid_ControllerInit();
+
+	SDL_LockSurface(screenbuf);
+}
+
+void Vid_Reset(void)
+{
+	if (!initted) {
+		return;
+	}
+
+	Vid_SetMode();
+
+	// need to redraw buffer to screen
+	Vid_Update();
+}
+
+void Vid_SetVideoPalette(int palette)
+{
+	SDL_SetPaletteColors(screenbuf->format->palette,
+	                     video_palettes[palette].color, 0,
+	                     arrlen(video_palettes[palette].color));
+	Vid_Update();
+}
+
+const char* Vid_GetVideoPaletteName(int palette)
+{
+	return video_palettes[palette].name;
+}
+
+int Vid_GetNumVideoPalettes(void)
+{
+	return arrlen(video_palettes);
+}
+
+static void InputBufferPush(SDL_Keysym c)
+{
+	int tail_next = (input_buffer_tail + 1) % INPUT_BUFFER_LEN;
+	if (tail_next == input_buffer_head) {
+		return;
+	}
+	input_buffer[input_buffer_tail] = c;
+	input_buffer_tail = tail_next;
+}
+
+static SDL_Keysym InputBufferPop(void)
+{
+	SDL_Keysym result;
+
+	if (input_buffer_head == input_buffer_tail) {
+		result.sym = SDLK_UNKNOWN;
+		result.scancode = SDL_SCANCODE_UNKNOWN;
+		return result;
+	}
+
+	result = input_buffer[input_buffer_head];
+	input_buffer_head = (input_buffer_head + 1) % INPUT_BUFFER_LEN;
+	return result;
+}
+
+static enum gamekey TranslateScancode(int sdl_scancode)
+{
+	int i;
+
+	for (i = 1; i < NUM_KEYS; ++i) {
+		if (keybindings[i] != 0 && sdl_scancode == keybindings[i]) {
+			return i;
+		}
+	}
+
+	return KEY_UNKNOWN;
+}
+
+// Special keys get passed through as input events even when text input mode
+// is activated.
+static bool IsSpecialKey(SDL_Keysym *k) {
+	switch (k->sym) {
+		case SDLK_ESCAPE:
+		case SDLK_RETURN:
+		case SDLK_BACKSPACE:
+			return true;
+		default:
+			return false;
+	}
+}
+
+static bool CtrlDown(void)
+{
+	return (SDL_GetModState() & KMOD_CTRL) != 0;
+}
+
+static bool AltDown(void)
+{
+	return (SDL_GetModState() & KMOD_ALT) != 0;
+}
+
+static void CtrlKeyPress(SDL_Keycode k)
+{
+	switch (k) {
+#ifndef NO_EXIT
+	case SDLK_c:
+	case SDLK_PAUSE:
+		++ctrlbreak;
+		if (ctrlbreak >= 3) {
+			fprintf(stderr,
+				"user aborted with 3 ^C's\n");
+			exit(-1);
+		}
+		break;
+#endif
+	case SDLK_r:
+		if (/*!isNetworkGame()*/ 1 ) {
+			gamenum = starting_level;
+			swinitlevel();
+		}
+		break;
+	case SDLK_q:
+		if (/*!isNetworkGame()*/ 1 ) {
+			swrestart();
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+static void KeyDown(SDL_KeyboardEvent *event)
+{
+	enum gamekey translated;
+
+	if (CtrlDown()) {
+		CtrlKeyPress(event->keysym.sym);
+		return;
+	} else if (AltDown() && (event->keysym.sym == SDLK_RETURN
+	                      || event->keysym.sym == SDLK_KP_ENTER)) {
+#ifndef NO_FULLSCREEN
+		vid_fullscreen = !vid_fullscreen;
+		Vid_Reset();
+#endif
+		return;
+	} else if (event->keysym.sym == SDLK_KP_ENTER
+	        && SDL_IsTextInputActive()) {
+		SDL_Keysym fake = {0};
+		fake.sym = '\n';
+		fake.scancode = SDL_SCANCODE_UNKNOWN;
+		InputBufferPush(fake);
+		return;
+	} else if (!SDL_IsTextInputActive() || IsSpecialKey(&event->keysym)) {
+		InputBufferPush(event->keysym);
+	}
+
+	translated = TranslateScancode(event->keysym.scancode);
+	if (translated != KEY_UNKNOWN) {
+		keysdown[translated] |= KEYDOWN_KEYBOARD | KEYDOWN_WAS_PRESSED;
+	}
+}
+
+static void KeyUp(SDL_KeyboardEvent *event)
+{
+	enum gamekey translated = TranslateScancode(event->keysym.scancode);
+	if (translated != KEY_UNKNOWN) {
+		keysdown[translated] &= ~KEYDOWN_KEYBOARD;
+	}
+}
+
+#if 0
+
+static bool TouchCoordToPixel(float x, float y, int *px, int *py)
+{
+	int height = SCR_HGHT + TouchAreaHeight();
+
+	*px = (int) (x * SCR_WDTH);
+	*py = (int) (y * height);
+
+	return *px >= 0 && *px < SCR_WDTH && *py >= 0 && *py < height;
+}
+
+static bool ValidFinger(SDL_TouchFingerEvent *ev)
+{
+	// TODO: Support more than two touch devices:
+	return ev->touchId == SDL_GetTouchDevice(0)
+	    && ev->fingerId < arrlen(pressed_buttons);
+}
+
+static const struct touch_button *GetTouchButton(SDL_TouchFingerEvent *ev)
+{
+	int x, y;
+
+	if (!TouchCoordToPixel(ev->x, ev->y, &x, &y) || y < SCR_HGHT) {
+		return NULL;
+	}
+	return Vid_GetTouchButton(x, y - SCR_HGHT);
+}
+
+static void FingerDown(SDL_TouchFingerEvent *ev)
+{
+	const struct touch_button *b;
+
+	if (!ValidFinger(ev)) {
+		return;
+	}
+
+	b = GetTouchButton(ev);
+	pressed_buttons[ev->fingerId] = b;
+	Vid_TouchButtonPress(b, true);
+	if (b == NULL) {
+		return;
+	}
+
+	switch (b->type) {
+	case TOUCH_BUTTON_GAME_KEY:
+		keysdown[b->param] |= KEYDOWN_TOUCH | KEYDOWN_WAS_PRESSED;
+		break;
+
+	default:
+		break;
+	}
+}
+
+static void FingerUp(SDL_TouchFingerEvent *ev)
+{
+	SDL_Keysym fake = {0};
+	const struct touch_button *b;
+
+	if (!ValidFinger(ev)) {
+		return;
+	}
+	b = pressed_buttons[ev->fingerId];
+	if (b == NULL) {
+		return;
+	}
+	switch (b->type) {
+	case TOUCH_BUTTON_GAME_KEY:
+		keysdown[b->param] &= ~KEYDOWN_TOUCH;
+		break;
+
+	case TOUCH_BUTTON_CLOSE:
+		touch_area_enabled = false;
+		Vid_Reset();
+		break;
+
+	case TOUCH_BUTTON_KEYPRESS:
+		fake.sym = b->param;
+		fake.scancode = SDL_SCANCODE_UNKNOWN;
+		InputBufferPush(fake);
+		break;
+
+	default:
+		break;
+	}
+	pressed_buttons[ev->fingerId] = NULL;
+	Vid_TouchButtonPress(b, false);
+}
+
+static void FingerMove(SDL_TouchFingerEvent *ev)
+{
+	const struct touch_button *b, *old_button;
+
+	if (!ValidFinger(ev)) {
+		return;
+	}
+
+	old_button = pressed_buttons[ev->fingerId];
+	b = GetTouchButton(ev);
+	if (b != old_button) {
+		FingerUp(ev);
+		FingerDown(ev);
+	}
+}
+#endif //0
+
+static void GetEvents(void)
+{
+	SDL_Event event;
+	bool need_redraw = false;
+	int i;
+
+	while (SDL_PollEvent(&event)) {
+		switch (event.type) {
+		case SDL_KEYDOWN:
+			KeyDown(&event.key);
+			break;
+
+		case SDL_KEYUP:
+			KeyUp(&event.key);
+			break;
+
+		case SDL_TEXTINPUT:
+			for (i = 0; event.text.text[i] != '\0'; ++i) {
+				unsigned char c = event.text.text[i];
+				SDL_Keysym fake = {0};
+				if (c >= 0x80) {
+					continue;
+				}
+				fake.sym = c;
+				fake.scancode = SDL_SCANCODE_UNKNOWN;
+				InputBufferPush(fake);
+			}
+			break;
+
+		case SDL_WINDOWEVENT:
+			switch (event.window.event) {
+			case SDL_WINDOWEVENT_CLOSE:
+				exit(0);
+				break;
+
+			default:
+				// When we get one of these events, we redraw
+				// the screen immediately, as we may be in a
+				// menu waiting for a keypress.
+				need_redraw = true;
+				break;
+			}
+			break;
+#if 0
+		case SDL_FINGERDOWN:
+			if (!touch_area_enabled) {
+				touch_area_enabled = true;
+				Vid_Reset();
+			} else {
+				FingerDown(&event.tfinger);
+			}
+			break;
+
+		case SDL_FINGERUP:
+			FingerUp(&event.tfinger);
+			break;
+
+		case SDL_FINGERMOTION:
+			FingerMove(&event.tfinger);
+			break;
+#endif
+		case SDL_CONTROLLERBUTTONDOWN:
+			Vid_ControllerButtonDown(&event.cbutton);
+			break;
+
+		case SDL_CONTROLLERBUTTONUP:
+			Vid_ControllerButtonUp(&event.cbutton);
+			break;
+
+		case SDL_CONTROLLERDEVICEADDED:
+			Vid_ControllerAdded(&event.cdevice);
+			break;
+
+		case SDL_CONTROLLERDEVICEREMOVED:
+			Vid_ControllerRemoved(&event.cdevice);
+			break;
+		}
+	}
+
+	if (need_redraw) {
+		Vid_Update();
+	}
+}
+
+void Vid_StartTextInput(void)
+{
+	SDL_StartTextInput();
+}
+
+void Vid_StopTextInput(void)
+{
+	SDL_StopTextInput();
+}
+
+int Vid_GetKey(void)
+{
+	SDL_Keysym k;
+	GetEvents();
+	k = InputBufferPop();
+	return k.scancode;
+}
+
+int Vid_GetChar(void)
+{
+	int result;
+	GetEvents();
+	result = InputBufferPop().sym;
+	if (result == '\r') {
+		result = '\n';
+	}
+	return result;
+}
+
+bool Vid_GetCtrlBreak(void)
+{
+	GetEvents();
+	return ctrlbreak;
+}
+
+const char *Vid_KeyName(int key)
+{
+	return SDL_GetScancodeName(key);
+}
+
+// Not really video related code, but it had to go somewhere.
+char *Vid_GetPrefPath(void)
+{
+	char *result = SDL_GetPrefPath("", PACKAGE_NAME);
+
+	// If SDL_GetPrefPath() fails, we can't load or save a config file,
+	// but at least we let the user play the game...
+	if (result == NULL) {
+		fprintf(stderr, "Vid_GetPrefPath: Failed to make preferences "
+		                "directory: %s\n", SDL_GetError());
+	}
+
+	return result;
+}
+
+#ifdef HAVE_ISATTY
+#include <unistd.h>
+#else
+int isatty(int fd)
+{
+	return 0;
+}
+#endif
+
+void ErrorExit(char *s, ...)
+{
+	static char buf[128];
+	va_list args;
+
+	va_start(args, s);
+	vsnprintf(buf, sizeof(buf), s, args);
+	va_end(args);
+
+	if (!isatty(1)) {
+		if (SDL_ShowSimpleMessageBox(
+			SDL_MESSAGEBOX_ERROR, "Error", buf, window) == 0) {
+			exit(1);
+		}
+	}
+
+	fprintf(stderr, "%s\n", buf);
+	exit(1);
+}

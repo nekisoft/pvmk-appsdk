@@ -1,0 +1,31 @@
+## Sopwith TODO and ideas list
+
+### New features
+
+* High score table, local or online (see bug #10)
+* Save window size + location + display#
+* Demo recording and playback
+
+### Custom levels
+
+* Add ability for users to make their own levels
+* Built-in map editor
+* New object types: artillery, flag poles, observation balloons, etc.
+
+### Multiplayer
+
+* More than two players
+  - Extra player color combos - cyan+white, white+magenta, etc.
+  - Player names become essential so you know who's who.
+* Better sync code via PID loop
+* Network disconnect should bring you back to the title screen
+  - Also on failure to connect
+
+### Code cleanup
+
+* Restructure the game to be state based - eliminate use of longjmp
+* Eliminate duplication in symbols code (generate rotations+flips automatically)
+* Delete ob_xnext/ob_xprev/insertx/deletex
+* Rename functions to be more readable
+* Code reformatting w/clang-format
+
