@@ -68,12 +68,18 @@ static SDL_JoystickID PVMK_JoystickGetDeviceInstanceID(int device_index)
     return device_index;
 }
 
+static SDL_Joystick *PVMK_JsPtrs[4];
+
 static int PVMK_JoystickOpen(SDL_Joystick *joystick, int device_index)
 {
     joystick->nbuttons = NB_BUTTONS;
     joystick->naxes = 0;
     joystick->nhats = 0;
     joystick->instance_id = device_index;
+    
+    if(device_index >= 1 && device_index <= 4)
+        PVMK_JsPtrs[device_index-1] = joystick;
+
     return 0;
 }
 
@@ -99,7 +105,7 @@ static void PVMK_JoystickUpdate(SDL_Joystick *joystick)
 			case 'D':
 			{
 				int player = input.format - 'A';
-				SDL_Joystick *js = SDL_GetJoystickFromID(1 + player);
+				SDL_Joystick *js = PVMK_JsPtrs[player];
 				if(js)
 				{
 					int presses = input.buttons & ~last_buttons[player];
@@ -124,6 +130,11 @@ static void PVMK_JoystickUpdate(SDL_Joystick *joystick)
 
 static void PVMK_JoystickClose(SDL_Joystick *joystick)
 {
+    for(int pp = 0; pp < 4; pp++)
+    {
+        if(PVMK_JsPtrs[pp] == joystick)
+            PVMK_JsPtrs[pp] = NULL;
+    }
 }
 
 static void PVMK_JoystickQuit(void)
