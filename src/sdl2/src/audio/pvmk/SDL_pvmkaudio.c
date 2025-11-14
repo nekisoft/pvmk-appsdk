@@ -4,7 +4,7 @@
 */
 #include "../../SDL_internal.h"
 
-#if 1 //def SDL_AUDIO_DRIVER_PVMK
+#ifdef SDL_AUDIO_DRIVER_PVMK
 
 #include "SDL_audio.h"
 
@@ -121,8 +121,7 @@ static int PVMKAUDIO_OpenDevice(_THIS, const char *devname)
 	this->spec.channels = 2;
 	this->spec.format = AUDIO_S16LSB;
 	this->spec.freq = 48000;
-	SDL_UpdatedAudioDeviceFormat(this);
-
+	
 	// Allocate mixing buffer
 	if (this->spec.size >= SDL_MAX_UINT32 / 2)
 	{
