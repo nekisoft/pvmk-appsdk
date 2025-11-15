@@ -36,8 +36,8 @@ static const struct
     SDL_PixelFormatEnum pixfmt;
     int width, height, scfmt;
 } format_map[] = {
-    { 320, 240, SDL_PIXELFORMAT_RGB565, _SC_GFX_MODE_320X240_16BPP },
-    { 640, 480, SDL_PIXELFORMAT_RGB565, _SC_GFX_MODE_VGA_16BPP },
+    { SDL_PIXELFORMAT_RGB565, 320, 240, _SC_GFX_MODE_320X240_16BPP },
+    { SDL_PIXELFORMAT_RGB565, 640, 480, _SC_GFX_MODE_VGA_16BPP },
 };
 
 /* PVMK driver bootstrap functions */

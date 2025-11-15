@@ -34,7 +34,7 @@ int SDL_PVMK_CreateWindowFramebuffer(_THIS, SDL_Window *window, Uint32 *format, 
     uint32_t amask = 0;
     SDL_PixelFormatEnumToMasks(mode.format, &bpp, &rmask, &gmask, &bmask, &amask);
     
-    SDL_Surface *framebuffer = SDL_CreateRGBSurfaceFrom(Pvmk_Framebuffers[0], w, h, bpp, bpp*w, rmask, gmask, bmask, amask);
+    SDL_Surface *framebuffer = SDL_CreateRGBSurfaceFrom(Pvmk_Framebuffers[0], w, h, bpp, bpp*w/8, rmask, gmask, bmask, amask);
     if (!framebuffer) {
         return SDL_OutOfMemory();
     }

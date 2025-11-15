@@ -30,11 +30,11 @@ void Timer_Sleep(int usec)
 
 static void Timer_Shutdown(void)
 {
-	SDL_QuitSubSystem(SDL_INIT_TIMER);
+	//SDL_QuitSubSystem(SDL_INIT_TIMER);
 }
 
 void Timer_Init(void)
 {
-	SDL_Init(SDL_INIT_TIMER);
+	//SDL_Init(SDL_INIT_TIMER); //Not needed and requires threads - pvmk
 	atexit(Timer_Shutdown);
 }
