@@ -105,32 +105,38 @@ static void PrintHelp(void)
 	swposcur(1, 2);
 	swputs("BEGINNER'S HELP");
 	if (Vid_HaveController()) {
-		swposcur(21, 2);
+		swposcur(/*21*/ 18, 2);
 		swputs("GAMEPAD CONTROLS:");
 	}
 
 	swcolor(3);
 	for (i = 0; (unsigned)i < arrlen(items); i++) {
+		//pvmk - switch on Vid_HaveController() to avoid showing keyboard controls
 		snprintf(buf, sizeof(buf), "%-11s- %s",
-		        items[i].name, Vid_KeyName(keybindings[items[i].key]));
+		        items[i].name, Vid_HaveController() ? "" : Vid_KeyName(keybindings[items[i].key]));
 		swposcur(1, i + 3);
 		swputs(buf);
 		if (Vid_HaveController()) {
 			name = Vid_ControllerButtonName(items[i].key);
 			if (name != NULL) {
-				swposcur(21, i + 3);
+				swposcur(/*21*/ 18, i + 3);
 				swputs(name);
 			}
 		}
 	}
-	snprintf(buf, sizeof(buf), "%-11s- %s", "Restart", "Ctrl-R");
-	swposcur(1, i + 3);
-	swputs(buf);
-	++i;
+	
+	//pvmk - switch on Vid_HaveController() to avoid showing keyboard controls
+	if(!Vid_HaveController())
+	{
+		snprintf(buf, sizeof(buf), "%-11s- %s", "Restart", "Ctrl-R");
+		swposcur(1, i + 3);
+		swputs(buf);
+		++i;
 
-	snprintf(buf, sizeof(buf), "%-11s- %s", "End Game", "Ctrl-Q");
-	swposcur(1, i + 3);
-	swputs(buf);
+		snprintf(buf, sizeof(buf), "%-11s- %s", "End Game", "Ctrl-Q");
+		swposcur(1, i + 3);
+		swputs(buf);
+	}
 }
 
 void swdisp(void)

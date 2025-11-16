@@ -268,22 +268,22 @@ void swsaveconf(void)
 	fclose(fs);
 }
 
-static const struct menuitem keys_menu_items[] = {
-	CONFIG_OPTION("Accelerate",       "key_accelerate"),
-	CONFIG_OPTION("Decelerate",       "key_decelerate"),
-	CONFIG_OPTION("Pull up",          "key_pullup"),
-	CONFIG_OPTION("Pull down",        "key_pulldown"),
-	CONFIG_OPTION("Flip",             "key_flip"),
-	CONFIG_OPTION("Fire machine gun", "key_fire"),
-	CONFIG_OPTION("Drop bomb",        "key_dropbomb"),
-	CONFIG_OPTION("Navigate home",    "key_home"),
-	{0},
-};
+//static const struct menuitem keys_menu_items[] = {
+//	CONFIG_OPTION("Accelerate",       "key_accelerate"),
+//	CONFIG_OPTION("Decelerate",       "key_decelerate"),
+//	CONFIG_OPTION("Pull up",          "key_pullup"),
+//	CONFIG_OPTION("Pull down",        "key_pulldown"),
+//	CONFIG_OPTION("Flip",             "key_flip"),
+//	CONFIG_OPTION("Fire machine gun", "key_fire"),
+//	CONFIG_OPTION("Drop bomb",        "key_dropbomb"),
+//	CONFIG_OPTION("Navigate home",    "key_home"),
+//	{0},
+//};
 
-static const struct menu keys_menu = {
-	FullscreenBackground, "OPTIONS",
-	keys_menu_items,
-};
+//static const struct menu keys_menu = {
+//	FullscreenBackground, "OPTIONS",
+//	keys_menu_items,
+//};
 
 static const struct menuitem options_menu_items[] = {
 #ifndef NO_FULLSCREEN
@@ -297,8 +297,8 @@ static const struct menuitem options_menu_items[] = {
 	CONFIG_OPTION("Big oil tank explosions", "conf_big_explosions"),
 	CONFIG_OPTION("Medals",                  "conf_medals"),
 	CONFIG_OPTION("Harry keys mode",         "conf_harrykeys"),
-	{0,   "", 0, 0},
-	{'K', "Key bindings >>>", SubMenu, &keys_menu},
+	//{0,   "", 0, 0},
+//	{'K', "Key bindings >>>", SubMenu, &keys_menu},
 	{0},
 };
 

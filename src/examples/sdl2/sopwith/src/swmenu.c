@@ -134,7 +134,10 @@ void FullscreenBackground(void *_title)
 	swcolor(1);
 
 	swposcur(1, 22);
-	swputs("   ESC - Exit Menu");
+	if(Vid_HaveController()) //pvmk
+		swputs("     B - Exit Menu");
+	else
+		swputs("   ESC - Exit Menu");
 
 	swposcur(0, 5);
 }
@@ -211,6 +214,7 @@ static void DrawMenu(const struct menu *menu, int selected)
 		if (Vid_HaveController()) {
 			prefix = i == selected ? "   \x1a" : "";
 			swcolor(i == selected ? 2 : 3);
+			key = ' '; //pvmk - don't show keyboard keys
 		} else if (strstr(items[i].label, ">>>")) {
 			swcolor(2);
 		} else {

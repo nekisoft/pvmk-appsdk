@@ -63,13 +63,14 @@ static void CheckForMenuKeypress(SDL_ControllerButtonEvent *event)
 		last_menukey = MENUKEY_UP;
 		break;
 	case SDL_CONTROLLER_BUTTON_BACK:
-	case SDL_CONTROLLER_BUTTON_X:
-	case SDL_CONTROLLER_BUTTON_Y:
+	//case SDL_CONTROLLER_BUTTON_X: //pvmk
+	//case SDL_CONTROLLER_BUTTON_Y: //pvmk
+	case SDL_CONTROLLER_BUTTON_B:
 		last_menukey = MENUKEY_BACK;
 		break;
 	case SDL_CONTROLLER_BUTTON_START:
 	case SDL_CONTROLLER_BUTTON_A:
-	case SDL_CONTROLLER_BUTTON_B:
+	//case SDL_CONTROLLER_BUTTON_B: //pvmk
 		last_menukey = MENUKEY_START;
 		break;
 	default:
@@ -152,6 +153,16 @@ bool Vid_HaveController(void)
 
 const char *Vid_ControllerButtonName(enum gamekey key)
 {
-	return SDL_GameControllerGetStringForButton(
+	//pvmk hack - report "c" and "z" instead of lb/rb
+	const char *remaps[][2] = { {"rightshoulder", "c"}, {"leftshoulder", "z"}, { NULL, NULL } };
+	
+	const char *retval = SDL_GameControllerGetStringForButton(
 		controller_bindings[key]);
+	
+	for(int rr = 0; remaps[rr][0] != NULL; rr++)
+	{
+		if(!SDL_strcmp(retval, remaps[rr][0]))
+			return remaps[rr][1];
+	}
+	return retval;
 }

@@ -4,3 +4,4 @@
 
 #define NO_EXIT 1
 #define HAVE_ISATTY 1
+#define NO_FULLSCREEN 1
