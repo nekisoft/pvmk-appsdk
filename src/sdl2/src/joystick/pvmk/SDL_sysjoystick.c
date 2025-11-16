@@ -77,8 +77,8 @@ static int PVMK_JoystickOpen(SDL_Joystick *joystick, int device_index)
     joystick->nhats = 0;
     joystick->instance_id = device_index;
     
-    if(device_index >= 1 && device_index <= 4)
-        PVMK_JsPtrs[device_index-1] = joystick;
+    if(device_index >= 0 && device_index <= 3)
+        PVMK_JsPtrs[device_index] = joystick;
 
     return 0;
 }
