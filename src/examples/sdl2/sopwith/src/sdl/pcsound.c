@@ -21,7 +21,7 @@
 
 #define VOLUME 4000 /* out of 1 << 15 */
 #define FILTER_KERNEL_LEN 51
-#define OVERSAMPLE_FACTOR 25
+#define OVERSAMPLE_FACTOR 4
 
 // The following values give the cutoff range for our band-pass
 // filter. These frequencies come from a frequency analysis of
@@ -221,7 +221,9 @@ static void SoundCallback(void *userdata, Uint8 *stream8, int len)
 			sample = OversampledSquareWave(i + lasttime);
 		}
 
-		sample = FilterNext(&tinny_filter, sample);
+		if(snd_tinnyfilter && 0)
+			sample = FilterNext(&tinny_filter, sample);
+		
 		stream[i] = (signed int) (sample * VOLUME);
 	}
 
@@ -327,7 +329,7 @@ void Speaker_Init(void)
 
 	atexit(Speaker_Shutdown);
 	sound_initted = true;
-	if (snd_tinnyfilter) {
+	if (snd_tinnyfilter && 0) {
 		InitializeTinnyFilter(audiospec.freq);
 	} else {
 		InitializeNullFilter();
