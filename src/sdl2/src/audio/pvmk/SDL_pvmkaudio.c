@@ -34,8 +34,14 @@ void PVMKAUDIO_Pump(void)
 		//First off - if we've already prepared a buffer and set it aside, try to submit it.
 		if(PVMKAUDIO_LastBufPtr != NULL)
 		{
+			//Make sure we're computing a reasonable "max buffer" size - 2 frames of video
+			int two_frames_audio_bytes = sizeof(uint16_t) * 2 * (48000 / 60) * 2;
+			int kernel_max_buf = PVMKAUDIO_LastBufLen * 3;
+			if(kernel_max_buf < two_frames_audio_bytes)
+				kernel_max_buf = two_frames_audio_bytes;
+		
 			//Try submitting the already existing buffer
-			int enqueued = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, PVMKAUDIO_LastBufPtr, PVMKAUDIO_LastBufLen, PVMKAUDIO_LastBufLen * 3);
+			int enqueued = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, PVMKAUDIO_LastBufPtr, PVMKAUDIO_LastBufLen, kernel_max_buf);
 			if(enqueued < 0)
 			{
 				//It didn't submit.
@@ -60,14 +66,12 @@ void PVMKAUDIO_Pump(void)
 			void *data = PVMKAUDIO_GetDeviceBuf(device);
 			int got = SDL_AudioStreamGet(device->stream, data, device->spec.size);
 			
-			SDL_assert((got <= 0) || (got == device->spec.size));
-			if (got != device->spec.size) {
-				SDL_memset(data, device->spec.silence, device->spec.size);
-			}
-			
 			//That's the buffer we'll try to submit next
-			PVMKAUDIO_LastBufPtr = data;
-			PVMKAUDIO_LastBufLen = got;
+			if(got > 0)
+			{
+				PVMKAUDIO_LastBufPtr = data;
+				PVMKAUDIO_LastBufLen = got;
+			}
 			continue;
 		}
 		
@@ -121,6 +125,12 @@ static int PVMKAUDIO_OpenDevice(_THIS, const char *devname)
 	this->spec.channels = 2;
 	this->spec.format = AUDIO_S16LSB;
 	this->spec.freq = 48000;
+	if(this->spec.samples < (48000/60))
+	{
+		this->spec.samples = 48000 / 60;
+	}
+	
+	SDL_CalculateAudioSpec(&(this->spec));
 	
 	// Allocate mixing buffer
 	if (this->spec.size >= SDL_MAX_UINT32 / 2)
