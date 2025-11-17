@@ -34,11 +34,11 @@ void PVMKAUDIO_Pump(void)
 		//First off - if we've already prepared a buffer and set it aside, try to submit it.
 		if(PVMKAUDIO_LastBufPtr != NULL)
 		{
-			//Make sure we're computing a reasonable "max buffer" size - 2 frames of video
-			int two_frames_audio_bytes = sizeof(uint16_t) * 2 * (48000 / 60) * 2;
+			//Make sure we're computing a reasonable "max buffer" size - 3 frames of video
+			int minbuflen = sizeof(uint16_t) * 2 * (48000 / 60) * 3;
 			int kernel_max_buf = PVMKAUDIO_LastBufLen * 3;
-			if(kernel_max_buf < two_frames_audio_bytes)
-				kernel_max_buf = two_frames_audio_bytes;
+			if(kernel_max_buf < minbuflen)
+				kernel_max_buf = minbuflen;
 		
 			//Try submitting the already existing buffer
 			int enqueued = _sc_snd_play(_SC_SND_MODE_48K_16B_2C, PVMKAUDIO_LastBufPtr, PVMKAUDIO_LastBufLen, kernel_max_buf);
