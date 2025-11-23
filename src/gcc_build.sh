@@ -34,7 +34,7 @@ OUTDIR=$(readlink -f ../../out)
 PLATDIR=${OUTDIR}/bin/$(uname -o)/$(uname -m)
 mkdir -p ${PLATDIR}
 
-../gcc-15.1.0/configure MAKEINFO="true" LDFLAGS="--static" --prefix=${OUTDIR} --target=armv5te-pvmk-eabi --with-native-system-header-dir=${OUTDIR}/armv5te-pvmk-eabi/include --disable-shared --disable-multiarch --disable-multilib --with-endian=little --disable-threads --disable-tls --with-cpu=arm926ej-s --with-mode=arm --disable-libssp --disable-nls --program-prefix=pvmk- --bindir=${PLATDIR} --libdir=${PLATDIR} --libexecdir=${PLATDIR} --enable-languages=c,c++ --disable-hosted-libstdcxx --without-headers --disable-host-shared --infodir=${OUTDIR}/trash --mandir=${OUTDIR}/trash --docdir=${OUTDIR}/trash --enable-host-static --enable-static --disable-shared --disable-lto --disable-host-pie 
+../gcc-15.1.0/configure MAKEINFO="true" LDFLAGS="--static" --prefix=${OUTDIR} --target=armv5te-pvmk-eabi --with-native-system-header-dir=${OUTDIR}/armv5te-pvmk-eabi/include --disable-shared --disable-multiarch --disable-multilib --with-endian=little --disable-threads --disable-tls --with-cpu=arm926ej-s --with-mode=arm --disable-libssp --disable-nls --program-prefix=pvmk- --bindir=${PLATDIR} --libdir=${PLATDIR} --libexecdir=${PLATDIR} --enable-languages=c,c++ --without-headers --disable-host-shared --infodir=${OUTDIR}/trash --mandir=${OUTDIR}/trash --docdir=${OUTDIR}/trash --enable-host-static --enable-static --disable-shared --disable-lto --disable-host-pie 
 
 mkdir -p  ${OUTDIR}/armv5te-pvmk-eabi/include
 
@@ -44,13 +44,27 @@ then
         MAKE=make
 fi
 
-${MAKE}
+${MAKE} -j4
 ${MAKE} install
 
+#Move resulting binaries into their platform-specific output subdir
 mv ../../out/armv5te-pvmk-eabi/bin/* ../../out/bin/$(uname -o)/$(uname -m)/
 
+#Kill GCC's libc includes - we're providing our own via picolibc and we don't want them interfering
 pushd ../../out/bin/$(uname -o)/$(uname -m)/gcc/armv5te-pvmk-eabi/15.1.0
 mv include include-gcc
+popd
+
+#Mangle up the libstdc++ headers so they all end up in one directory, not split per-version per-platform
+pushd ../../out/armv5te-pvmk-eabi/include/c++/15.1.0
+mv * ..
+cd ..
+rmdir 15.1.0
+mv armv5te-pvmk-eabi/ext/* ext/
+mv armv5te-pvmk-eabi/bits/* bits/
+rmdir armv5te-pvmk-eabi/ext
+rmdir armv5te-pvmk-eabi/bits
+rmdir armv5te-pvmk-eabi
 popd
 
 rm -rf ../../out/armv5te-pvmk-eabi/bin
