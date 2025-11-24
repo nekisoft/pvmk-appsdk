@@ -311,8 +311,14 @@ void _pvmk_callmain(void)
 	while(1){}
 }
 
-int __aeabi_atexit (void *arg, void (*func) (void *), void *d)
+//Sometimes C++ requires this... sometimes it doesn't? No fucking clue.
+__attribute__((weak)) int __aeabi_atexit (void *arg, void (*func) (void *), void *d)
 {
+	static int __aeabi_atexit_recursive = 0;
+	__aeabi_atexit_recursive++;
+	if(__aeabi_atexit_recursive > 1)
+		return -1;
+	
 	extern int __cxa_atexit();
 	return __cxa_atexit (func, arg, d);
 }

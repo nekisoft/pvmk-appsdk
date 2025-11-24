@@ -69,7 +69,7 @@ $(BINDIR)/boot.nne : $(BINDIR)/boot.elf
 #Link stage target - ELF made from linking all objects
 $(BINDIR)/boot.elf : $(COBJ) $(CXXOBJ)
 	$(MKDIR) -p $(@D)
-	$(CC) $(LINKFLAGS) $^ -o $@
+	$(CXX) $(LINKFLAGS) $^ -o $@
 
 #Compile targets - object for each C file
 $(OBJDIR)/%.c.o : $(SRCDIR)/%.c
