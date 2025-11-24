@@ -21,13 +21,15 @@ mkdir -p obj
 ./src/sdlsc_build.sh
 ./src/bsdutils_build.sh
 
+#Picolibc needs to come first so it can put its standard headers where GCC can find them in the following steps
+./src/picolibc_build.sh
+
 #Binutils and compiler for targetting PVMK
 ./src/wrappers_build.sh
 ./src/binutils_build.sh
 ./src/gcc_build.sh
 
 #C Runtime and Standard libraries for PVMK target
-./src/picolibc_build.sh
 ./src/libsc_build.sh
 ./src/pvmkoslib_build.sh
 ./src/pvmkpicocrt_build.sh
