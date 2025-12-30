@@ -4,10 +4,13 @@
 #ifndef _STDBOOL_H
 #define _STDBOOL_H
 
-#ifndef __cplusplus
-	typedef _Bool bool;
-	#define true 1
-	#define false 0
+//Only need to define bool in plain C before C23.
+#if !defined(__cplusplus)
+	#if __STDC_VERSION__ < 202311L
+		typedef _Bool bool;
+		#define true 1
+		#define false 0
+	#endif
 #endif
 
 #endif //_STDBOOL_H
