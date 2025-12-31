@@ -49,6 +49,6 @@ mkdir -p obj
 cp ./src/README.SDK out/README
 
 rm -rf ./out/trash
-rmdir ./out/share
-rmdir ./out/include
+rm -rf ./out/share
+rm -rf ./out/include
 
