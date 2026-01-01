@@ -48,7 +48,7 @@ CFLAGS += -Wno-int-to-pointer-cast
 CFLAGS += -Wno-unused-command-line-argument
 
 #Phony system call library
-CFLAGS += -I../../sdlsc/include
+CFLAGS += -I../../../sdlsc/include
 CFLAGS += -DUSE_SDLSC=1
 CFLAGS += $(shell sdl2-config --cflags)
 

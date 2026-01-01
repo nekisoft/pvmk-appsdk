@@ -4,6 +4,8 @@
 #ifndef ROUGH_FLOAT_H
 #define ROUGH_FLOAT_H
 
+#include <stdint.h>
+
 //Replacements for aeabi float functions, but shittier
 
 //Rough floating point type - processing with integer ops
