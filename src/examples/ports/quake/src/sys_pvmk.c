@@ -270,6 +270,13 @@ int main (int c, char **v)
 	extern qboolean recording;
 	int j;
 
+	if(sizeof(void*) > 4)
+	{
+		fprintf(stderr, "Quake really hates having 8-byte pointers, sorry. Try a 32-bit build.\n");
+		fflush(stderr);
+		exit(-1);
+	}
+
 //	static char cwd[1024];
 
 //	signal(SIGFPE, floating_point_exception_handler);
