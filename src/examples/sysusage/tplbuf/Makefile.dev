@@ -1,0 +1,46 @@
+#Makefile for triple-buffering example for Neki32
+#Bryan E. Topp <betopp@betopp.com> 2024
+
+#Use host toolchain
+CC     =cc
+OBJCOPY=objcopy
+FIND   =find
+MKDIR  =mkdir
+CP     =cp
+RM     =rm
+
+#Options to pass to compiler
+GCCOPTS += -std=c99 -Wall -Werror -Wextra -pedantic -g -O1
+GCCOPTS += -I../../../sdlsc/include -DUSE_SDLSC=1
+GCCOPTS += $(shell sdl2-config --cflags)
+
+#Flags to use when linking
+LIBS += -lm $(shell sdl2-config --libs)
+
+#Source files
+CSRC:=$(shell $(FIND) -L src/ -name *.c)
+
+#Object files
+COBJ:=$(patsubst src/%.c, obj.dev/%.o, $(CSRC))
+
+#Copy to output folder for dev build instead of making an ISO
+img.dev :  bin.dev/boot.elf
+	$(MKDIR) -p $@
+	cp -R $^ $@
+
+#Link C source with SDK into ELF
+bin.dev/boot.elf: $(COBJ)
+	$(MKDIR) -p $(@D)
+	$(CC) $^ $(LIBS) -o $@
+
+#Compile C source with SDK
+obj.dev/%.o : src/%.c
+	$(MKDIR) -p $(@D)
+	$(CC) $(GCCOPTS) $< -c -o $@
+	
+#Pseudotarget to clean project
+clean :
+	$(RM) -rf obj.dev
+	$(RM) -rf bin.dev
+	$(RM) -rf img.dev
+

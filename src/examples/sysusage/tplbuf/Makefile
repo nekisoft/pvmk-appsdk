@@ -45,7 +45,7 @@ bin/boot.nne: bin/boot.elf
 #Link C source with SDK into ELF
 bin/boot.elf: $(COBJ)
 	$(MKDIR) -p $(@D)
-	$(CC) $(GCCOPTS) $< -o $@
+	$(CC) $^ $(LIBS) -o $@
 
 #Compile C source with SDK
 obj/%.o : src/%.c

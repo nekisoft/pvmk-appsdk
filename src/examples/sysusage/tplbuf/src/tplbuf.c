@@ -73,7 +73,7 @@ int main(int argc, const char **argv)
 			if( bb == back )
 				buffer_used[bb]++; //The buffer is the one we just enqueued
 			
-			if( (void*)&(fbs[bb][0][0]) == (void*)(flipped) )
+			if( (void*)&(fbs[bb][0][0]) == (void*)(intptr_t)(flipped) )
 				buffer_used[bb]++; //The buffer is the one being displayed now
 		}
 		
@@ -87,5 +87,13 @@ int main(int argc, const char **argv)
 		
 		//Note that we just plow ahead rendering more frames, without waiting.
 		//Triple-buffering allows a game to run at a framerate decoupled from the video scanout.
+		
+		//Discard any input, we don't care.
+		_sc_input_t input = {0};
+		while(_sc_input(&input, sizeof(input), sizeof(input)) > 0)
+		{
+			//Ignore
+			(void)input;
+		}
 	}
 }
