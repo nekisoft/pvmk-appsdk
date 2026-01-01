@@ -6,8 +6,8 @@ OBJCOPY=objcopy
 DATE   =date
 FIND   =find
 MKDIR  =mkdir
-CP     =cp
 RM     =rm
+CP     =cp
 
 #Directories used locally
 SRCDIR=./src

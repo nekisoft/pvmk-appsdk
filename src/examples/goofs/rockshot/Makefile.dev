@@ -7,6 +7,7 @@ DATE   =date
 FIND   =find
 MKDIR  =mkdir
 RM     =rm
+CP     =cp
 
 #Directories used locally
 SRCDIR=./src
