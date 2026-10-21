@@ -94,6 +94,20 @@ typedef struct _blk_cache_s
 #define BLK_CACHE_MAX 64
 static _blk_cache_t _blk_cache[BLK_CACHE_MAX];
 
+//Post-processing hook for a whole cache line, called after the block device read and before
+//the line is cached. A program can define this to transform everything it reads: an
+//anti-copy card uses it to decrypt the card's contents and to substitute the real volume
+//descriptor for the decoy one at sector 16. Weak, so programs that do not define it see
+//exactly what they always did.
+//Note the granularity: the cache line is BLK_CACHE_LINE bytes, which is four 2048-byte
+//sectors, so the hook is called once per line and not once per sector.
+__attribute__((weak)) void _cdfs_blk_hook(uint32_t sector, void *buf, int nsectors)
+{
+	(void)sector;
+	(void)buf;
+	(void)nsectors;
+}
+
 //Loads sector of data into block cache
 void *_blk_cache_fill(int sector)
 {
@@ -150,7 +164,10 @@ void *_blk_cache_fill(int sector)
 			continue;
 		}
 		
-		//Success
+		//Success. Let the program transform the line before it is cached - this is where a
+		//copy-resistant card is decrypted, and where the decoy volume descriptor is replaced.
+		_cdfs_blk_hook((uint32_t)((sector / SECTOR_PER_LINE) * SECTOR_PER_LINE), _blk_cache[best].data, SECTOR_PER_LINE);
+		
 		return _blk_cache[best].data + (((sector % SECTOR_PER_LINE) * 2048)/sizeof(uint32_t));
 	}
 }
@@ -670,6 +687,11 @@ uint32_t _cdfs_rootino(void)
 	return _cdfs_pvd_byteoff + offsetof(_cdfs_pvd_t, root_dir_entry);
 }
 
+static int _cdfs_extent_locate(uint64_t ino, uint64_t fileoff, uint64_t *loc_out, uint64_t *avail_out, uint64_t *size_out);
+
+//Directory record flag for a file that continues in the next record
+#define CDFS_MULTI_EXTENT 0x80
+
 int _cdfs_stat(uint32_t ino, struct stat *buf)
 {
 	if(!_cdfs_present)
@@ -678,7 +700,24 @@ int _cdfs_stat(uint32_t ino, struct stat *buf)
 	int translate_result = _cdfs_translate_dirent(ino, sizeof(_cdfs_dirent_t), NULL, buf, NULL, NULL);
 	if(translate_result < 0)
 		return translate_result;
-	
+
+	//A multi-extent file's size is the sum of its chain, not the length of the first record
+	if( (buf->st_mode & S_IFMT) == S_IFREG )
+	{
+		uint8_t hdr[33];
+		if(_blk_read(ino, hdr, 33) < 0)
+			return -_SC_EIO;
+		if(hdr[25] & CDFS_MULTI_EXTENT)
+		{
+			uint64_t totalsize = 0;
+			int locate_result = _cdfs_extent_locate(ino, 0, NULL, NULL, &totalsize);
+			if(locate_result < 0)
+				return locate_result;
+			buf->st_size = totalsize;
+			buf->st_blocks = totalsize / 512;
+		}
+	}
+
 	if(buf->st_dev == 0)
 		return -_SC_EIO;
 	
@@ -707,6 +746,153 @@ int _cdfs_statvfs(struct statvfs *buf)
 	return sizeof(*buf);
 }
 
+//Finds the Nth visible entry in a directory, counting an ISO9660 multi-extent chain as one.
+//Returns 0 and sets the record's location and length on success, 1 when the index is past the end.
+static int _cdfs_dir_record(uint64_t dir_loc, uint64_t dir_len, uint32_t want, uint64_t *rec_loc_out, uint64_t *rec_len_out)
+{
+	uint64_t loc = dir_loc;
+	uint64_t left = dir_len;
+	uint32_t visible = 0;
+	int prev_multi = 0;
+	char prev_name[256];
+	int prev_namelen = 0;
+
+	while(left > 0)
+	{
+		uint8_t hdr[33];
+		if(_blk_read(loc, hdr, 33) < 0)
+			return -_SC_EIO;
+
+		int reclen = hdr[0];
+		if(reclen == 0)
+		{
+			//Ran into the padding at the end of a sector; the rest of it holds no entries
+			uint64_t nextsector = (loc / _cdfs_pvd.logical_block_size) + 1;
+			uint64_t nextloc = nextsector * _cdfs_pvd.logical_block_size;
+			if(nextloc <= loc)
+				return 1;
+
+			left -= (nextloc - loc);
+			loc = nextloc;
+			prev_multi = 0;
+			continue;
+		}
+
+		if(reclen < 33 || (uint64_t)reclen > left)
+			return -_SC_EIO;
+
+		int namelen = hdr[32];
+		char name[256];
+		if(namelen > 0 && namelen < (int)sizeof(name))
+		{
+			if(_blk_read(loc + 33, name, namelen) < 0)
+				return -_SC_EIO;
+			name[namelen] = '\0';
+		}
+		else
+		{
+			namelen = 0;
+			name[0] = '\0';
+		}
+
+		//A record that continues the previous one is not a separate entry
+		int continuation = 0;
+		if(prev_multi && namelen == prev_namelen && !memcmp(name, prev_name, namelen))
+			continuation = 1;
+
+		if(!continuation)
+		{
+			if(visible == want)
+			{
+				if(rec_loc_out != NULL)
+					*rec_loc_out = loc;
+				if(rec_len_out != NULL)
+					*rec_len_out = reclen;
+				return 0;
+			}
+			visible++;
+		}
+
+		prev_multi = (hdr[25] & CDFS_MULTI_EXTENT) ? 1 : 0;
+		memcpy(prev_name, name, namelen);
+		prev_name[namelen] = '\0';
+		prev_namelen = namelen;
+
+		loc += reclen;
+		left -= reclen;
+	}
+
+	return 1;
+}
+
+//Walks the extent chain of a file, locating the extent holding the given file offset.
+//Sets the byte offset on the disc of the data wanted, how many bytes remain in that extent,
+//and the total size of the file.
+static int _cdfs_extent_locate(uint64_t ino, uint64_t fileoff, uint64_t *loc_out, uint64_t *avail_out, uint64_t *size_out)
+{
+	uint64_t cur = ino;
+	uint64_t pos = 0;
+	uint64_t found_loc = 0;
+	uint64_t found_avail = 0;
+	int found = 0;
+
+	while(1)
+	{
+		struct stat st = {0};
+		uint64_t dloc = 0;
+		uint64_t dlen = 0;
+		int reclen = _cdfs_translate_dirent(cur, sizeof(_cdfs_dirent_t), NULL, &st, &dloc, &dlen);
+		if(reclen < 0)
+			return reclen;
+
+		if(fileoff >= pos && fileoff < pos + dlen)
+		{
+			found_loc = dloc + (fileoff - pos);
+			found_avail = (pos + dlen) - fileoff;
+			found = 1;
+		}
+
+		pos += dlen;
+
+		uint8_t hdr[33];
+		if(_blk_read(cur, hdr, 33) < 0)
+			return -_SC_EIO;
+		if(!(hdr[25] & CDFS_MULTI_EXTENT))
+			break;
+
+		//A directory record may not cross a logical block boundary, so a chain that runs past
+		//one is padded out to the start of the next block. Step over that padding the same way
+		//the directory reader does, or the walk reads a zero-length record as the end of the
+		//chain and a file spanning a block boundary reports only the part before it.
+		cur += reclen;
+		uint8_t padlen = 0;
+		if(_blk_read(cur, &padlen, 1) < 0)
+			return -_SC_EIO;
+		if(padlen == 0)
+		{
+			uint64_t nextloc = ((cur / _cdfs_pvd.logical_block_size) + 1) * _cdfs_pvd.logical_block_size;
+			if(nextloc <= cur)
+				break;
+			cur = nextloc;
+		}
+
+		uint8_t hdrnext[33];
+		if(_blk_read(cur, hdrnext, 33) < 0)
+			return -_SC_EIO;
+		if(hdrnext[0] < 33)
+			break; //Nothing usable here, so this was the end of the chain
+	}
+
+	if(loc_out != NULL)
+		*loc_out = found_loc;
+	if(avail_out != NULL)
+		*avail_out = found_avail;
+	if(size_out != NULL)
+		*size_out = pos;
+
+	return found ? 0 : -_SC_EIO;
+}
+
 int _cdfs_read(uint32_t ino, uint32_t off, void *buf, int len)
 {
 	//Compute information about the file being read
@@ -726,76 +912,97 @@ int _cdfs_read(uint32_t ino, uint32_t off, void *buf, int len)
 		//Offset therefore tells us which directory entry we're reading, and a byte offset within.
 		uint32_t which_dirent = off / sizeof(struct _dirent_storage);
 		uint32_t fraction = off % sizeof(struct _dirent_storage);
-		
-		//Skip appropriate number of ISO9660 directory entries before the one we want
-		//(Todo - this turns reading a directory into O(n^2) time. Caching a single last-used offset would fix.)
-		while(which_dirent > 0)
-		{
-			int skipped_cd_dirent = _cdfs_translate_dirent(data_loc, data_len, NULL, NULL, NULL, NULL);
-			if(skipped_cd_dirent < 0)
-				return skipped_cd_dirent;
-			
-			//Skip over that directory entry
-			//PANIC_ASSERT((unsigned)skipped_cd_dirent <= data_len);
-			data_loc += skipped_cd_dirent;
-			data_len -= skipped_cd_dirent;
-			
-			//Have one less to skip now
-			which_dirent--;
-		}
-		
+
 		//Generate as many directory entries as they asked for
 		char *bufb = (char*)buf;
 		int ncopied = 0;
 		while(len > 0)
 		{
-			if(data_len == 0)
+			//Find the record for the entry we want, counting an extent chain as one entry
+			uint64_t rec_loc = 0;
+			uint64_t rec_len = 0;
+			int found = _cdfs_dir_record(data_loc, data_len, which_dirent, &rec_loc, &rec_len);
+			if(found < 0)
+				return found;
+			if(found > 0)
 				break; //No more directory entries in the directory
-			
-			//Parse the next CD directory entry
+
+			//Parse that CD directory entry
 			struct _dirent_storage de = {0};
-			int parsed_cd_dirent = _cdfs_translate_dirent(data_loc, data_len, &de, NULL, NULL, NULL);
+			int parsed_cd_dirent = _cdfs_translate_dirent(rec_loc, rec_len, &de, NULL, NULL, NULL);
 			if(parsed_cd_dirent < 0)
 				return parsed_cd_dirent;
-			
-			//Move past it
-			//PANIC_ASSERT((unsigned)parsed_cd_dirent <= data_len);
-			data_loc += parsed_cd_dirent;
-			data_len -= parsed_cd_dirent;
-			
+
 			//Copy the resulting PVMK directory entry out to the user
 			int to_copy = sizeof(de) - fraction;
 			if(to_copy > len)
 				to_copy = len;
-			
+
 			memcpy(bufb, ((char*)(&de)) + fraction, to_copy);
-			
+
 			ncopied += to_copy;
 			bufb += to_copy;
 			len -= to_copy;
 			fraction = 0;
+			which_dirent++;
 		}
-		
+
 		return ncopied;
 	}
 	
 	//Regular file on CD. Return data directly.
-	
-	if(off >= data_len)
+
+	uint64_t filesize = data_len;
+	{
+		uint8_t hdr[33];
+		if(_blk_read(ino, hdr, 33) < 0)
+			return -_SC_EIO;
+		if(hdr[25] & CDFS_MULTI_EXTENT)
+		{
+			int locate_result = _cdfs_extent_locate(ino, 0, NULL, NULL, &filesize);
+			if(locate_result < 0)
+				return locate_result;
+		}
+	}
+
+	if(off >= filesize)
 	{
 		//Entirely off the end of the file
 		return 0;
 	}
-	
-	if(off + len > data_len)
+
+	if(off + len > filesize)
 	{
 		//Need to truncate so we don't run off the end
-		len = data_len - off;
+		len = filesize - off;
 	}
-	
-	_blk_read(data_loc + off, buf, len);
-	return len;
-	
+
+	//Read across the extent chain, handing each piece to the hook with the location it came from
+	char *bufb = (char*)buf;
+	int nread_total = 0;
+	uint64_t fileoff = off;
+	while(nread_total < len)
+	{
+		uint64_t extent_loc = 0;
+		uint64_t extent_avail = 0;
+		int locate_result = _cdfs_extent_locate(ino, fileoff, &extent_loc, &extent_avail, NULL);
+		if(locate_result < 0)
+			return locate_result;
+		if(extent_avail == 0)
+			break;
+
+		int chunk = len - nread_total;
+		if((uint64_t)chunk > extent_avail)
+			chunk = (int)extent_avail;
+
+		_blk_read(extent_loc, bufb, chunk);
+
+		bufb += chunk;
+		fileoff += chunk;
+		nread_total += chunk;
+	}
+
+	return nread_total;
 }
 
 int _cdfs_write(uint32_t ino, uint32_t off, const void *buf, int len)
