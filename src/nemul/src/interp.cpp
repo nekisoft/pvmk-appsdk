@@ -734,8 +734,12 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 			}
 			if((!p) && w)
 			{
-				TERROR("%s", "\nLDRBT/LDRT/STRBT/STRT unsupported\n");
-				return INTERP_RESULT_FATAL;
+				//P=0,W=1 is the unprivileged form of a post-indexed transfer: LDRT, STRT, LDRBT,
+				//STRBT. The address and the writeback are exactly those of the ordinary
+				//post-indexed form; the only difference is the privilege of the access, and nemul
+				//runs everything at one privilege level, so it is the same access.
+				TDEBUG("%s", ", postindex writeback (unprivileged form)");
+				regs[rn] = withoffset;
 			}
 			
 			if(l && (rd == 15))
@@ -813,8 +817,12 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 		}
 		if((!p) && w)
 		{
-			TERROR("%s", "\nLDRBT/LDRT/STRBT/STRT unsupported\n");
-			return INTERP_RESULT_FATAL;
+			//P=0,W=1 is the unprivileged form of a post-indexed transfer: LDRT, STRT, LDRBT,
+			//STRBT. The address and the writeback are exactly those of the ordinary post-indexed
+			//form; the only difference is the privilege of the access, and nemul runs everything at
+			//one privilege level, so it is the same access.
+			TDEBUG("%s", ", postindex writeback (unprivileged form)");
+			regs[rn] = withoffset;
 		}
 		
 		if(l && (rd == 15))

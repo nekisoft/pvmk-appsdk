@@ -9,12 +9,18 @@
 //(at your option) any later version.
 
 #include "trace.h"
+#include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
 
 //Currently configured verbosity
 trace_sev_e trace_sev_limit[TRACE_CAT_MAX];
+
+//When set, fatal and error traces also go straight to stderr. The GUI leaves this off and
+//reads the ring buffer in its trace window; the console front end has no window, so this is
+//how an interpreter failure explains itself.
+int trace_also_stderr = 0;
 
 //Buffer for trace data
 #define TRACE_BUF_LEN (4*1024*1024)
@@ -29,6 +35,14 @@ static int trace_pos;
 
 void trace_write(trace_cat_e cat, trace_sev_e sev, const char *fmt, ...)
 {
+	if(trace_also_stderr && sev <= TRACE_SEV_ERROR)
+	{
+		va_list spa;
+		va_start(spa, fmt);
+		vfprintf(stderr, fmt, spa);
+		va_end(spa);
+	}
+
 	//If we're obviously off the end of the buffer, blank it and go back
 	if(trace_pos + 5 >= TRACE_BUF_LEN)
 	{

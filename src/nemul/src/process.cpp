@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <assert.h>
 
 //PID1 process image from actual kernel build system
@@ -25,6 +26,109 @@
 
 //Storage for process table, as declared in process.h.
 process_t process_table[PROCESS_MAX];
+
+//Ring of the last instructions each process ran, so that when the interpreter gives up it can
+//say what led there. A wild branch is much easier to believe with the preceding twenty
+//instructions in front of you.
+#define HIST_LEN 1024
+static uint32_t hist_pc[PROCESS_MAX][HIST_LEN];
+static uint32_t hist_ir[PROCESS_MAX][HIST_LEN];
+static int hist_pos[PROCESS_MAX];
+
+//Breakpoint state, see emul_set_break below
+static uint32_t emul_bp_addr;
+static int emul_bp_steps;
+static int emul_bp_hit;
+static int emul_bp_left;
+int emul_stop_requested;
+
+void emul_set_break(uint32_t addr, int steps)
+{
+	emul_bp_addr = addr;
+	emul_bp_steps = steps;
+	emul_bp_hit = 0;
+	emul_bp_left = 0;
+	emul_stop_requested = 0;
+}
+
+//Set NEMUL_LOG_INSTR to have the interpreter explain itself when a process runs into memory
+//that is not code. Off by default because it is noise in a normal run.
+static int hist_logging = -1;
+static uint32_t hist_max = 0; //Anything executing above this is not code, if it is set
+static int hist_walked[PROCESS_MAX];
+
+static void hist_record(int idx, process_t *pptr)
+{
+	if(hist_logging < 0)
+	{
+		hist_logging = (getenv("NEMUL_LOG_INSTR") != NULL) ? 1 : 0;
+		const char *maxstr = getenv("NEMUL_LOG_INSTR_MAX");
+		if(maxstr != NULL)
+			hist_max = (uint32_t)strtoul(maxstr, NULL, 16);
+	}
+
+	uint32_t pc = pptr->regs[15];
+	uint32_t ir = 0;
+	if(pc + 4 <= pptr->size)
+		ir = pptr->mem[pc / 4];
+
+	//Two zero instructions in a row means the process is walking an empty page rather than
+	//running code, and by the time the interpreter gives up the ring has long since been
+	//overwritten by that walk. Show what led into it, once.
+	int beyond = (hist_max != 0 && pc > hist_max);
+	int walking = (ir == 0 && hist_ir[idx][(hist_pos[idx] + HIST_LEN - 1) % HIST_LEN] == 0);
+
+	if(hist_logging && (beyond || walking) && !hist_walked[idx])
+	{
+		//Walking a run of data means the code fell through or branched into it. Find the last
+		//step that was not the next instruction and show from there: that is the transfer that
+		//went wrong.
+		hist_walked[idx] = 1;
+		int from = 0;
+		for(int nn = 1; nn < 200; nn++)
+		{
+			int here = (hist_pos[idx] + HIST_LEN - nn) % HIST_LEN;
+			int prev = (hist_pos[idx] + HIST_LEN - nn - 1) % HIST_LEN;
+			if(hist_pc[idx][here] != hist_pc[idx][prev] + 4)
+			{
+				from = nn;
+				break;
+			}
+		}
+
+		fprintf(stderr, "pid %d: at %8.8X (not code); the transfer that took it there:\n",
+			pptr->pid, pc);
+		fprintf(stderr, "   r0=%8.8X r1=%8.8X r12=%8.8X r13=%8.8X r14=%8.8X cpsr=%8.8X\n",
+			pptr->regs[0], pptr->regs[1], pptr->regs[12], pptr->regs[13], pptr->regs[14],
+			pptr->cpsr);
+		for(int nn = from + 6; nn > 0; nn--)
+		{
+			int at = (hist_pos[idx] + HIST_LEN - nn) % HIST_LEN;
+			fprintf(stderr, "   %8.8X  %8.8X%s\n", hist_pc[idx][at], hist_ir[idx][at],
+				(nn == from) ? "   <-- branch" : "");
+		}
+	}
+
+	hist_pc[idx][hist_pos[idx]] = pc;
+	hist_ir[idx][hist_pos[idx]] = ir;
+	hist_pos[idx] = (hist_pos[idx] + 1) % HIST_LEN;
+}
+
+static void hist_dump(int idx, process_t *pptr)
+{
+	fprintf(stderr, "pid %d: last %d instructions before stopping at %8.8X\n",
+		pptr->pid, HIST_LEN, pptr->regs[15]);
+	for(int nn = 0; nn < HIST_LEN; nn++)
+	{
+		int at = (hist_pos[idx] + nn) % HIST_LEN;
+		if(hist_pc[idx][at] == 0 && hist_ir[idx][at] == 0)
+			continue;
+		fprintf(stderr, "   %8.8X  %8.8X\n", hist_pc[idx][at], hist_ir[idx][at]);
+	}
+	for(int rr = 0; rr < 16; rr++)
+		fprintf(stderr, "   r%d=%8.8X%s", rr, pptr->regs[rr], (rr % 4 == 3) ? "\n" : " ");
+	fprintf(stderr, "   cpsr=%8.8X\n", pptr->cpsr);
+}
 
 void process_reset(void)
 {
@@ -48,15 +152,18 @@ void process_reset(void)
 	//Make the initial process
 	process_table[1].pid = 1;
 	
+	//The initial process gets the machine's whole user address space, not just the size of the
+	//image: crt0 puts its stack near the top of that space.
+	#define PROCESS_SPACE (24 * 1024 * 1024)
 	assert(process_table[1].mem == NULL);
-	process_table[1].mem = (uint32_t*)calloc(1, sizeof(init));
+	process_table[1].mem = (uint32_t*)calloc(1, PROCESS_SPACE);
 	if(process_table[1].mem == NULL)
 	{
-		TFATAL("Failed to allocate %lu bytes for initial process\n", sizeof(init));
+		TFATAL("Failed to allocate %u bytes for initial process\n", PROCESS_SPACE);
 		exit(-1);
 	}
 	
-	process_table[1].size = sizeof(init);
+	process_table[1].size = PROCESS_SPACE;
 	memcpy(process_table[1].mem, init, sizeof(init));
 	process_table[1].regs[15] = 0x1000;
 	
@@ -105,9 +212,42 @@ void process_step(void)
 	//This is super approximate but whatever
 	//The Nuvoton chip runs 300MHz so one millisecond is about 300K instructions (dev version)
 	//The Allwinner chip is a bit faster, 500MHz or so (consumer version prototype)
+	int procidx = (int)(pptr - process_table);
+
 	interp_result_t result = INTERP_RESULT_OK;
 	for(int instr = 0; instr < 300 * 1000; instr++)
 	{
+		hist_record(procidx, pptr);
+
+		//Breakpoint: stop here, then watch the next few instructions of this same process one
+		//at a time. Stepping is done inside this loop so the process keeps the CPU instead of
+		//the schedule moving on between instructions.
+		if(emul_bp_addr != 0 && pptr->regs[15] == emul_bp_addr && !emul_bp_hit)
+		{
+			emul_bp_hit = 1;
+			emul_bp_left = emul_bp_steps;
+			fprintf(stderr, "break: pid %d reaches %8.8X, watching %d instructions\n",
+				pptr->pid, emul_bp_addr, emul_bp_steps);
+			for(int rr = 0; rr < 16; rr++)
+				fprintf(stderr, "   r%-2d %8.8X%s", rr, pptr->regs[rr], (rr % 4 == 3) ? "\n" : " ");
+			fprintf(stderr, "   cpsr %8.8X\n", pptr->cpsr);
+		}
+		else if(emul_bp_left > 0)
+		{
+			uint32_t at = pptr->regs[15];
+			uint32_t ir = 0;
+			if(at + 4 <= pptr->size)
+				ir = pptr->mem[at / 4];
+			fprintf(stderr, "   %8.8X  %8.8X  sp=%8.8X lr=%8.8X r0=%8.8X\n",
+				at, ir, pptr->regs[13], pptr->regs[14], pptr->regs[0]);
+			emul_bp_left--;
+			if(emul_bp_left == 0)
+			{
+				emul_stop_requested = 1;
+				return;
+			}
+		}
+
 		result = interp_step(pptr->regs, &(pptr->cpsr), pptr->mem, pptr->size);
 		if(result != INTERP_RESULT_OK)
 		{
@@ -116,6 +256,10 @@ void process_step(void)
 		}
 	}
 	
+	//Anything that is not a syscall or a clean timeslice end is a surprise worth explaining
+	if(result != INTERP_RESULT_OK && result != INTERP_RESULT_SYSCALL && hist_logging)
+		hist_dump(procidx, pptr);
+
 	//See what happened to the process
 	switch(result)
 	{
@@ -129,6 +273,12 @@ void process_step(void)
 		{
 			//User code triggered a system-call, handle it before continuing
 			sysc(pptr);
+
+			//A call like exit kills the process, and a killed process does not get to run the
+			//instruction after the trap. Without this the caller carries on and the program
+			//restarts itself instead of stopping.
+			if(pptr->state == PROCESS_STATE_DEAD)
+				return;
 			break;
 		}
 		case INTERP_RESULT_BKPT:

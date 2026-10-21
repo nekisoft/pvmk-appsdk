@@ -91,6 +91,11 @@ void process_reset(void);
 //Runs approximately 1ms of simulation on a runnable process, if any
 void process_step(void);
 
+//Stops to look at a process when it reaches the given address, printing the next "steps"
+//instructions one at a time and then ending the run. Zero address disables it.
+void emul_set_break(uint32_t addr, int steps);
+extern int emul_stop_requested;
+
 //Tries to make a copy of the given process
 int process_fork(int parent);
 

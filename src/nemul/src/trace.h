@@ -59,6 +59,9 @@ extern trace_sev_e trace_sev_limit[TRACE_CAT_MAX];
 #define TINFO(x, ...)    TRACE(FILE_TRACE_CAT, TRACE_SEV_INFO,    x, __VA_ARGS__)
 #define TDEBUG(x, ...)   TRACE(FILE_TRACE_CAT, TRACE_SEV_DEBUG,   x, __VA_ARGS__)
 
+//When set, fatal and error traces are also printed to stderr
+extern int trace_also_stderr;
+
 //Function that logs to the internal tracing buffer
 void trace_write(trace_cat_e cat, trace_sev_e sev, const char *fmt, ...);
 

@@ -53,7 +53,38 @@ $(BINDIR)/nemul.elf : $(CPPOBJ)
 $(OBJDIR)/$(SRCDIR)/%.cpp.o : $(SRCDIR)/%.cpp
 	mkdir -p $(@D)
 	$(CPP) $(CPPFLAGS) $< -c -o $@
-	
+
+#Headless build: the same emulation core, no wxWidgets and no display.
+#The core - interp, process, sysc, rsp, trace - never mentions wx; only the front end
+#(nemul.cpp), the config window, the pad binding dialog and prefs.cpp do. So the console
+#front end links the core plus its own main and its own prefs.
+HLESS_CPPSRC := $(filter-out $(SRCDIR)/nemul.cpp $(SRCDIR)/cfgwin.cpp $(SRCDIR)/bindprompt.cpp $(SRCDIR)/compare_interp.cpp $(SRCDIR)/prefs.cpp, $(CPPSRC))
+HLESS_CPPSRC += $(SRCDIR)/nemul_headless.cpp $(SRCDIR)/prefs_headless.cpp
+HLESS_CPPOBJ := $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/headless/%.cpp.o, $(HLESS_CPPSRC))
+
+CPPFLAGS_HEADLESS = -std=c++20 -pedantic -Wall -Werror -Wextra -gdwarf -O2
+CPPFLAGS_HEADLESS += -Wno-inconsistent-missing-override
+CPPFLAGS_HEADLESS += -DBUILDVERSION=\"$(BUILDVERSION)\"
+CPPFLAGS_HEADLESS += -DBUILDDATE=\"$(BUILDDATE)\"
+CPPFLAGS_HEADLESS += -DBUILDUSER=\"$(BUILDUSER)\"
+CPPFLAGS_HEADLESS += -D__TIME_UNIX__=$(UNIXTIME)
+
+$(BINDIR)/nemul-headless.elf : $(HLESS_CPPOBJ)
+	mkdir -p $(@D)
+	$(CPP) $(LINKFLAGS) $^ -lm -o $@
+
+$(OBJDIR)/headless/%.cpp.o : $(SRCDIR)/%.cpp
+	mkdir -p $(@D)
+	$(CPP) $(CPPFLAGS_HEADLESS) $< -c -o $@
+
+#Header dependencies are not tracked, so rebuild everything when any source is newer than the
+#binary: far better than wondering why a change did nothing.
+headless : $(BINDIR)/nemul-headless.elf
+	@if [ -n "$$(find $(SRCDIR) -name '*.cpp' -newer $(BINDIR)/nemul-headless.elf -print -quit 2>/dev/null)" ]; then \
+		rm -f $(BINDIR)/nemul-headless.elf; \
+		$(MAKE) --no-print-directory $(BINDIR)/nemul-headless.elf; \
+	fi
+
 clean : .
 	rm -rf $(OBJDIR)
 	rm -rf $(BINDIR)

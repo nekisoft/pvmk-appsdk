@@ -31,6 +31,14 @@ void sysc(process_t *pptr);
 //Sets the host file used to service disk reads/writes
 void sysc_setdiskfd(int fd);
 
+//Sets the file the virtual card answers _sc_cardprobe from: either a 2048-byte record sector
+//as the inspector writes it, or a whole card image with the records at LBA 18.
+//Returns 0 if it looks like a valid record sector.
+int sysc_setcardrecords(const char *path);
+
+//Boots the given NNE image as PID1, instead of the embedded init. Returns 0 on success.
+int sysc_bootimage(const char *path);
+
 //Gets the latest frontbuffer to be enqueued by a process, and marks it active
 //(Simulates entry to vertical blanking in the game console.)
 void sysc_popfbptr(uint16_t **bufptr_out, int *mode_out);
