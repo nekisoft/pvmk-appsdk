@@ -3,10 +3,7 @@
 //Bryan E. Topp <betopp@betopp.com> 2026
 //
 //Same emulation core as the wxWidgets front end - interp, process table, syscalls, the real
-//init image - with no window, no audio and no X. Exists so a card image can be booted and the
-//whole boot path exercised on a machine with no display, which is where the card scheme gets
-//tested: nemul answers _sc_cardprobe from a recorded card, so bootmenu derives exactly what
-//mkanticopy built for.
+//init image - with no window, no audio and no X. 
 //
 //  nemul-headless --disk <card image> --records <record sector or card image>
 //                 [--ticks <n>] [--fb <prefix>] [--quiet]

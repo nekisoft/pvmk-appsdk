@@ -94,13 +94,7 @@ typedef struct _blk_cache_s
 #define BLK_CACHE_MAX 64
 static _blk_cache_t _blk_cache[BLK_CACHE_MAX];
 
-//Post-processing hook for a whole cache line, called after the block device read and before
-//the line is cached. A program can define this to transform everything it reads: an
-//anti-copy card uses it to decrypt the card's contents and to substitute the real volume
-//descriptor for the decoy one at sector 16. Weak, so programs that do not define it see
-//exactly what they always did.
-//Note the granularity: the cache line is BLK_CACHE_LINE bytes, which is four 2048-byte
-//sectors, so the hook is called once per line and not once per sector.
+//Optional hook for looking at data as it is read
 __attribute__((weak)) void _cdfs_blk_hook(uint32_t sector, void *buf, int nsectors)
 {
 	(void)sector;
@@ -164,10 +158,9 @@ void *_blk_cache_fill(int sector)
 			continue;
 		}
 		
-		//Success. Let the program transform the line before it is cached - this is where a
-		//copy-resistant card is decrypted, and where the decoy volume descriptor is replaced.
+		//Allow debugging hooks
 		_cdfs_blk_hook((uint32_t)((sector / SECTOR_PER_LINE) * SECTOR_PER_LINE), _blk_cache[best].data, SECTOR_PER_LINE);
-		
+
 		return _blk_cache[best].data + (((sector % SECTOR_PER_LINE) * 2048)/sizeof(uint32_t));
 	}
 }
