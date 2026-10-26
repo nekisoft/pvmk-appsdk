@@ -272,8 +272,9 @@ R_TransformFrustum
 */
 void R_TransformFrustum (void)
 {
-	int		i;
+	int		i, j;
 	vec3_t	v, v2;
+	fix16_t	vf[3], v2f[3];
 	
 	for (i=0 ; i<4 ; i++)
 	{
@@ -288,6 +289,19 @@ void R_TransformFrustum (void)
 		VectorCopy (v2, view_clipplanes[i].normal);
 
 		view_clipplanes[i].dist = DotProduct (modelorg, v2);
+
+	//The world renderer's copy, built from the 16.16 view axes.
+		vf[0] = Fix16_FromFloat (v[0]);
+		vf[1] = Fix16_FromFloat (v[1]);
+		vf[2] = Fix16_FromFloat (v[2]);
+		for (j=0 ; j<3 ; j++)
+		{
+			v2f[j] = Fix16_Mul (vf[1], vright_f[j])
+				+ Fix16_Mul (vf[2], vup_f[j])
+				+ Fix16_Mul (vf[0], vpn_f[j]);
+			view_clipplanes[i].fnormal[j] = v2f[j];
+		}
+		view_clipplanes[i].fdist = Fix16_Dot3 (modelorg_f, v2f);
 	}
 }
 
@@ -347,7 +361,7 @@ void R_SetUpFrustumIndexes (void)
 	{
 		for (j=0 ; j<3 ; j++)
 		{
-			if (view_clipplanes[i].normal[j] < 0)
+			if (view_clipplanes[i].fnormal[j] < 0)
 			{
 				pindex[j] = j;
 				pindex[j+3] = j+3;
@@ -438,6 +452,12 @@ r_refdef.viewangles[2]=    0;
 
 	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
 
+	Fix16_FromVec3 (r_refdef.vieworg, modelorg_f);
+	Fix16_FromVec3 (r_refdef.vieworg, r_origin_f);
+	Fix16_FromVec3 (vpn, vpn_f);
+	Fix16_FromVec3 (vright, vright_f);
+	Fix16_FromVec3 (vup, vup_f);
+
 // current viewleaf
 	r_oldviewleaf = r_viewleaf;
 	r_viewleaf = Mod_PointInLeaf (r_origin, cl.worldmodel);
@@ -508,6 +528,11 @@ r_refdef.viewangles[2]=    0;
 	VectorCopy (vright, base_vright);
 	VectorCopy (vup, base_vup);
 	VectorCopy (modelorg, base_modelorg);
+
+	Fix16_Copy3 (vpn_f, base_vpn_f);
+	Fix16_Copy3 (vright_f, base_vright_f);
+	Fix16_Copy3 (vup_f, base_vup_f);
+	Fix16_Copy3 (modelorg_f, base_modelorg_f);
 
 	R_SetSkyFrame ();
 

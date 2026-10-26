@@ -80,6 +80,7 @@ extern cvar_t	r_numedges;
 #define CLIP_EPSILON		0.001
 
 #define BACKFACE_EPSILON	0.01
+#define BACKFACE_EPSILON_FIX16	655	//0.01 in 16.16
 
 //===========================================================================
 
@@ -90,6 +91,8 @@ typedef struct clipplane_s
 {
 	vec3_t		normal;
 	float		dist;
+	fix16_t		fnormal[3];	//16.16 copy, for the world renderer
+	fix16_t		fdist;
 	struct		clipplane_s	*next;
 	byte		leftedge;
 	byte		rightedge;
@@ -109,6 +112,7 @@ extern	mplane_t	screenedge[4];
 extern	vec3_t	r_origin;
 
 extern	vec3_t	r_entorigin;
+extern	fix16_t	r_entorigin_f[3];
 
 extern	float	screenAspect;
 extern	float	verticalFieldOfView;
@@ -200,6 +204,7 @@ extern mvertex_t	*r_ptverts, *r_ptvertsmax;
 
 extern vec3_t			sbaseaxis[3], tbaseaxis[3];
 extern float			entity_rotation[3][3];
+extern fix16_t			entity_rotation_f[3][3];
 
 extern int		reinit_surfcache;
 

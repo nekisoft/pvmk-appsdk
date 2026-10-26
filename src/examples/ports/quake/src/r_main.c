@@ -63,6 +63,14 @@ vec3_t	vpn, base_vpn;
 vec3_t	vright, base_vright;
 vec3_t	r_origin;
 
+//The world renderer's copy of the view state, in 16.16. Kept in step with the
+//float vectors above wherever they are set; those stay because alias models,
+//sprites and particles still work in float.
+fix16_t	vup_f[3], base_vup_f[3];
+fix16_t	vpn_f[3], base_vpn_f[3];
+fix16_t	vright_f[3], base_vright_f[3];
+fix16_t	r_origin_f[3];
+
 //
 // screen size info
 //
@@ -677,26 +685,28 @@ void R_DrawViewModel (void)
 R_BmodelCheckBBox
 =============
 */
-int R_BmodelCheckBBox (model_t *clmodel, float *minmaxs)
+int R_BmodelCheckBBox (model_t *clmodel, fix16_t *minmaxs)
 {
 	int			i, *pindex, clipflags;
-	vec3_t		acceptpt, rejectpt;
-	double		d;
+	fix16_t		acceptpt[3], rejectpt[3];
+	fix16_t		radius;
+	fix16_t		d;
 
 	clipflags = 0;
+	radius = Fix16_FromFloat (clmodel->radius);
 
 	if (currententity->angles[0] || currententity->angles[1]
 		|| currententity->angles[2])
 	{
 		for (i=0 ; i<4 ; i++)
 		{
-			d = DotProduct (currententity->origin, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
+			d = Fix16_Dot3 (r_entorigin_f, view_clipplanes[i].fnormal);
+			d -= view_clipplanes[i].fdist;
 
-			if (d <= -clmodel->radius)
+			if (d <= -radius)
 				return BMODEL_FULLY_CLIPPED;
 
-			if (d <= clmodel->radius)
+			if (d <= radius)
 				clipflags |= (1<<i);
 		}
 	}
@@ -706,7 +716,7 @@ int R_BmodelCheckBBox (model_t *clmodel, float *minmaxs)
 		{
 		// generate accept and reject points
 		// FIXME: do with fast look-ups or integer tests based on the sign bit
-		// of the floating point values
+		// of the fixed point values
 
 			pindex = pfrustum_indexes[i];
 
@@ -714,8 +724,8 @@ int R_BmodelCheckBBox (model_t *clmodel, float *minmaxs)
 			rejectpt[1] = minmaxs[pindex[1]];
 			rejectpt[2] = minmaxs[pindex[2]];
 			
-			d = DotProduct (rejectpt, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
+			d = Fix16_Dot3 (rejectpt, view_clipplanes[i].fnormal);
+			d -= view_clipplanes[i].fdist;
 
 			if (d <= 0)
 				return BMODEL_FULLY_CLIPPED;
@@ -724,8 +734,8 @@ int R_BmodelCheckBBox (model_t *clmodel, float *minmaxs)
 			acceptpt[1] = minmaxs[pindex[3+1]];
 			acceptpt[2] = minmaxs[pindex[3+2]];
 
-			d = DotProduct (acceptpt, view_clipplanes[i].normal);
-			d -= view_clipplanes[i].dist;
+			d = Fix16_Dot3 (acceptpt, view_clipplanes[i].fnormal);
+			d -= view_clipplanes[i].fdist;
 
 			if (d <= 0)
 				clipflags |= (1<<i);
@@ -746,7 +756,7 @@ void R_DrawBEntitiesOnList (void)
 	int			i, j, k, clipflags;
 	vec3_t		oldorigin;
 	model_t		*clmodel;
-	float		minmaxs[6];
+	fix16_t		minmaxs[6];
 
 	if (!r_drawentities.value)
 		return;
@@ -767,12 +777,13 @@ void R_DrawBEntitiesOnList (void)
 
 		// see if the bounding box lets us trivially reject, also sets
 		// trivial accept status
+			Fix16_FromVec3 (currententity->origin, r_entorigin_f);
 			for (j=0 ; j<3 ; j++)
 			{
-				minmaxs[j] = currententity->origin[j] +
-						clmodel->mins[j];
-				minmaxs[3+j] = currententity->origin[j] +
-						clmodel->maxs[j];
+				minmaxs[j] = r_entorigin_f[j] +
+						Fix16_FromFloat (clmodel->mins[j]);
+				minmaxs[3+j] = r_entorigin_f[j] +
+						Fix16_FromFloat (clmodel->maxs[j]);
 			}
 
 			clipflags = R_BmodelCheckBBox (clmodel, minmaxs);
@@ -781,6 +792,7 @@ void R_DrawBEntitiesOnList (void)
 			{
 				VectorCopy (currententity->origin, r_entorigin);
 				VectorSubtract (r_origin, r_entorigin, modelorg);
+				Fix16_Sub3 (r_origin_f, r_entorigin_f, modelorg_f);
 			// FIXME: is this needed?
 				VectorCopy (modelorg, r_worldmodelorg);
 		
@@ -819,8 +831,8 @@ void R_DrawBEntitiesOnList (void)
 
 					for (j=0 ; j<3 ; j++)
 					{
-						r_emins[j] = minmaxs[j];
-						r_emaxs[j] = minmaxs[3+j];
+						r_emins[j] = currententity->origin[j] + clmodel->mins[j];
+						r_emaxs[j] = currententity->origin[j] + clmodel->maxs[j];
 					}
 
 					R_SplitEntityOnNode2 (cl.worldmodel->nodes);
@@ -854,6 +866,10 @@ void R_DrawBEntitiesOnList (void)
 				VectorCopy (base_vright, vright);
 				VectorCopy (base_modelorg, modelorg);
 				VectorCopy (oldorigin, modelorg);
+				Fix16_Copy3 (base_vpn_f, vpn_f);
+				Fix16_Copy3 (base_vup_f, vup_f);
+				Fix16_Copy3 (base_vright_f, vright_f);
+				Fix16_FromVec3 (oldorigin, modelorg_f);
 				R_TransformFrustum ();
 			}
 

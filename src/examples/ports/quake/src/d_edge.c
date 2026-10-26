@@ -274,6 +274,10 @@ void D_DrawSurfaces (void)
 					VectorCopy (base_vup, vup);
 					VectorCopy (base_vright, vright);
 					VectorCopy (base_modelorg, modelorg);
+					Fix16_Copy3 (base_vpn_f, vpn_f);
+					Fix16_Copy3 (base_vup_f, vup_f);
+					Fix16_Copy3 (base_vright_f, vright_f);
+					Fix16_Copy3 (base_modelorg_f, modelorg_f);
 					R_TransformFrustum ();
 				}
 			}
@@ -322,6 +326,10 @@ void D_DrawSurfaces (void)
 					VectorCopy (base_vup, vup);
 					VectorCopy (base_vright, vright);
 					VectorCopy (base_modelorg, modelorg);
+					Fix16_Copy3 (base_vpn_f, vpn_f);
+					Fix16_Copy3 (base_vup_f, vup_f);
+					Fix16_Copy3 (base_vright_f, vright_f);
+					Fix16_Copy3 (base_modelorg_f, modelorg_f);
 					R_TransformFrustum ();
 				}
 			}

@@ -35,6 +35,12 @@ vec3_t			r_entorigin;	// the currently rendering entity in world
 
 float			entity_rotation[3][3];
 
+//The same state in 16.16, for the world renderer. Kept in step with the float
+//copies above; those are still used by the alias, sprite and particle paths.
+fix16_t			modelorg_f[3], base_modelorg_f[3];
+fix16_t			r_entorigin_f[3];
+fix16_t			entity_rotation_f[3][3];
+
 vec3_t			r_worldmodelorg;
 
 int				r_currentbkey;
@@ -70,6 +76,23 @@ void R_EntityRotate (vec3_t vec)
 	vec[2] = DotProduct_Shitty (entity_rotation[2], tvec);
 }
 
+/*
+================
+R_EntityRotateFix
+
+The same rotation for the renderer's 16.16 copy of the vector.
+================
+*/
+static void R_EntityRotateFix (fix16_t vec[3])
+{
+	fix16_t	tvec[3];
+
+	Fix16_Copy3 (vec, tvec);
+	vec[0] = Fix16_Dot3 (entity_rotation_f[0], tvec);
+	vec[1] = Fix16_Dot3 (entity_rotation_f[1], tvec);
+	vec[2] = Fix16_Dot3 (entity_rotation_f[2], tvec);
+}
+
 
 /*
 ================
@@ -79,6 +102,7 @@ R_RotateBmodel
 void R_RotateBmodel (void)
 {
 	float	angle, s, c, temp1[3][3], temp2[3][3], temp3[3][3];
+	int		i, j;
 
 // TODO: should use a look-up table
 // TODO: should really be stored with the entity instead of being reconstructed
@@ -146,6 +170,16 @@ void R_RotateBmodel (void)
 	R_EntityRotate (vright);
 	R_EntityRotate (vup);
 
+// the renderer's copy of all of it, in 16.16
+	for (i=0 ; i<3 ; i++)
+		for (j=0 ; j<3 ; j++)
+			entity_rotation_f[i][j] = Fix16_FromFloat (entity_rotation[i][j]);
+
+	R_EntityRotateFix (modelorg_f);
+	R_EntityRotateFix (vpn_f);
+	R_EntityRotateFix (vright_f);
+	R_EntityRotateFix (vup_f);
+
 	R_TransformFrustum ();
 }
 
@@ -159,8 +193,9 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 {
 	bedge_t		*psideedges[2], *pnextedge, *ptedge;
 	int			i, side, lastside;
-	float		dist, frac, lastdist;
-	mplane_t	*splitplane, tplane;
+	fix16_t		dist, frac, lastdist;
+	fix16_t		tplanenormal[3], tplanedist;
+	mplane_t	*splitplane;
 	mvertex_t	*pvert, *plastvert, *ptvert;
 	mnode_t		*pn;
 
@@ -171,11 +206,11 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 // transform the BSP plane into model space
 // FIXME: cache these?
 	splitplane = pnode->plane;
-	tplane.dist = rf_sub(splitplane->dist,
-			DotProduct_Shitty(r_entorigin, splitplane->normal));
-	tplane.normal[0] = DotProduct_Shitty (entity_rotation[0], splitplane->normal);
-	tplane.normal[1] = DotProduct_Shitty (entity_rotation[1], splitplane->normal);
-	tplane.normal[2] = DotProduct_Shitty (entity_rotation[2], splitplane->normal);
+	tplanedist = splitplane->fdist -
+			Fix16_Dot3 (r_entorigin_f, splitplane->fnormal);
+	tplanenormal[0] = Fix16_Dot3 (entity_rotation_f[0], splitplane->fnormal);
+	tplanenormal[1] = Fix16_Dot3 (entity_rotation_f[1], splitplane->fnormal);
+	tplanenormal[2] = Fix16_Dot3 (entity_rotation_f[2], splitplane->fnormal);
 
 // clip edges to BSP plane
 	for ( ; pedges ; pedges = pnextedge)
@@ -185,8 +220,7 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 	// set the status for the last point as the previous point
 	// FIXME: cache this stuff somehow?
 		plastvert = pedges->v[0];
-		lastdist = rf_sub(DotProduct_Shitty (plastvert->position, tplane.normal),
-				   tplane.dist);
+		lastdist = Fix16_Dot3 (plastvert->fpos, tplanenormal) - tplanedist;
 
 		if (lastdist > 0)
 			lastside = 0;
@@ -195,7 +229,7 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 
 		pvert = pedges->v[1];
 
-		dist = rf_sub(DotProduct_Shitty (pvert->position, tplane.normal), tplane.dist);
+		dist = Fix16_Dot3 (pvert->fpos, tplanenormal) - tplanedist;
 
 		if (dist > 0)
 			side = 0;
@@ -209,17 +243,18 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 				return;
 
 		// generate the clipped vertex
-			frac = lastdist / (lastdist - dist);
+			frac = Fix16_Div (lastdist, lastdist - dist);
 			ptvert = &pbverts[numbverts++];
-			ptvert->position[0] = rf_add(plastvert->position[0],
-					rf_mul(frac,rf_sub(pvert->position[0],
-					plastvert->position[0])));
-			ptvert->position[1] = rf_add(plastvert->position[1],
-					rf_mul(frac,rf_sub(pvert->position[1],
-					plastvert->position[1])));
-			ptvert->position[2] = rf_add(plastvert->position[2],
-					rf_mul(frac,rf_sub(pvert->position[2],
-					plastvert->position[2])));
+			ptvert->fpos[0] = plastvert->fpos[0] +
+					Fix16_Mul (frac, pvert->fpos[0] - plastvert->fpos[0]);
+			ptvert->fpos[1] = plastvert->fpos[1] +
+					Fix16_Mul (frac, pvert->fpos[1] - plastvert->fpos[1]);
+			ptvert->fpos[2] = plastvert->fpos[2] +
+					Fix16_Mul (frac, pvert->fpos[2] - plastvert->fpos[2]);
+		//FIXME: the float copy is for the edge code, which still works in float
+			ptvert->position[0] = Fix16_ToFloat (ptvert->fpos[0]);
+			ptvert->position[1] = Fix16_ToFloat (ptvert->fpos[1]);
+			ptvert->position[2] = Fix16_ToFloat (ptvert->fpos[2]);
 
 		// split into two edges, one on each side, and remember entering
 		// and exiting points
@@ -328,7 +363,7 @@ R_DrawSolidClippedSubmodelPolygons
 void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 {
 	int			i, j, lindex;
-	vec_t		dot;
+	fix16_t		dot;
 	msurface_t	*psurf;
 	int			numsurfaces;
 	mplane_t	*pplane;
@@ -347,11 +382,11 @@ void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 	// find which side of the node we are on
 		pplane = psurf->plane;
 
-		dot = DotProduct (modelorg, pplane->normal) - pplane->dist;
+		dot = Fix16_Dot3 (modelorg_f, pplane->fnormal) - pplane->fdist;
 
 	// draw the polygon
-		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
-			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
+		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON_FIX16)) ||
+			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON_FIX16)))
 		{
 		// FIXME: use bounding-box-based frustum clipping info?
 
@@ -410,7 +445,7 @@ R_DrawSubmodelPolygons
 void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 {
 	int			i;
-	vec_t		dot;
+	fix16_t		dot;
 	msurface_t	*psurf;
 	int			numsurfaces;
 	mplane_t	*pplane;
@@ -425,11 +460,11 @@ void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 	// find which side of the node we are on
 		pplane = psurf->plane;
 
-		dot = DotProduct (modelorg, pplane->normal) - pplane->dist;
+		dot = Fix16_Dot3 (modelorg_f, pplane->fnormal) - pplane->fdist;
 
 	// draw the polygon
-		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
-			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
+		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON_FIX16)) ||
+			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON_FIX16)))
 		{
 			r_currentkey = ((mleaf_t *)currententity->topnode)->key;
 
@@ -448,12 +483,11 @@ R_RecursiveWorldNode
 void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 {
 	int			i, c, side, *pindex;
-	vec3_t		acceptpt, rejectpt;
 	mplane_t	*plane;
 	msurface_t	*surf, **mark;
 	mleaf_t		*pleaf;
 	//double		d, dot; //betopp
-	float d, dot;
+	fix16_t		d, dot;
 
 	if (node->contents == CONTENTS_SOLID)
 		return;		// solid
@@ -477,22 +511,21 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 
 			pindex = pfrustum_indexes[i];
 
-			rejectpt[0] = (float)node->minmaxs[pindex[0]];
-			rejectpt[1] = (float)node->minmaxs[pindex[1]];
-			rejectpt[2] = (float)node->minmaxs[pindex[2]];
-			
-			d = DotProduct_Shitty (rejectpt, view_clipplanes[i].normal);
-			d = rf_sub(d, view_clipplanes[i].dist);
+		// the box corners are integers, the plane is 16.16: no conversion
+			d = Fix16_Dot3Ints (node->minmaxs[pindex[0]],
+				node->minmaxs[pindex[1]],
+				node->minmaxs[pindex[2]],
+				view_clipplanes[i].fnormal);
+			d -= view_clipplanes[i].fdist;
 
 			if (d <= 0)
 				return;
 
-			acceptpt[0] = (float)node->minmaxs[pindex[3+0]];
-			acceptpt[1] = (float)node->minmaxs[pindex[3+1]];
-			acceptpt[2] = (float)node->minmaxs[pindex[3+2]];
-
-			d = DotProduct_Shitty (acceptpt, view_clipplanes[i].normal);
-			d = rf_sub(d, view_clipplanes[i].dist);
+			d = Fix16_Dot3Ints (node->minmaxs[pindex[3+0]],
+				node->minmaxs[pindex[3+1]],
+				node->minmaxs[pindex[3+2]],
+				view_clipplanes[i].fnormal);
+			d -= view_clipplanes[i].fdist;
 
 			if (d >= 0)
 				clipflags &= ~(1<<i);	// node is entirely on screen
@@ -535,16 +568,16 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 		switch (plane->type)
 		{
 		case PLANE_X:
-			dot = rf_sub(modelorg[0], plane->dist);
+			dot = modelorg_f[0] - plane->fdist;
 			break;
 		case PLANE_Y:
-			dot = rf_sub(modelorg[1], plane->dist);
+			dot = modelorg_f[1] - plane->fdist;
 			break;
 		case PLANE_Z:
-			dot = rf_sub(modelorg[2], plane->dist);
+			dot = modelorg_f[2] - plane->fdist;
 			break;
 		default:
-			dot = rf_sub(DotProduct_Shitty (modelorg, plane->normal), plane->dist);
+			dot = Fix16_Dot3 (modelorg_f, plane->fnormal) - plane->fdist;
 			break;
 		}
 	
@@ -563,7 +596,7 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 		{
 			surf = cl.worldmodel->surfaces + node->firstsurface;
 
-			if (dot < -BACKFACE_EPSILON)
+			if (dot < -BACKFACE_EPSILON_FIX16)
 			{
 				do
 				{
@@ -596,7 +629,7 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 					surf++;
 				} while (--c);
 			}
-			else if (dot > BACKFACE_EPSILON)
+			else if (dot > BACKFACE_EPSILON_FIX16)
 			{
 				do
 				{
@@ -656,6 +689,7 @@ void R_RenderWorld (void)
 
 	currententity = &cl_entities[0];
 	VectorCopy (r_origin, modelorg);
+	Fix16_Copy3 (r_origin_f, modelorg_f);
 	clmodel = currententity->model;
 	r_pcurrentvertbase = clmodel->vertexes;
 

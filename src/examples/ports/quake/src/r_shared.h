@@ -62,6 +62,13 @@ extern	vec3_t	vpn, base_vpn;
 extern	vec3_t	vright, base_vright;
 extern	entity_t		*currententity;
 
+//The same view state in 16.16, for the world renderer. The float copies above
+//stay: alias models, sprites and particles still use them.
+extern	fix16_t	vpn_f[3], base_vpn_f[3];
+extern	fix16_t	vright_f[3], base_vright_f[3];
+extern	fix16_t	vup_f[3], base_vup_f[3];
+extern	fix16_t	r_origin_f[3];
+
 #define NUMSTACKEDGES		2400
 #define	MINEDGES			NUMSTACKEDGES
 #define NUMSTACKSURFACES	800
@@ -112,6 +119,7 @@ extern vec3_t	sxformaxis[4];	// s axis transformed into viewspace
 extern vec3_t	txformaxis[4];	// t axis transformed into viewspac
 
 extern vec3_t	modelorg, base_modelorg;
+extern fix16_t	modelorg_f[3], base_modelorg_f[3];
 
 extern	float	xcenter, ycenter;
 extern	float	xscale, yscale;

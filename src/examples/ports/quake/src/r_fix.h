@@ -116,6 +116,54 @@ static inline fix16_t Fix16_Dot3(const fix16_t a[3], const fix16_t b[3])
 	return (fix16_t)(sum >> 16);
 }
 
+//Same, with integer components on the left - a node's integer bounding box
+//against a clip plane. Integer times 16.16 is already a 16.16 product, so no
+//shift on the way out and no conversion of the integer side on the way in.
+//Accumulated in 64 bits, then clamped: a short coordinate times a unit normal
+//can exceed 32 bits, and a bogus result here silently culls half a map.
+static inline fix16_t Fix16_Dot3Ints(int a0, int a1, int a2, const fix16_t b[3])
+{
+	fix32_t sum = ((fix32_t)a0 * (fix32_t)b[0])
+		+ ((fix32_t)a1 * (fix32_t)b[1])
+		+ ((fix32_t)a2 * (fix32_t)b[2]);
+
+	if (sum > 0x7fffffff)
+		return 0x7fffffff;
+	if (sum < -0x7fffffff - 1)
+		return -0x7fffffff - 1;
+	return (fix16_t)sum;
+}
+
+//Back to float, for the one or two places where a value has to be handed back
+//to code that still works in floats.
+static inline float Fix16_ToFloat(fix16_t v)
+{
+	return (float)v * (1.0f / (float)FIX16_ONE);
+}
+
+//Copy a float vector into a 16.16 one. Used where the renderer takes over from
+//the game code at frame setup, not in any inner loop.
+static inline void Fix16_FromVec3(const float in[3], fix16_t out[3])
+{
+	out[0] = Fix16_FromFloat(in[0]);
+	out[1] = Fix16_FromFloat(in[1]);
+	out[2] = Fix16_FromFloat(in[2]);
+}
+
+static inline void Fix16_Sub3(const fix16_t a[3], const fix16_t b[3], fix16_t out[3])
+{
+	out[0] = a[0] - b[0];
+	out[1] = a[1] - b[1];
+	out[2] = a[2] - b[2];
+}
+
+static inline void Fix16_Copy3(const fix16_t in[3], fix16_t out[3])
+{
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+}
+
 //=============================================================================
 // fix32 - 32.32
 
