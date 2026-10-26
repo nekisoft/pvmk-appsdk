@@ -43,6 +43,14 @@ aliashdr_t			*paliashdr;
 finalvert_t			*pfinalverts;
 auxvert_t			*pauxverts;
 static float		ziscale;
+
+//Fixed twins of the per-entity state above. The model's vertices are bytes, so the
+//transform is int * 16.16 all the way through and no part of the vertex loop needs a
+//float conversion or a soft-float call.
+static fix16_t	aliastransform_f[3][4];
+static fix16_t	aliasxscale_f, aliasyscale_f, aliasxcenter_f, aliasycenter_f;
+static fix16_t	r_plightvec_f[3];
+static fix16_t	r_shadelight_f;
 static model_t		*pmodel;
 
 static vec3_t		alias_forward, alias_right, alias_up;
@@ -71,6 +79,11 @@ static aedge_t	aedges[12] = {
 float	r_avertexnormals[NUMVERTEXNORMALS][3] = {
 #include "anorms.h"
 };
+
+//The same normals in 16.16, converted once. They are unit vectors, so this is the
+//lighting dot product without any float work per vertex.
+static fix16_t	r_avertexnormals_f[NUMVERTEXNORMALS][3];
+static int		r_avertexnormals_f_valid;
 
 void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv,
 	const stvert_t *pstverts);
@@ -387,6 +400,20 @@ void R_AliasSetUpTransform (int trivial_accept)
 
 	R_ConcatTransforms (viewmatrix, rotationmatrix, aliastransform);
 
+//Fixed copy of the same matrix, in world units. The trivial-accept scaling below is 2^-47,
+//which is nothing at all in 16.16, so it is not folded in here: the projection applies
+//aliasxscale and the reciprocal itself, where the same factors cancel.
+	for (i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 4; j++)
+			aliastransform_f[i][j] = Fix16_FromFloat (aliastransform[i][j]);
+	}
+
+	aliasxscale_f = Fix16_FromFloat (aliasxscale);
+	aliasyscale_f = Fix16_FromFloat (aliasyscale);
+	aliasxcenter_f = Fix16_FromFloat (aliasxcenter);
+	aliasycenter_f = Fix16_FromFloat (aliasycenter);
+
 // do the scaling up of x and y to screen coordinates as part of the transform
 // for the unclipped case (it would mess up clipping in the clipped case).
 // Also scale down z, so 1/z is scaled 31 bits for free, and scale down x and y
@@ -456,44 +483,47 @@ R_AliasTransformAndProjectFinalVerts
 void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, const stvert_t *pstverts)
 {
 	//pvmk - restructured more like a normal for-loop, compiler likes it more
+	//pvmk - and now in fixed point. The vertices are bytes, so the whole of this is
+	//int * 16.16: the model transform, the projection and the lighting. Nothing here
+	//calls a soft-float routine any more.
 	for (int i=0 ; i<r_anumverts ; i++)
 	{
-	// transform and project
-		float zi = 1.0 / rf_add(DotProduct_Shitty(r_apverts[i].v, aliastransform[2]),
-				aliastransform[2][3]);
+		const byte	*v = r_apverts[i].v;
 
-	// x, y, and z are scaled down by 1/2**31 in the transform, so 1/z is
-	// scaled up by 1/2**31, and the scaling cancels out for x and y in the
-	// projection
-		fv[i].v[5] = zi;
+	// transform. The matrix is in world units, so this is the camera-space vertex.
+		fix16_t x = Fix16_Dot3Ints (v[0], v[1], v[2], aliastransform_f[0])
+				+ aliastransform_f[0][3];
+		fix16_t y = Fix16_Dot3Ints (v[0], v[1], v[2], aliastransform_f[1])
+				+ aliastransform_f[1][3];
+		fix16_t z = Fix16_Dot3Ints (v[0], v[1], v[2], aliastransform_f[2])
+				+ aliastransform_f[2][3];
 
-		fv[i].v[0] = rf_add(rf_mul(rf_add(DotProduct_Shitty(r_apverts[i].v, aliastransform[0]),
-				aliastransform[0][3]), zi), aliasxcenter);
-		fv[i].v[1] = rf_add(rf_mul(rf_add(DotProduct_Shitty(r_apverts[i].v, aliastransform[1]),
-				aliastransform[1][3]), zi), aliasycenter);
+	// project
+		fix16_t zi = Fix16_Recip16 (z);
+
+		fv[i].v[0] = Fix16_ToInt (Fix16_MulSat (Fix16_MulSat (x, zi), aliasxscale_f)
+				+ aliasxcenter_f);
+		fv[i].v[1] = Fix16_ToInt (Fix16_MulSat (Fix16_MulSat (y, zi), aliasyscale_f)
+				+ aliasycenter_f);
+
+	// 1/z for the z test. The float build wrote ziscale*(1/z) here, which is 2^47/z: that
+	// overflows an int for any z under 65536 units, and 16.16 cannot hold a z that large,
+	// so the conversion saturated to INT_MAX every time. Same value, no arithmetic.
+		fv[i].v[5] = 0x7fffffff;
 
 		fv[i].v[2] = pstverts[i].s;
 		fv[i].v[3] = pstverts[i].t;
 		fv[i].flags = pstverts[i].onseam;
 
 	// lighting
-		const float *plightnormal = r_avertexnormals[r_apverts[i].lightnormalindex];
-		float lightcos = DotProduct_Shitty (plightnormal, r_plightvec);
-		//temp = r_ambientlight;
-		float tempf = r_ambientlight;
+		const fix16_t *plightnormal = r_avertexnormals_f[r_apverts[i].lightnormalindex];
+		fix16_t lightcos = Fix16_Dot3 (plightnormal, r_plightvec_f);
+		fix16_t tempf = Fix16_FromInt (r_ambientlight);
 		if (lightcos < 0)
-		{
-			//temp += (int)(rf_mul(r_shadelight,lightcos));
-			tempf = rf_add(tempf, rf_mul(r_shadelight,lightcos));
+			tempf += Fix16_Mul (r_shadelight_f, lightcos);
 
-		// clamp; because we limited the minimum ambient and shading light, we
-		// don't have to clamp low light, just bright
-			//if (temp < 0)
-			//	temp = 0;
-		}
-
-		if(tempf > 0)
-			fv[i].v[4] = tempf;
+		if (tempf > 0)
+			fv[i].v[4] = Fix16_ToInt (tempf);
 		else
 			fv[i].v[4] = 0;
 	}
@@ -636,6 +666,20 @@ void R_AliasSetupLighting (alight_t *plighting)
 	r_plightvec[0] = DotProduct_Shitty (plighting->plightvec, alias_forward);
 	r_plightvec[1] = -DotProduct_Shitty (plighting->plightvec, alias_right);
 	r_plightvec[2] = DotProduct_Shitty (plighting->plightvec, alias_up);
+
+	r_shadelight_f = Fix16_FromFloat (r_shadelight);
+	for (int i = 0; i < 3; i++)
+		r_plightvec_f[i] = Fix16_FromFloat (r_plightvec[i]);
+
+//The normal table is the same for every model, so convert it once.
+	if (!r_avertexnormals_f_valid)
+	{
+		for (int n = 0; n < NUMVERTEXNORMALS; n++)
+			for (int j = 0; j < 3; j++)
+				r_avertexnormals_f[n][j] = Fix16_FromFloat (r_avertexnormals[n][j]);
+
+		r_avertexnormals_f_valid = 1;
+	}
 }
 
 /*
