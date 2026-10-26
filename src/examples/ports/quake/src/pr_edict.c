@@ -30,6 +30,186 @@ dstatement_t	*pr_statements;
 globalvars_t	*pr_global_struct;
 float			*pr_globals;			// same as pr_global_struct
 int				pr_edict_size;	// in bytes
+int				pr_string_size;	// in bytes, as loaded from progs.dat
+
+//===
+//Strings from outside the progs table
+//===
+//A string_t is a 32-bit value that normally means "pr_strings + offset", which is how
+//progs.dat refers to its string table and all the bytecode can express. Engine code also
+//has to name strings that live outside progs.dat - a client's name buffer, the sprintf
+//scratch buffer, a string allocated while parsing entities - and the original code stored
+//"pointer - pr_strings" in the string field for those. That round-trips only because on a
+//32-bit machine an int and a pointer are the same width; on a 64-bit build the difference
+//does not fit in a string_t, the high half of the pointer is dropped, and what comes back
+//out of PR_GetString is rubble.
+//
+//So strings from outside the table are registered here and named by a handle. Values
+//below PR_HOST_STRING_BASE are still offsets into pr_strings, so progs.dat, the bytecode
+//and saved games are unaffected; values at or above it index this table. A buffer keeps
+//one handle for as long as the program runs and names whatever that buffer holds at the
+//time, which is how pr_string_temp and the client names are used. Strings handed over
+//once and never changed are keyed by their text and copied, which is what entity parsing
+//needs: those come from the hunk and do not outlive the level they were parsed for.
+
+#define PR_HOST_STRING_BASE	0x40000000
+
+typedef struct pr_hoststring_s
+{
+	const char	*ptr;
+	int			next;		//index of the next entry in this bucket, plus one
+	int			bytext;		//keyed by its text (a copy we own) rather than by its address
+} pr_hoststring_t;
+
+#define PR_HOSTSTR_BUCKETS	1024
+
+static int				pr_hoststr_bucket[PR_HOSTSTR_BUCKETS];	//index of first entry, plus one
+static pr_hoststring_t	*pr_hoststrings;
+static int				pr_hoststrings_count;
+static int				pr_hoststrings_max;
+
+static unsigned int PR_HostStringHash (const char *s, int bytext)
+{
+	if(bytext)
+	{
+		//Address-independent: the text decides which bucket it lands in
+		unsigned int hash = 2166136261u;
+		while(*s)
+		{
+			hash ^= (unsigned char)(*s++);
+			hash *= 16777619u;
+		}
+		return hash;
+	}
+	else
+	{
+		//Keyed by address: mix the pointer, whatever width it has
+		unsigned long long value = (unsigned long long)(uintptr_t)s;
+		unsigned int hash = 2166136261u;
+		hash ^= (unsigned int)(value & 0xFFFFFFFFull);
+		hash *= 16777619u;
+		hash ^= (unsigned int)(value >> 32);
+		hash *= 16777619u;
+		return hash;
+	}
+}
+
+static int PR_StringOffset (const char *s)
+{
+	//Is this pointer inside the progs string table? Then its offset, otherwise -1.
+	//Compared as addresses: s need not point into the same object as pr_strings.
+	uintptr_t addr = (uintptr_t)s;
+	uintptr_t base = (uintptr_t)pr_strings;
+
+	if(addr < base || addr >= base + (uintptr_t)pr_string_size)
+		return -1;
+
+	return (int)(addr - base);
+}
+
+static int PR_HostStringFind (const char *s, int bytext)
+{
+	unsigned int bucket = PR_HostStringHash(s, bytext) % PR_HOSTSTR_BUCKETS;
+	int entry = pr_hoststr_bucket[bucket] - 1;
+
+	while(entry >= 0)
+	{
+		if(pr_hoststrings[entry].bytext == bytext)
+		{
+			if(bytext)
+			{
+				if(!strcmp(pr_hoststrings[entry].ptr, s))
+					return entry;
+			}
+			else if(pr_hoststrings[entry].ptr == s)
+			{
+				return entry;
+			}
+		}
+
+		entry = pr_hoststrings[entry].next - 1;
+	}
+
+	return -1;
+}
+
+static int PR_HostStringAdd (const char *s, int bytext)
+{
+	if(pr_hoststrings_count >= pr_hoststrings_max)
+	{
+		int newmax = pr_hoststrings_max ? (pr_hoststrings_max * 2) : 128;
+		pr_hoststring_t *bigger = realloc(pr_hoststrings, (size_t)newmax * sizeof(*bigger));
+		if(bigger == NULL)
+			Sys_Error ("PR_HostStringAdd: out of memory for %i strings", newmax);
+		pr_hoststrings = bigger;
+		pr_hoststrings_max = newmax;
+	}
+
+	unsigned int bucket = PR_HostStringHash(s, bytext) % PR_HOSTSTR_BUCKETS;
+	int entry = pr_hoststrings_count++;
+
+	pr_hoststrings[entry].ptr = s;
+	pr_hoststrings[entry].bytext = bytext;
+	pr_hoststrings[entry].next = pr_hoststr_bucket[bucket];
+	pr_hoststr_bucket[bucket] = entry + 1;
+
+	return entry;
+}
+
+int PR_SetString (const char *s)
+{
+	if(s == NULL)
+		return 0;
+
+	//Inside the progs table, so it is an ordinary offset and needs no help
+	int offset = PR_StringOffset(s);
+	if(offset >= 0)
+		return offset;
+
+	int entry = PR_HostStringFind(s, 0);
+	if(entry < 0)
+		entry = PR_HostStringAdd(s, 0);
+
+	return PR_HOST_STRING_BASE + entry;
+}
+
+int PR_SetStringCopy (const char *s)
+{
+	if(s == NULL)
+		return 0;
+
+	int offset = PR_StringOffset(s);
+	if(offset >= 0)
+		return offset;
+
+	int entry = PR_HostStringFind(s, 1);
+	if(entry < 0)
+	{
+		size_t len = strlen(s) + 1;
+		char *copy = malloc(len);
+		if(copy == NULL)
+			Sys_Error ("PR_SetStringCopy: out of memory for a string of %i bytes", (int)len);
+		memcpy(copy, s, len);
+		entry = PR_HostStringAdd(copy, 1);
+	}
+
+	return PR_HOST_STRING_BASE + entry;
+}
+
+char *PR_GetString (int num)
+{
+	if((unsigned int)num < (unsigned int)pr_string_size)
+		return pr_strings + num;
+
+	if((unsigned int)num >= (unsigned int)PR_HOST_STRING_BASE)
+	{
+		int entry = num - PR_HOST_STRING_BASE;
+		if(entry >= 0 && entry < pr_hoststrings_count)
+			return (char *)(pr_hoststrings[entry].ptr);
+	}
+
+	return "";
+}
 
 unsigned short		pr_crc;
 
@@ -191,7 +371,7 @@ ddef_t *ED_FindField (char *name)
 	for (i=0 ; i<progs->numfielddefs ; i++)
 	{
 		def = &pr_fielddefs[i];
-		if (!strcmp(pr_strings + def->s_name,name) )
+		if (!strcmp(PR_GetString(def->s_name),name) )
 			return def;
 	}
 	return NULL;
@@ -211,7 +391,7 @@ ddef_t *ED_FindGlobal (char *name)
 	for (i=0 ; i<progs->numglobaldefs ; i++)
 	{
 		def = &pr_globaldefs[i];
-		if (!strcmp(pr_strings + def->s_name,name) )
+		if (!strcmp(PR_GetString(def->s_name),name) )
 			return def;
 	}
 	return NULL;
@@ -231,7 +411,7 @@ dfunction_t *ED_FindFunction (char *name)
 	for (i=0 ; i<progs->numfunctions ; i++)
 	{
 		func = &pr_functions[i];
-		if (!strcmp(pr_strings + func->s_name,name) )
+		if (!strcmp(PR_GetString(func->s_name),name) )
 			return func;
 	}
 	return NULL;
@@ -288,18 +468,18 @@ char *PR_ValueString (etype_t type, eval_t *val)
 	switch (type)
 	{
 	case ev_string:
-		sprintf (line, "%s", pr_strings + val->string);
+		snprintf (line, sizeof(line), "%s", PR_GetString(val->string));
 		break;
 	case ev_entity:	
 		sprintf (line, "entity %i", NUM_FOR_EDICT(PROG_TO_EDICT(val->edict)) );
 		break;
 	case ev_function:
 		f = pr_functions + val->function;
-		sprintf (line, "%s()", pr_strings + f->s_name);
+		snprintf (line, sizeof(line), "%s()", PR_GetString(f->s_name));
 		break;
 	case ev_field:
 		def = ED_FieldAtOfs ( val->_int );
-		sprintf (line, ".%s", pr_strings + def->s_name);
+		snprintf (line, sizeof(line), ".%s", PR_GetString(def->s_name));
 		break;
 	case ev_void:
 		sprintf (line, "void");
@@ -340,18 +520,18 @@ char *PR_UglyValueString (etype_t type, eval_t *val)
 	switch (type)
 	{
 	case ev_string:
-		sprintf (line, "%s", pr_strings + val->string);
+		snprintf (line, sizeof(line), "%s", PR_GetString(val->string));
 		break;
 	case ev_entity:	
 		sprintf (line, "%i", NUM_FOR_EDICT(PROG_TO_EDICT(val->edict)));
 		break;
 	case ev_function:
 		f = pr_functions + val->function;
-		sprintf (line, "%s", pr_strings + f->s_name);
+		snprintf (line, sizeof(line), "%s", PR_GetString(f->s_name));
 		break;
 	case ev_field:
 		def = ED_FieldAtOfs ( val->_int );
-		sprintf (line, "%s", pr_strings + def->s_name);
+		snprintf (line, sizeof(line), "%s", PR_GetString(def->s_name));
 		break;
 	case ev_void:
 		sprintf (line, "void");
@@ -393,7 +573,7 @@ char *PR_GlobalString (int ofs)
 	else
 	{
 		s = PR_ValueString (def->type, val);
-		sprintf (line,"%i(%s)%s", ofs, pr_strings + def->s_name, s);
+		snprintf (line, sizeof(line), "%i(%s)%s", ofs, PR_GetString(def->s_name), s);
 	}
 	
 	i = strlen(line);
@@ -414,7 +594,7 @@ char *PR_GlobalStringNoContents (int ofs)
 	if (!def)
 		sprintf (line,"%i( ??? )", ofs);
 	else
-		sprintf (line,"%i(%s)", ofs, pr_strings + def->s_name);
+		snprintf (line, sizeof(line), "%i(%s)", ofs, PR_GetString(def->s_name));
 	
 	i = strlen(line);
 	for ( ; i<20 ; i++)
@@ -451,7 +631,7 @@ void ED_Print (edict_t *ed)
 	for (i=1 ; i<progs->numfielddefs ; i++)
 	{
 		d = &pr_fielddefs[i];
-		name = pr_strings + d->s_name;
+		name = PR_GetString(d->s_name);
 		if (name[strlen(name)-2] == '_')
 			continue;	// skip _x, _y, _z vars
 			
@@ -501,7 +681,7 @@ void ED_Write (FILE *f, edict_t *ed)
 	for (i=1 ; i<progs->numfielddefs ; i++)
 	{
 		d = &pr_fielddefs[i];
-		name = pr_strings + d->s_name;
+		name = PR_GetString(d->s_name);
 		if (name[strlen(name)-2] == '_')
 			continue;	// skip _x, _y, _z vars
 			
@@ -516,7 +696,10 @@ void ED_Write (FILE *f, edict_t *ed)
 			continue;
 	
 		fprintf (f,"\"%s\" ",name);
-		fprintf (f,"\"%s\"\n", PR_UglyValueString(d->type, (eval_t *)v));		
+		if (type == ev_string)
+			fprintf (f,"\"%s\"\n", PR_GetString(((eval_t *)v)->string));
+		else
+			fprintf (f,"\"%s\"\n", PR_UglyValueString(d->type, (eval_t *)v));
 	}
 
 	fprintf (f, "}\n");
@@ -634,9 +817,12 @@ void ED_WriteGlobals (FILE *f)
 		&& type != ev_entity)
 			continue;
 
-		name = pr_strings + def->s_name;		
+		name = PR_GetString(def->s_name);		
 		fprintf (f,"\"%s\" ", name);
-		fprintf (f,"\"%s\"\n", PR_UglyValueString(type, (eval_t *)&pr_globals[def->ofs]));		
+		if (type == ev_string)
+			fprintf (f,"\"%s\"\n", PR_GetString(((eval_t *)&pr_globals[def->ofs])->string));
+		else
+			fprintf (f,"\"%s\"\n", PR_UglyValueString(type, (eval_t *)&pr_globals[def->ofs]));
 	}
 	fprintf (f,"}\n");
 }
@@ -739,7 +925,7 @@ qboolean	ED_ParseEpair (void *base, ddef_t *key, char *s)
 	switch (key->type & ~DEF_SAVEGLOBAL)
 	{
 	case ev_string:
-		*(string_t *)d = ED_NewString (s) - pr_strings;
+		*(string_t *)d = PR_SetStringCopy (ED_NewString (s));
 		break;
 		
 	case ev_float:
@@ -959,7 +1145,7 @@ void ED_LoadFromFile (char *data)
 		}
 
 	// look for the spawn function
-		func = ED_FindFunction ( pr_strings + ent->v.classname );
+		func = ED_FindFunction ( PR_GetString(ent->v.classname) );
 
 		if (!func)
 		{
@@ -1011,6 +1197,7 @@ void PR_LoadProgs (void)
 
 	pr_functions = (dfunction_t *)((byte *)progs + progs->ofs_functions);
 	pr_strings = (char *)progs + progs->ofs_strings;
+	pr_string_size = progs->numstrings;
 	pr_globaldefs = (ddef_t *)((byte *)progs + progs->ofs_globaldefs);
 	pr_fielddefs = (ddef_t *)((byte *)progs + progs->ofs_fielddefs);
 	pr_statements = (dstatement_t *)((byte *)progs + progs->ofs_statements);

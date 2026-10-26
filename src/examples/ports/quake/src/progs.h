@@ -53,6 +53,16 @@ typedef struct edict_s
 extern	dprograms_t		*progs;
 extern	dfunction_t		*pr_functions;
 extern	char			*pr_strings;
+extern	int				pr_string_size;		//bytes in the progs string table
+
+//A string_t is a 32-bit value that is normally an offset into pr_strings. Strings the
+//engine holds outside progs.dat - a client's name, the sprintf scratch buffer, a string
+//from the hunk - cannot be expressed that way once pointers are wider than 32 bits, so
+//they are registered and named by a handle instead. Always read a string_t through
+//PR_GetString and never as "pr_strings + offset".
+char	*PR_GetString (int num);
+int		PR_SetString (const char *s);		//names a buffer; its contents may change
+int		PR_SetStringCopy (const char *s);	//private copy, interned by text
 extern	ddef_t			*pr_globaldefs;
 extern	ddef_t			*pr_fielddefs;
 extern	dstatement_t	*pr_statements;
@@ -103,13 +113,13 @@ int NUM_FOR_EDICT(edict_t *e);
 #define	G_EDICT(o) ((edict_t *)((byte *)sv.edicts+ *(int *)&pr_globals[o]))
 #define G_EDICTNUM(o) NUM_FOR_EDICT(G_EDICT(o))
 #define	G_VECTOR(o) (&pr_globals[o])
-#define	G_STRING(o) (pr_strings + *(string_t *)&pr_globals[o])
+#define	G_STRING(o) (PR_GetString (*(string_t *)&pr_globals[o]))
 #define	G_FUNCTION(o) (*(func_t *)&pr_globals[o])
 
 #define	E_FLOAT(e,o) (((float*)&e->v)[o])
 #define	E_INT(e,o) (*(int *)&((float*)&e->v)[o])
 #define	E_VECTOR(e,o) (&((float*)&e->v)[o])
-#define	E_STRING(e,o) (pr_strings + *(string_t *)&((float*)&e->v)[o])
+#define	E_STRING(e,o) (PR_GetString (*(string_t *)&((float*)&e->v)[o]))
 
 extern	int		type_size[8];
 

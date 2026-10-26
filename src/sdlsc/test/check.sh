@@ -422,7 +422,7 @@ then
 	examples="$sdk/examples"
 	for project in sysusage/tplbuf goofs/demodisk1 goofs/democard goofs/menuvn goofs/neki3d \
 		goofs/robuts goofs/rockshot goofs/sausage goofs/soccest ports/freedoom1 \
-		ports/cdogs ports/greed ports/cylindrix
+		ports/cdogs ports/greed ports/cylindrix ports/quake
 	do
 		[ -d "$examples/$project/img.dev" ] || continue
 		name=$(printf '%s' "$project" | tr '/' '-')
@@ -439,7 +439,7 @@ then
 		if [ "$status" -eq 0 ]
 		then
 			ok "example $project"
-		elif [ "$project" = "goofs/sfilm" ] || [ "$project" = "ports/quake" ]
+		elif [ "$project" = "goofs/sfilm" ]
 		then
 			say "     (skipped: $project will not run on this host by its own design)"
 		else
