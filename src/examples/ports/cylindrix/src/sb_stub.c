@@ -46,7 +46,7 @@ char g_DataPath[255];
 
 void MainLoop( int argc, char *argv[] );
 
-int main(  int argc, char *argv[]  ) {
+int app_main(  int argc, char *argv[]  ) {
 	
 	/* Modify this line to wherever the appropriate hard-coded data path should be */
 	sprintf(g_DataPath, "./");
@@ -359,3 +359,10 @@ void New_Fade_Palette( void ) {
 }
 
 
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main(  int argc, char *argv[]  ) {
+	return _sc_shim_main(app_main, argc, argv);
+}

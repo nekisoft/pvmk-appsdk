@@ -28,8 +28,10 @@
 #include "m_argv.h"
 #include "d_main.h"
 
+#include <sc.h>
+
 int
-main
+app_main
 ( int		argc,
   char**	argv ) 
 { 
@@ -40,3 +42,14 @@ main
 
     return 0;
 } 
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int
+main
+( int		argc,
+  char**	argv )
+{
+    return _sc_shim_main(app_main, argc, argv);
+}

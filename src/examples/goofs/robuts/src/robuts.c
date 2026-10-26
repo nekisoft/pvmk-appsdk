@@ -399,7 +399,7 @@ static void gameover(void)
 }
 
 //Entry point
-int main(void)
+int app_main(void)
 {
 	//Load images
 	img_t default_img = { .width = 2, .height = 2, .pixels = (uint16_t[]){ 0, -1, -1, 0 } };
@@ -476,4 +476,12 @@ int main(void)
 		gameover();
 	}
 	return 0;
+}
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main(void)
+{
+	return _sc_shim_main(app_main);
 }

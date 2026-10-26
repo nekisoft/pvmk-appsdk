@@ -12,6 +12,8 @@
 
 #include "teamdata.h"
 
+#include <sc.h>
+
 typedef enum nextscreen_e
 {
 	NS_NONE = 0,
@@ -26,7 +28,7 @@ typedef enum nextscreen_e
 nextscreen_t nextscreen = 0;
 
 
-int main(int argc, const char **argv)
+int app_main(int argc, const char **argv)
 {
 	(void)argc;
 	(void)argv;
@@ -131,4 +133,12 @@ int main(int argc, const char **argv)
 			}
 		}
 	}
+}
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main(int argc, const char **argv)
+{
+	return _sc_shim_main(app_main, argc, argv);
 }

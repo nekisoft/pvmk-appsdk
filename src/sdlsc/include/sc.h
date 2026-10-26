@@ -63,6 +63,10 @@ int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max);
 void _sc_pause(void);
 int _sc_getticks(void);
 
+//Printing
+//Real PVMK prints to the text-mode screen; the shim prints to stdout.
+int _sc_print(const char *buf_ptr);
+
 //NVM
 int _sc_nvm_save(const void *buf, int len);
 int _sc_nvm_load(void *buf, int len);
@@ -159,6 +163,40 @@ int _sc_deny_filefmt(int mode); //ENOSYS
 #define _SC_S_IWOTH  ((int)0000002) //Writable by others (unused)
 #define _SC_S_IXOTH  ((int)0000001) //Executable by others (unused)
 
+//===
+//Application entry point
+//===
+//SDL insists that video is set up and driven from the main thread (on Apple platforms
+//that is a hard requirement, and on Win32 a window belongs to the thread that made
+//it). So the shim wants the real main thread, which it can only get if main() is
+//allowed to return into the shim instead of into the application.
+//
+//Give it that by making the body of main() one line. This compiles unchanged for
+//PVMK, where it just calls the entry point:
+//
+//	int app_main(int argc, const char **argv)	//the application, as usual
+//	{
+//		...
+//	}
+//
+//	int main(int argc, const char **argv)		//one line, both platforms
+//	{
+//		return _sc_shim_main(app_main, argc, argv);
+//	}
+//
+//If the entry point takes no arguments (int app_main(void)), call
+//_sc_shim_main(app_main) instead. Under the shim the application then runs on a
+//worker thread while SDL owns main, and the scanout stays asynchronous like the
+//console. An application that doesn't use _sc_shim_main() still works: the shim
+//then does its SDL work inline, on the thread that calls the system calls.
+int _sdlsc_run(void (*entry)(void), int argc, void *argv);
 
+//void(*)(void) above is a carrier type only. C permits casts between function pointer
+//types, and that one is exempt from -Wcast-function-type, so any entry point
+//signature can come through here without a warning.
+#define _SDLSC_RUN0(entry)          _sdlsc_run((void (*)(void))(entry), -1, NULL)
+#define _SDLSC_RUN2(entry, ac, av)  _sdlsc_run((void (*)(void))(entry), (ac), (void *)(av))
+#define _SDLSC_RUN_PICK(_a, _b, _c, name, ...) name
+#define _sc_shim_main(...) _SDLSC_RUN_PICK(__VA_ARGS__, _SDLSC_RUN2, _SDLSC_RUN2, _SDLSC_RUN0, unused)(__VA_ARGS__)
 
 #endif //_SDLSC_H

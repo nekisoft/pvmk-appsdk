@@ -1360,7 +1360,7 @@ void gameover(void)
 	
 }
 
-int main(void)
+int app_main(void)
 {
 	while(1)
 	{
@@ -1374,4 +1374,12 @@ int main(void)
 	}
 	
 	return 0;
+}
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main(void)
+{
+	return _sc_shim_main(app_main);
 }

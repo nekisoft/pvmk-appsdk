@@ -243,4 +243,32 @@ SYSCALL_DECL _NORETURN void _sc_mexec_apply(void)
 #define _SC_ENAMETOOLONG 36 //Filename too long.
 #define _SC_ENOSYS       38 //Functionality not supported.
 
+//===
+//Application entry point
+//===
+//_sc_shim_main lets one source tree build both for PVMK and against the desktop SDL
+//system-call shim (sdlsc). On PVMK it simply calls the entry point. The shim uses it
+//to take the real main thread for SDL, which insists on setting video up there, and
+//runs the entry point on a worker thread instead.
+//
+//Make the body of main() this one line:
+//
+//	int app_main(int argc, const char **argv)	//the application, as usual
+//	{
+//		...
+//	}
+//
+//	int main(int argc, const char **argv)
+//	{
+//		return _sc_shim_main(app_main, argc, argv);
+//	}
+//
+//An entry point that takes no arguments (int app_main(void)) is called as
+//_sc_shim_main(app_main).
+#define _SC_SHIM_RUN0(entry)         ((entry)())
+#define _SC_SHIM_RUN2(entry, ac, av) ((entry)((ac), (av)))
+#define _SC_SHIM_PICK(_a, _b, _c, name, ...) name
+#define _sc_shim_main(...) _SC_SHIM_PICK(__VA_ARGS__, _SC_SHIM_RUN2, _SC_SHIM_RUN2, _SC_SHIM_RUN0, unused)(__VA_ARGS__)
+
 #endif //_SC_H
+

@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sc.h>
 #include <string.h>
 #include <malloc.h>
 #include <time.h>
@@ -837,7 +838,7 @@ void LoadData(void)
 
 
 
-int main(int argc, char* argv[])
+int app_main(int argc, char* argv[])
 {
     my_argc = argc;
     my_argv = argv;
@@ -921,4 +922,12 @@ restart:
     //while (kbhit())
     //    getch();
     goto restart;
+}
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main(int argc, char* argv[])
+{
+	return _sc_shim_main(app_main, argc, argv);
 }

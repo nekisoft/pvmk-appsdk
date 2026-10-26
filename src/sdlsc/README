@@ -11,4 +11,145 @@ It contains a C source file, "sdlsc.c", which implements the functions in this h
 
 Together, this provides an implementation of the PVMK audio/video/input system calls, on top of SDL.
 
+Build your application with:
 
+	CFLAGS += -I<pvmk-sdk>/sdlsc/include -DUSE_SDLSC=1
+	CFLAGS += $(shell sdl2-config --cflags)
+	LIBS   += -lm $(shell sdl2-config --libs)
+
+and compile sdlsc.c along with your own sources.
+
+Threading, and the one line it asks of you
+------------------------------------------
+PVMK has a scanout engine that runs by itself: a game hands a buffer to
+_sc_gfx_flip() and carries on, and flip's return value says which buffer is on
+screen and therefore safe to draw into next. That is what makes double and
+triple buffering possible.
+
+SDL has a matching but stricter rule: video is set up on, and belongs to,
+whichever thread called SDL_InitSubSystem(SDL_INIT_VIDEO). SDL 3 states it
+outright ("We initialize video on the main thread. On Apple platforms this is a
+requirement. On other platforms, this is the definition"), and SDL 2 says the
+same of renderers in SDL_render.h. On Win32 there is a second reason: a window
+belongs to the thread that created it, and only that thread can pump its
+messages. So SDL video cannot be driven from a thread of the shim's choosing.
+
+There are two ways to run, and both keep every SDL call on the main thread:
+
+  Inline - no change to your program. Each system call does its own SDL work on
+  the calling thread, which for a PVMK program is the process main thread. flip
+  enqueues the frame and then presents it immediately, returning the buffer that
+  was on screen before this flip. That is the same contract the kernel offers,
+  so double and triple buffering work unchanged. Presenting is vertical-synced,
+  so the application is paced by the display instead of running away from it.
+
+  Pumped - make the body of main() one line:
+
+	int app_main(int argc, const char **argv)	//your program, as usual
+	{
+		...
+	}
+
+	int main(int argc, const char **argv)
+	{
+		return _sc_shim_main(app_main, argc, argv);
+	}
+
+  (for an entry point taking no arguments, use _sc_shim_main(app_main)).
+  _sc_shim_main() is a plain call on PVMK - see libsc's sc.h - and under the
+  shim it gives the real main thread to the scanout/event pump and runs
+  app_main() on a worker thread. The scanout then stays asynchronous, exactly
+  like the console: flip enqueues, returns the displayed buffer, and does not
+  block; there is one pending slot, as in the kernel, so an application that
+  flips faster than the display drops frames rather than slowing down.
+
+An application never calls SDL itself and never needs to know which mode it is
+in. Nothing in the shim requires the one-liner; without it you get inline mode.
+
+Headless mode
+-------------
+For automated runs - build machines, CI, watching for crashes - the shim can run
+with no video at all. Nothing here changes the API; it is all environment
+variables, so a PVMK application stays a drop-in replacement:
+
+  SDLSC_HEADLESS=1      No SDL video: no window, no textures, no present.
+                        Frames are still accounted for, and can be dumped.
+                        (If SDL video cannot start at all, the shim prints a
+                        note and goes headless by itself, so a machine with no
+                        display still runs the application.)
+
+  SDLSC_FRAMES=N        Exit(0) after N frames have been displayed. This is the
+                        main automation hook: deterministic termination.
+
+  SDLSC_DUMP=DIR        Write every displayed frame to DIR/frameNNNNNN.ppm, as
+                        binary PPM (P6), no image library needed. The directory is
+                        created if it does not exist.
+  SDLSC_DUMP_EVERY=N    Only every Nth frame. Default 1.
+
+  SDLSC_INPUT=FILE      Scripted input. One line per change:
+
+                             # frame   buttons
+                             30        a
+                             45        a,up
+                             60        -
+
+                        Buttons: up, down, left, right, a, b, c, x, y, z,
+                        start, mode. A change applies to the frame named, so it
+                        is seen before the application draws that frame. Frames
+                        here are frames of the run's clock: frames displayed when
+                        running at real speed, frames of virtual time under
+                        SDLSC_CLOCK=virtual. That matters for a program that sits
+                        in an input loop without drawing anything - a "press
+                        start" screen displays no frames at all, and its script
+                        still has to arrive. Works windowed as well as headless.
+
+  SDLSC_CLOCK=virtual   Nothing sleeps, and the clock advances one millisecond
+                        per enquiry, so a run is deterministic and as fast as the
+                        CPU allows. Use this for reproducible runs; without it
+                        the clock is real time.
+
+                        The clock deliberately does not depend on frames being
+                        displayed. A program is entitled to wait for time to pass
+                        before it draws anything - Doom's tic loop does exactly
+                        that - and a clock that only advances when a frame is
+                        displayed would have it waiting for a frame that only it
+                        could produce; that was a hang. The price is that idle
+                        time is charged per enquiry: a program that waits five
+                        seconds of virtual time polls about five thousand times.
+
+  SDLSC_TRACE=1         One line per displayed frame on stderr:
+                            sdlsc: frame 12 mode 2 ticks 200 buttons 0x0000 hash 0x89abcdef
+                        The hash is FNV-1a over the frame, so a regression shows
+                        up in a log diff without keeping the images.
+
+  SDLSC_VSYNC=0         Present without vertical sync (windowed runs only).
+  SDLSC_NVM=PATH        NVM file to use instead of .nvm.bin, to keep test runs
+                        from sharing saved data.
+  SDLSC_AUDIO=off       Do not open an audio device at all. Headless runs
+                        otherwise use SDL's dummy audio driver, so an
+                        application's audio flow control still behaves.
+  SDLSC_TITLE=TEXT      Window title (cosmetic).
+
+So a full automated check of an example looks like:
+
+  SDLSC_HEADLESS=1 SDLSC_CLOCK=virtual SDLSC_FRAMES=120 \
+  SDLSC_INPUT=script.txt SDLSC_DUMP=out SDLSC_TRACE=1 ./example
+
+which runs in milliseconds, exits 0, and leaves 120 frames and a log to compare.
+
+Notes and limits
+----------------
+- _sc_gfx_flip() returns a 32-bit address, because PVMK is a 32-bit machine.
+  On a 64-bit desktop a framebuffer above 4GB cannot be represented; the shim
+  prints a warning once if it sees one, because the application then cannot
+  recognise the buffer in the return value and its buffer bookkeeping will
+  misbehave. Keep framebuffers static, or map them below 4GB.
+- Text mode (graphics mode 0) clears the window; the shim has no access to the
+  kernel's text buffer. _sc_print() writes to stdout instead, so an application
+  can still report what it is doing.
+- Input is the keyboard: WASD or the arrow keys for the d-pad, J/K/L for A/B/C,
+  U/I/O for X/Y/Z, space/left-control/left-alt as extra A/B/C, Enter for Start,
+  Backspace or Escape for Mode. There is no gamepad support yet.
+- Sound is queued straight to SDL's audio device; _sc_snd_play() reports the
+  number of bytes now enqueued, and mode 0 (silent) stops playback, as the
+  kernel does.

@@ -261,7 +261,7 @@ void Sys_LowFPPrecision (void)
 }
 #endif
 
-int main (int c, char **v)
+int app_main (int c, char **v)
 {
 
 	double		time, oldtime, newtime;
@@ -359,3 +359,11 @@ void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
 	(void)length;
 }
 
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main (int c, char **v)
+{
+	return _sc_shim_main(app_main, c, v);
+}

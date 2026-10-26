@@ -1010,7 +1010,7 @@ static void doexec(const char *filename)
 }
 
 //Entry point, calls the two major top-level features (does the FMV, does the exec)
-int main(int argc, const char **argv)
+int app_main(int argc, const char **argv)
 {
 	//Defaults if we aren't given arguments
 	const char *streamfile = "DEFAULT.CPK";
@@ -1027,4 +1027,12 @@ int main(int argc, const char **argv)
 	fprintf(stderr, "sfilm: FMV done\n");
 	doexec(execfile);
 	return 0;
+}
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main(int argc, const char **argv)
+{
+	return _sc_shim_main(app_main, argc, argv);
 }

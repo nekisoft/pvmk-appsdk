@@ -7,9 +7,13 @@
 
 //Hackhack - we set up NVM ourselves unlike a typical game
 //This shouldn't be used normally
+//(Under the SDL shim there are no raw system calls, and the shim supplies
+//_sc_nvm_ident itself, so this only exists in the PVMK build.)
+#ifndef USE_SDLSC
 SYSCALL_DECL int _sc_nvm_ident(const char *name)
 	#define _SC_NVM_IDENT_N 0x80
 	{ return _SC(_SC_NVM_IDENT_N, name, 0, 0, 0, 0); }
+#endif
 
 //Standard library functions
 #include <unistd.h>
@@ -96,7 +100,7 @@ void prepnvm(const char *nvmname)
 	}
 }
 
-int main(int argc, const char **argv)
+int app_main(int argc, const char **argv)
 {
 	(void)argc;
 	(void)argv;
@@ -192,4 +196,12 @@ int main(int argc, const char **argv)
 			lastbuttons = input.buttons;
 		}
 	}
+}
+
+//Entry point: on PVMK this just calls app_main(). The desktop SDL shim uses it to
+//take the real main thread for SDL and runs app_main() on a worker thread instead -
+//see sdlsc/include/sc.h.
+int main(int argc, const char **argv)
+{
+	return _sc_shim_main(app_main, argc, argv);
 }
