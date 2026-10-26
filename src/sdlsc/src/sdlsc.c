@@ -100,6 +100,8 @@ static const char *_sdlsc_input_path;       //SDLSC_INPUT=file
 static const char *_sdlsc_nvm_path;         //SDLSC_NVM=file
 static const char *_sdlsc_title;            //SDLSC_TITLE=text
 static int _sdlsc_audio_off;                //SDLSC_AUDIO=off
+static long long _sdlsc_quit_after;         //SDLSC_QUIT_AFTER=n frames (testing)
+static long long _sdlsc_reset_after;        //SDLSC_RESET_AFTER=n frames (testing)
 
 //Looks up the given environment variable, treating empty as unset.
 static const char *_sdlsc_getenv(const char *name)
@@ -249,6 +251,7 @@ static int _sdlsc_pumped;
 
 //Set when the process should stop pumping (window closed, or we're done)
 static volatile int _sdlsc_done;
+static volatile int _sdlsc_pump_waiting;       //the pump is blocked, and wants nudging
 
 //Whether the application entry point is still running
 static int _sdlsc_app_running;
@@ -327,6 +330,8 @@ static void _sdlsc_cfg_init(void)
 	_sdlsc_trace       = _sdlsc_getenv_flag("SDLSC_TRACE", 0);
 	_sdlsc_audio_off   = !_sdlsc_getenv_flag("SDLSC_AUDIO", 1);
 	_sdlsc_frame_limit = _sdlsc_getenv_num("SDLSC_FRAMES", 0);
+	_sdlsc_quit_after  = _sdlsc_getenv_num("SDLSC_QUIT_AFTER", 0);
+	_sdlsc_reset_after = _sdlsc_getenv_num("SDLSC_RESET_AFTER", 0);
 	_sdlsc_dump_dir    = _sdlsc_getenv("SDLSC_DUMP");
 	_sdlsc_dump_every  = (int)_sdlsc_getenv_num("SDLSC_DUMP_EVERY", 1);
 	_sdlsc_input_path  = _sdlsc_getenv("SDLSC_INPUT");
@@ -409,16 +414,71 @@ static long long _sdlsc_input_frame(void)
 	return _sdlsc_frames;
 }
 
+//One key we can stand in for each button with, so that scripted input can be delivered
+//as real key events and take the same path a player's fingers do. Must agree with the
+//keymap in _sdlsc_event().
+static const int _sdlsc_btnscancodes[12] =
+{
+	[0]  = SDL_SCANCODE_UP,
+	[1]  = SDL_SCANCODE_LEFT,
+	[2]  = SDL_SCANCODE_DOWN,
+	[3]  = SDL_SCANCODE_RIGHT,
+	[4]  = SDL_SCANCODE_J,
+	[5]  = SDL_SCANCODE_K,
+	[6]  = SDL_SCANCODE_L,
+	[7]  = SDL_SCANCODE_U,
+	[8]  = SDL_SCANCODE_I,
+	[9]  = SDL_SCANCODE_O,
+	[10] = SDL_SCANCODE_RETURN,
+	[11] = SDL_SCANCODE_ESCAPE,
+};
+
 //Applies any scripted input that comes into force at the given frame.
+//With a window, the change is offered as key presses and releases, so it goes through
+//the same translation a real keypress does; without one, there is no event queue to put
+//it in, so it goes straight into the queue the application reads.
 static void _sdlsc_input_script(long long frame)
 {
+	unsigned int target = _sdlsc_buttons;
+	int changed = 0;
+
 	SDL_LockMutex(_sdlsc_mtx);
 	while(_sdlsc_script_pos < _sdlsc_script_len && _sdlsc_script[_sdlsc_script_pos].frame <= frame)
 	{
-		_sdlsc_input_push_locked(_sdlsc_script[_sdlsc_script_pos].buttons);
+		target = _sdlsc_script[_sdlsc_script_pos].buttons;
 		_sdlsc_script_pos++;
+		changed = 1;
+	}
+	if(!changed)
+	{
+		SDL_UnlockMutex(_sdlsc_mtx);
+		return;
+	}
+	unsigned int current = _sdlsc_buttons;
+	if(_sdlsc_headless)
+	{
+		_sdlsc_input_push_locked(target);
+		SDL_UnlockMutex(_sdlsc_mtx);
+		return;
 	}
 	SDL_UnlockMutex(_sdlsc_mtx);
+
+	//Let the event handler work out the new state from the keys, exactly as it would for
+	//a player; pushing the state ourselves as well would swallow the change.
+	for(int bb = 0; bb < 12; bb++)
+	{
+		unsigned int bit = 1u << bb;
+		if((target & bit) == (current & bit))
+			continue;
+
+		SDL_Event event;
+		memset(&event, 0, sizeof(event));
+		event.type = (target & bit) ? SDL_KEYDOWN : SDL_KEYUP;
+		event.key.state = (target & bit) ? SDL_PRESSED : SDL_RELEASED;
+		event.key.keysym.scancode = (SDL_Scancode)_sdlsc_btnscancodes[bb];
+		event.key.keysym.sym = SDL_GetKeyFromScancode((SDL_Scancode)_sdlsc_btnscancodes[bb]);
+		SDL_PushEvent(&event);
+	}
 }
 
 //Translates one SDL event into our gamepad state. Runs on the SDL thread.
@@ -459,6 +519,21 @@ static void _sdlsc_event(SDL_Event *event)
 			_sdlsc_done = 1;
 			break;
 		}
+		case SDL_RENDER_TARGETS_RESET:
+		case SDL_RENDER_DEVICE_RESET:
+		{
+			//The renderer threw its textures away - a lost GL context or D3D device.
+			//Streaming textures do not come back on their own, so drop ours and let
+			//the next present make new ones.
+			for(int mm = 0; mm < _SC_GFX_MODE_MAX; mm++)
+			{
+				if(_sdlsc_modes[mm].tex != NULL)
+					SDL_DestroyTexture(_sdlsc_modes[mm].tex);
+				_sdlsc_modes[mm].tex = NULL;
+			}
+			_sdlsc_logical_mode = -1;
+			break;
+		}
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 		{
@@ -490,6 +565,11 @@ static void _sdlsc_event(SDL_Event *event)
 //Takes everything the window system has for us. Runs on the SDL thread.
 static void _sdlsc_pump_events(void)
 {
+	//Scripted input is offered to the event queue here, so that a windowed run sees it
+	//whether or not the application is polling.
+	if(!_sdlsc_headless && _sdlsc_script_len > 0)
+		_sdlsc_input_script(_sdlsc_input_frame() + 1);
+
 	SDL_Event event;
 	while(SDL_PollEvent(&event))
 		_sdlsc_event(&event);
@@ -504,8 +584,25 @@ static void _sdlsc_pump_events(void)
 //on Apple platforms that thread has to be the main thread.
 static void _sdlsc_video_start(void)
 {
-	if(_sdlsc_video_up || _sdlsc_headless)
+	if(_sdlsc_headless)
 		return;
+
+	if(_sdlsc_video_up)
+	{
+		//Already running - but the textures can have been thrown away by a lost
+		//renderer context, so put back any that are missing.
+		for(int mm = 0; mm < _SC_GFX_MODE_MAX; mm++)
+		{
+			struct _sdlsc_mode_s *mode = &(_sdlsc_modes[mm]);
+			if(mm == _SC_GFX_MODE_TEXT || mode->tex != NULL)
+				continue;
+			mode->tex = SDL_CreateTexture(_sdlsc_renderer, SDL_PIXELFORMAT_RGB565,
+				SDL_TEXTUREACCESS_STREAMING, mode->w, mode->h);
+			if(mode->tex == NULL)
+				_sdlsc_die("SDL_CreateTexture");
+		}
+		return;
+	}
 
 	if(!SDL_WasInit(SDL_INIT_VIDEO))
 	{
@@ -724,7 +821,6 @@ static int _sdlsc_scanout(void)
 	}
 
 	//Input scripted for the frame we're about to start
-	_sdlsc_input_script(frame + 1);
 
 	if(_sdlsc_frame_limit > 0 && _sdlsc_frames >= _sdlsc_frame_limit)
 	{
@@ -770,6 +866,37 @@ static void _sdlsc_pump(void)
 		if(_sdlsc_done)
 			break;
 
+		//Testing hook: close the window from the inside, so the path where the user
+		//clicks the close box can be exercised without a user.
+		if(_sdlsc_quit_after > 0 && _sdlsc_frames >= _sdlsc_quit_after)
+		{
+			if(_sdlsc_headless)
+				_sdlsc_done = 1;
+			else
+			{
+				SDL_Event quit;
+				memset(&quit, 0, sizeof(quit));
+				quit.type = SDL_QUIT;
+				SDL_PushEvent(&quit);
+			}
+			_sdlsc_quit_after = 0;
+		}
+
+		//Testing hook: pretend the renderer lost its context, which is what happens on
+		//a real display when the GL context or D3D device goes away. The textures have
+		//to come back and the picture has to keep going.
+		if(_sdlsc_reset_after > 0 && _sdlsc_frames >= _sdlsc_reset_after)
+		{
+			_sdlsc_reset_after = 0;
+			if(!_sdlsc_headless)
+			{
+				SDL_Event reset;
+				memset(&reset, 0, sizeof(reset));
+				reset.type = SDL_RENDER_DEVICE_RESET;
+				SDL_PushEvent(&reset);
+			}
+		}
+
 		if(_sdlsc_scanout())
 			continue;
 
@@ -793,13 +920,19 @@ static void _sdlsc_pump(void)
 		else
 		{
 			//Keep the window alive: block until something happens, but not forever,
-			//in case the application enqueued a flip without us noticing.
+			//in case the application enqueued a flip without us noticing. The timeout
+			//is what makes the wakeup below a hint rather than something to get right:
+			//if a flip lands between the flag being set and the wait starting, the
+			//timeout picks it up.
+			_sdlsc_pump_waiting = 1;
 			SDL_Event event;
 			if(SDL_WaitEventTimeout(&event, 20))
 			{
+				_sdlsc_pump_waiting = 0;
 				_sdlsc_event(&event);
 				_sdlsc_pump_events();
 			}
+			_sdlsc_pump_waiting = 0;
 		}
 	}
 
@@ -889,9 +1022,11 @@ int _sc_gfx_flip(int mode, const void *buffer)
 
 	if(_sdlsc_pumped)
 	{
-		if(!_sdlsc_headless && _sdlsc_wake_event != 0)
+		if(!_sdlsc_headless && _sdlsc_wake_event != 0 && _sdlsc_pump_waiting)
 		{
 			//Nudge the pump out of its event wait. Pushing an event is thread-safe.
+			//Only worth doing when it is actually waiting: an application that flips in
+			//a tight loop would otherwise fill SDL's event queue with wakeups.
 			SDL_Event wake;
 			memset(&wake, 0, sizeof(wake));
 			wake.type = _sdlsc_wake_event;
@@ -949,8 +1084,9 @@ int _sc_input(_sc_input_t *buffer_ptr, int bytes_per_event, int bytes_max)
 	}
 
 	//Scripted input is timed against the clock, so that a program polling for a button
-	//before it draws anything still gets one.
-	if(_sdlsc_script_len > 0)
+	//before it draws anything still gets one. With a window the event pump delivers it,
+	//as key events; here we only do it when there is no event queue at all.
+	if(_sdlsc_headless && _sdlsc_script_len > 0)
 		_sdlsc_input_script(_sdlsc_input_frame() + 1);
 
 	unsigned char *out = (unsigned char *)buffer_ptr;
@@ -1169,14 +1305,10 @@ int _sc_nvm_load(void *buf, int len)
 
 	close(fd);
 
-	//Short file - say so, the caller's buffer keeps whatever was already in it
-	if(got < len)
-	{
-		fprintf(stderr, "sdlsc: NVM \"%s\" is short (%d of %d bytes)\n", path, got, len);
-		return -_SC_ENOENT;
-	}
-
-	return 0;
+	//The kernel copies as much as the record holds - asking for more than it has is
+	//not an error - and returns the number of bytes it gave back. A short read is
+	//reported as the bytes actually copied, and only a missing record is ENOENT.
+	return got;
 }
 
 int _sc_nvm_ident(const char *name)

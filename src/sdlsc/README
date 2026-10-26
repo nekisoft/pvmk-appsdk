@@ -137,6 +137,43 @@ So a full automated check of an example looks like:
 
 which runs in milliseconds, exits 0, and leaves 120 frames and a log to compare.
 
+Testing the shim itself
+-----------------------
+The shim has its own tests, in test/:
+
+	gmake -C src/sdlsc/test check		the shim on its own
+	gmake -C src/sdlsc/test check-all	also build and run the example projects
+
+check.sh builds three small programs against the shim and runs them through a matrix:
+
+	both threading modes (inline and pumped)
+	headless, and with a window (SDL's dummy video driver and software renderer,
+	  so a build machine with no screen still exercises the real window, renderer,
+	  texture and present path)
+	both clocks, and both vsync settings
+	a machine with no usable video driver at all, which must fall back headless
+	scripted input, which goes through SDL's key handling when there is a window
+
+Two knobs exist only for that suite, and are not part of the shim's interface to an
+application: SDLSC_QUIT_AFTER=n closes the window from the inside after n frames, and
+SDLSC_RESET_AFTER=n pretends the renderer lost its textures after n frames, so both of
+those paths can be run without a human and without a driver losing a device.
+
+and it reads the frames back rather than only hashing them: frametest.c paints each
+frame a single colour that decodes to its frame number, so check.sh can demand that
+every dumped frame is one flat colour (a frame copied while being drawn into is not)
+and that the numbers arrive in the order they were drawn. Two further tests cover the
+awkward paths: the renderer losing its textures mid-run (a lost GL context or D3D
+device), and the window being closed from the outside.
+
+What this cannot check on a build machine: real pixels on real glass, whether vsync
+actually paces the display (SDL's dummy driver has no vertical blanking), window
+resizing by hand, and the thread rules of the platforms not being built on - macOS
+requires video on the main thread, and Win32 requires the window's messages to be
+pumped by the thread that made it. Both of those are why the shim puts SDL on the
+main thread in the first place, so the design assumes them; only a run on the real
+platform proves them.
+
 Notes and limits
 ----------------
 - _sc_gfx_flip() returns a 32-bit address, because PVMK is a 32-bit machine.
