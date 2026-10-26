@@ -45,9 +45,9 @@ def load_symbols(elf):
                          capture_output=True, text=True, check=True).stdout
     syms = []
     for line in out.splitlines():
+        #Lines with no debug line info (hand-written assembly, most of the soft-float
+        #library) have no file:line field at all, so the tab is optional.
         parts = line.split("\t")
-        if len(parts) < 2:
-            continue
         head = parts[0].split()
         #nm leaves the size out of the line when the symbol has none, which is the normal
         #case for hand-written assembly - the whole soft-float library, for instance. Those
