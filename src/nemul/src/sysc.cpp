@@ -14,6 +14,7 @@
 
 #include "sysc.h"
 #include "prefs.h"
+#include "prof.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -801,6 +802,7 @@ void sysc(process_t *pptr)
 	
 	sysc_pptr = pptr;
 	int result = 0;
+	prof_sysc_hit(regs[0]);
 	switch(regs[0])
 	{
 		case 0x00: /*void*/ pvmk_sc_none(); break;

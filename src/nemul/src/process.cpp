@@ -13,6 +13,7 @@
 
 #include "process.h"
 #include "interp.h"
+#include "prof.h"
 #include "sysc.h"
 #include "rsp.h"
 
@@ -217,6 +218,7 @@ void process_step(void)
 	interp_result_t result = INTERP_RESULT_OK;
 	for(int instr = 0; instr < 300 * 1000; instr++)
 	{
+		prof_hit(procidx, pptr->regs[15]);
 		hist_record(procidx, pptr);
 
 		//Breakpoint: stop here, then watch the next few instructions of this same process one

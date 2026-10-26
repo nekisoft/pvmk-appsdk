@@ -27,6 +27,7 @@
 #include "rsp.h"
 #include "prefs.h"
 #include "trace.h"
+#include "prof.h"
 
 //Milliseconds of emulated time, which is what _sc_getticks returns. The wx front end keeps
 //this in its timer; here the loop below owns it.
@@ -246,6 +247,7 @@ int main(int argc, char **argv)
 	for(long tick = 0; tick < ticks; tick++)
 	{
 		rsp_poll();
+		prof_tick((long)EmulTimerTicks, quiet);
 		process_step();
 		EmulTimerTicks++;
 
@@ -267,6 +269,8 @@ int main(int argc, char **argv)
 
 	if(fbprefix != NULL)
 		dumpfb(fbprefix, -1, fb, fbmode);
+
+	prof_dump();
 
 	if(tracing || tracesysc)
 	{
