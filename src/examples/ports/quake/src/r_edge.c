@@ -64,6 +64,7 @@ edge_t	edge_aftertail;
 edge_t	edge_sentinel;
 
 float	refv;
+fix16_t	refv_f;	//the same scanline in 16.16, for the bmodel depth sort
 
 void R_GenerateSpans (void);
 void R_GenerateSpansBackward (void);
@@ -462,7 +463,8 @@ void R_LeadingEdge (edge_t *edge)
 	espan_t			*span;
 	surf_t			*surf, *surf2;
 	int				iu;
-	double			fu, newzi, testzi, newzitop, newzibottom;
+	fix16_t			fu_f;
+	fix32_t			newzi, testzi, newzitop, newzibottom;
 
 	if (edge->surfs[1])
 	{
@@ -487,20 +489,20 @@ void R_LeadingEdge (edge_t *edge)
 			if (surf->insubmodel && (surf->key == surf2->key))
 			{
 			// must be two bmodels in the same leaf; sort on 1/z
-				fu = rf_mul((float)(edge->u - 0xFFFFF), (1.0 / 0x100000));
-				newzi = surf->d_ziorigin + rf_mul(refv,surf->d_zistepv) +
-						rf_mul(fu,surf->d_zistepu);
-				newzibottom = rf_mul(newzi,0.99);
+				fu_f = (fix16_t)((edge->u - 0xFFFFF) << 4);
+				newzi = surf->d_ziorigin + Fix16_MulToFix32(refv_f,surf->d_zistepv) +
+						Fix16_MulToFix32(fu_f,surf->d_zistepu);
+				newzibottom = newzi - newzi / 100;	//0.99
 
-				testzi = surf2->d_ziorigin + rf_mul(refv,surf2->d_zistepv) +
-						rf_mul(fu,surf2->d_zistepu);
+				testzi = surf2->d_ziorigin + Fix16_MulToFix32(refv_f,surf2->d_zistepv) +
+						Fix16_MulToFix32(fu_f,surf2->d_zistepu);
 
 				if (newzibottom >= testzi)
 				{
 					goto newtop;
 				}
 
-				newzitop = rf_mul(newzi, 1.01);
+				newzitop = newzi + newzi / 100;	//1.01
 				if (newzitop >= testzi)
 				{
 					if (surf->d_zistepu >= surf2->d_zistepu)
@@ -525,20 +527,20 @@ continue_search:
 					goto continue_search;
 
 			// must be two bmodels in the same leaf; sort on 1/z
-				fu = rf_mul((float)(edge->u - 0xFFFFF), (1.0 / 0x100000));
-				newzi = surf->d_ziorigin + rf_mul(refv,surf->d_zistepv) +
-						rf_mul(fu,surf->d_zistepu);
-				newzibottom = rf_mul(newzi, 0.99);
+				fu_f = (fix16_t)((edge->u - 0xFFFFF) << 4);
+				newzi = surf->d_ziorigin + Fix16_MulToFix32(refv_f,surf->d_zistepv) +
+						Fix16_MulToFix32(fu_f,surf->d_zistepu);
+				newzibottom = newzi - newzi / 100;	//0.99
 
-				testzi = surf2->d_ziorigin + rf_mul(refv,surf2->d_zistepv) +
-						rf_mul(fu,surf2->d_zistepu);
+				testzi = surf2->d_ziorigin + Fix16_MulToFix32(refv_f,surf2->d_zistepv) +
+						Fix16_MulToFix32(fu_f,surf2->d_zistepu);
 
 				if (newzibottom >= testzi)
 				{
 					goto gotposition;
 				}
 
-				newzitop = rf_mul(newzi, 1.01);
+				newzitop = newzi + newzi / 100;	//1.01
 				if (newzitop >= testzi)
 				{
 					if (surf->d_zistepu >= surf2->d_zistepu)
@@ -709,6 +711,7 @@ void R_ScanEdges (void)
 	{
 		current_iv = iv;
 		refv = (float)iv;
+		refv_f = Fix16_FromInt (iv);
 
 	// mark that the head (background start) span is pre-included
 		surfaces[1].spanstate = 1;

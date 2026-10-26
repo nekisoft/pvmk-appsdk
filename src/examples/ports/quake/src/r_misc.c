@@ -324,7 +324,21 @@ void TransformVector_Shitty (vec3_t in, vec3_t out)
 {
 	out[0] = DotProduct_Shitty(in,vright);
 	out[1] = DotProduct_Shitty(in,vup);
-	out[2] = DotProduct_Shitty(in,vpn);		
+	out[2] = DotProduct_Shitty(in,vpn);	
+}
+
+/*
+================
+TransformVectorFix
+
+World to view space, for the 16.16 renderer: project onto the view axes.
+================
+*/
+void TransformVectorFix (const fix16_t in[3], fix16_t out[3])
+{
+	out[0] = Fix16_Dot3 (in, vright_f);
+	out[1] = Fix16_Dot3 (in, vup_f);
+	out[2] = Fix16_Dot3 (in, vpn_f);
 }
 
 #endif

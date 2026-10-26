@@ -43,8 +43,9 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 	pixel_t		*pbase;//, *pdest;
 	pixel_t  *pdest; 
 	fixed16_t	s, t, snext, tnext, sstep, tstep;
-	float		sdivz, tdivz, zi, z, du, dv, spancountminus1;
-	float		sdivz8stepu, tdivz8stepu, zi8stepu;
+	fix32_t		sdivz, tdivz, zi, sdivz8stepu, tdivz8stepu, zi8stepu;
+	fix16_t		z;
+	int			spancountminus1;
 	byte		btemp;
 	short		*pz;
 
@@ -57,8 +58,8 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 	tdivz8stepu = d_tdivzstepu * 8;
 	zi8stepu = d_zistepu * 8;
 
-// we count on FP exceptions being turned off to avoid range problems
-	izistep = (int)(d_zistepu * 0x8000 * 0x10000);
+// z buffer holds 1/z scaled by 2^31, top half only
+	izistep = (int)(d_zistepu >> 1);
 
 	do
 	{
@@ -71,23 +72,19 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 			goto NextSpan;
 
 	// calculate the initial s/z, t/z, 1/z, s, and t and clamp
-		du = (float)pspan->u;
-		dv = (float)pspan->v;
+		sdivz = d_sdivzorigin + pspan->v * d_sdivzstepv + pspan->u * d_sdivzstepu;
+		tdivz = d_tdivzorigin + pspan->v * d_tdivzstepv + pspan->u * d_tdivzstepu;
+		zi = d_ziorigin + pspan->v * d_zistepv + pspan->u * d_zistepu;
+		z = Fix32_Recip (zi);	//1/zi, which is view z, in 16.16
+		izi = (int)(zi >> 1);
 
-		sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-		tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-		zi = d_ziorigin + dv*d_zistepv + du*d_zistepu;
-		z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-	// we count on FP exceptions being turned off to avoid range problems
-		izi = (int)(zi * 0x8000 * 0x10000);
-
-		s = (int)(sdivz * z) + sadjust;
+		s = Fix32_MulToFix16 (sdivz, z) + sadjust;
 		if (s > bbextents)
 			s = bbextents;
 		else if (s < 0)
 			s = 0;
 
-		t = (int)(tdivz * z) + tadjust;
+		t = Fix32_MulToFix16 (tdivz, z) + tadjust;
 		if (t > bbextentt)
 			t = bbextentt;
 		else if (t < 0)
@@ -110,9 +107,9 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 				sdivz += sdivz8stepu;
 				tdivz += tdivz8stepu;
 				zi += zi8stepu;
-				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
+				z = Fix32_Recip (zi);
 
-				snext = (int)(sdivz * z) + sadjust;
+				snext = Fix32_MulToFix16 (sdivz, z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < 8)
@@ -120,7 +117,7 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(tdivz * z) + tadjust;
+				tnext = Fix32_MulToFix16 (tdivz, z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < 8)
@@ -135,12 +132,12 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 			// can't step off polygon), clamp, calculate s and t steps across
 			// span by division, biasing steps low so we don't run off the
 			// texture
-				spancountminus1 = (float)(spancount - 1);
+				spancountminus1 = spancount - 1;
 				sdivz += d_sdivzstepu * spancountminus1;
 				tdivz += d_tdivzstepu * spancountminus1;
 				zi += d_zistepu * spancountminus1;
-				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-				snext = (int)(sdivz * z) + sadjust;
+				z = Fix32_Recip (zi);
+				snext = Fix32_MulToFix16 (sdivz, z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < 8)
@@ -148,7 +145,7 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(tdivz * z) + tadjust;
+				tnext = Fix32_MulToFix16 (tdivz, z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < 8)
@@ -345,37 +342,57 @@ D_SpriteCalculateGradients
 */
 void D_SpriteCalculateGradients (void)
 {
-	vec3_t		p_normal, p_saxis, p_taxis, p_temp1;
-	float		distinv;
+	fix16_t		p_normal[3], p_saxis[3], p_taxis[3], p_temp1[3];
+	fix16_t		svpn[3], svright[3], svup[3];
+	fix32_t		distinv, denom;
 
-	TransformVector (r_spritedesc.vpn, p_normal);
-	TransformVector (r_spritedesc.vright, p_saxis);
-	TransformVector (r_spritedesc.vup, p_taxis);
-	VectorInverse (p_taxis);
+//The sprite's own axes are floats (they come from the entity's angles), so
+//convert them here, once per sprite rather than once per span.
+	Fix16_FromVec3 (r_spritedesc.vpn, svpn);
+	Fix16_FromVec3 (r_spritedesc.vright, svright);
+	Fix16_FromVec3 (r_spritedesc.vup, svup);
 
-	distinv = 1.0 / (-DotProduct (modelorg, r_spritedesc.vpn));
+	p_normal[0] = Fix16_Dot3 (svpn, vright_f);
+	p_normal[1] = Fix16_Dot3 (svpn, vup_f);
+	p_normal[2] = Fix16_Dot3 (svpn, vpn_f);
 
-	d_sdivzstepu = p_saxis[0] * xscaleinv;
-	d_tdivzstepu = p_taxis[0] * xscaleinv;
+	p_saxis[0] = Fix16_Dot3 (svright, vright_f);
+	p_saxis[1] = Fix16_Dot3 (svright, vup_f);
+	p_saxis[2] = Fix16_Dot3 (svright, vpn_f);
 
-	d_sdivzstepv = -p_saxis[1] * yscaleinv;
-	d_tdivzstepv = -p_taxis[1] * yscaleinv;
+	p_taxis[0] = -Fix16_Dot3 (svup, vright_f);
+	p_taxis[1] = -Fix16_Dot3 (svup, vup_f);
+	p_taxis[2] = -Fix16_Dot3 (svup, vpn_f);
 
-	d_zistepu = p_normal[0] * xscaleinv * distinv;
-	d_zistepv = -p_normal[1] * yscaleinv * distinv;
+	denom = -Fix16_Dot3 (modelorg_f, svpn);
+	if (!denom)
+		denom = 1;	//keep the divide in range; the float code produced inf here
+	distinv = Fix16_Recip32 ((fix16_t)denom);
 
-	d_sdivzorigin = p_saxis[2] - xcenter * d_sdivzstepu -
-			ycenter * d_sdivzstepv;
-	d_tdivzorigin = p_taxis[2] - xcenter * d_tdivzstepu -
-			ycenter * d_tdivzstepv;
-	d_ziorigin = p_normal[2] * distinv - xcenter * d_zistepu -
-			ycenter * d_zistepv;
+	d_sdivzstepu = Fix16_Mul16ToFix32 (p_saxis[0], xscaleinv_f);
+	d_tdivzstepu = Fix16_Mul16ToFix32 (p_taxis[0], xscaleinv_f);
 
-	TransformVector (modelorg, p_temp1);
+	d_sdivzstepv = -Fix16_Mul16ToFix32 (p_saxis[1], yscaleinv_f);
+	d_tdivzstepv = -Fix16_Mul16ToFix32 (p_taxis[1], yscaleinv_f);
 
-	sadjust = ((fixed16_t)(DotProduct (p_temp1, p_saxis) * 0x10000 + 0.5)) -
+	d_zistepu = Fix16_MulToFix32 (Fix16_Mul (p_normal[0], xscaleinv_f), distinv);
+	d_zistepv = -Fix16_MulToFix32 (Fix16_Mul (p_normal[1], yscaleinv_f), distinv);
+
+	d_sdivzorigin = Fix32_FromFix16 (p_saxis[2])
+			- Fix16_MulToFix32 (xcenter_f, d_sdivzstepu)
+			- Fix16_MulToFix32 (ycenter_f, d_sdivzstepv);
+	d_tdivzorigin = Fix32_FromFix16 (p_taxis[2])
+			- Fix16_MulToFix32 (xcenter_f, d_tdivzstepu)
+			- Fix16_MulToFix32 (ycenter_f, d_tdivzstepv);
+	d_ziorigin = Fix16_MulToFix32 (p_normal[2], distinv)
+			- Fix16_MulToFix32 (xcenter_f, d_zistepu)
+			- Fix16_MulToFix32 (ycenter_f, d_zistepv);
+
+	TransformVectorFix (modelorg_f, p_temp1);
+
+	sadjust = Fix16_Dot3 (p_temp1, p_saxis) -
 			(-(cachewidth >> 1) << 16);
-	tadjust = ((fixed16_t)(DotProduct (p_temp1, p_taxis) * 0x10000 + 0.5)) -
+	tadjust = Fix16_Dot3 (p_temp1, p_taxis) -
 			(-(sprite_height >> 1) << 16);
 
 // -1 (-epsilon) so we never wander off the edge of the texture

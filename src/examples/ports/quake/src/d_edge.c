@@ -34,6 +34,7 @@ extern void			R_RotateBmodel (void);
 extern void			R_TransformFrustum (void);
 
 vec3_t		transformed_modelorg;
+fix16_t		transformed_modelorg_f[3];	//16.16, for the span drawer
 
 /*
 ==============
@@ -122,41 +123,50 @@ D_CalcGradients
 */
 void D_CalcGradients (msurface_t *pface)
 {
-	mplane_t	*pplane;
-	float		mipscale;
-	vec3_t		p_temp1;
-	vec3_t		p_saxis, p_taxis;
-	float		t;
+	fix16_t		mipscale;	//1/(1<<miplevel), as 16.16
+	fix16_t		p_temp1[3];
+	fix16_t		p_saxis[3], p_taxis[3];
+	fix32_t		t;
 
-	pplane = pface->plane;
+	mipscale = (fix16_t)(FIX16_ONE >> miplevel);
 
-	mipscale = 1.0 / (float)(1 << miplevel);
+	p_saxis[0] = Fix16_Dot3 (pface->texinfo->fvecs[0], vright_f);
+	p_saxis[1] = Fix16_Dot3 (pface->texinfo->fvecs[0], vup_f);
+	p_saxis[2] = Fix16_Dot3 (pface->texinfo->fvecs[0], vpn_f);
+	p_taxis[0] = Fix16_Dot3 (pface->texinfo->fvecs[1], vright_f);
+	p_taxis[1] = Fix16_Dot3 (pface->texinfo->fvecs[1], vup_f);
+	p_taxis[2] = Fix16_Dot3 (pface->texinfo->fvecs[1], vpn_f);
 
-	TransformVector (pface->texinfo->vecs[0], p_saxis);
-	TransformVector (pface->texinfo->vecs[1], p_taxis);
+//How a texture axis moves per screen pixel, in 32.32. The 16.16 axis times
+//the 16.16 pixel scale gives the 32.32 step directly.
+	t = Fix16_Mul16ToFix32 (xscaleinv_f, mipscale);
+	d_sdivzstepu = Fix16_MulToFix32 (p_saxis[0], t);
+	d_tdivzstepu = Fix16_MulToFix32 (p_taxis[0], t);
 
-	t = xscaleinv * mipscale;
-	d_sdivzstepu = p_saxis[0] * t;
-	d_tdivzstepu = p_taxis[0] * t;
+	t = Fix16_Mul16ToFix32 (yscaleinv_f, mipscale);
+	d_sdivzstepv = -Fix16_MulToFix32 (p_saxis[1], t);
+	d_tdivzstepv = -Fix16_MulToFix32 (p_taxis[1], t);
 
-	t = yscaleinv * mipscale;
-	d_sdivzstepv = -p_saxis[1] * t;
-	d_tdivzstepv = -p_taxis[1] * t;
+	d_sdivzorigin = Fix16_Mul16ToFix32 (p_saxis[2], mipscale)
+			- Fix16_MulToFix32 (xcenter_f, d_sdivzstepu)
+			- Fix16_MulToFix32 (ycenter_f, d_sdivzstepv);
+	d_tdivzorigin = Fix16_Mul16ToFix32 (p_taxis[2], mipscale)
+			- Fix16_MulToFix32 (xcenter_f, d_tdivzstepu)
+			- Fix16_MulToFix32 (ycenter_f, d_tdivzstepv);
 
-	d_sdivzorigin = p_saxis[2] * mipscale - xcenter * d_sdivzstepu -
-			ycenter * d_sdivzstepv;
-	d_tdivzorigin = p_taxis[2] * mipscale - xcenter * d_tdivzstepu -
-			ycenter * d_tdivzstepv;
+	p_temp1[0] = Fix16_Mul (transformed_modelorg_f[0], mipscale);
+	p_temp1[1] = Fix16_Mul (transformed_modelorg_f[1], mipscale);
+	p_temp1[2] = Fix16_Mul (transformed_modelorg_f[2], mipscale);
 
-	VectorScale (transformed_modelorg, mipscale, p_temp1);
-
-	t = 0x10000*mipscale;
-	sadjust = ((fixed16_t)(DotProduct (p_temp1, p_saxis) * 0x10000 + 0.5)) -
+//The float build adds 0.5 here before truncating, but its dot product is the
+//low precision one, so it lands below what an exact 16.16 product gives;
+//rounding would move every surface half a texel the wrong way.
+	sadjust = Fix16_Dot3 (p_temp1, p_saxis) -
 			((pface->texturemins[0] << 16) >> miplevel)
-			+ pface->texinfo->vecs[0][3]*t;
-	tadjust = ((fixed16_t)(DotProduct (p_temp1, p_taxis) * 0x10000 + 0.5)) -
+			+ Fix16_Mul (pface->texinfo->fvecs[0][3], mipscale);
+	tadjust = Fix16_Dot3 (p_temp1, p_taxis) -
 			((pface->texturemins[1] << 16) >> miplevel)
-			+ pface->texinfo->vecs[1][3]*t;
+			+ Fix16_Mul (pface->texinfo->fvecs[1][3], mipscale);
 
 //
 // -1 (-epsilon) so we never wander off the edge of the texture
@@ -178,10 +188,14 @@ void D_DrawSurfaces (void)
 	surfcache_t		*pcurrentcache;
 	vec3_t			world_transformed_modelorg;
 	vec3_t			local_modelorg;
+	fix16_t			world_transformed_modelorg_f[3];
+	fix16_t			local_modelorg_f[3];
 
 	currententity = &cl_entities[0];
 	TransformVector (modelorg, transformed_modelorg);
 	VectorCopy (transformed_modelorg, world_transformed_modelorg);
+	TransformVectorFix (modelorg_f, transformed_modelorg_f);
+	Fix16_Copy3 (transformed_modelorg_f, world_transformed_modelorg_f);
 
 // TODO: could preset a lot of this at mode set time
 	if (r_drawflat.value)
@@ -228,7 +242,7 @@ void D_DrawSurfaces (void)
 			// effectively at infinity distance from the viewpoint
 				d_zistepu = 0;
 				d_zistepv = 0;
-				d_ziorigin = -0.9;
+				d_ziorigin = -(fix32_t)3865470566LL;	//-0.9 in 32.32
 
 				D_DrawSolidSurface (s, (int)r_clearcolor.value & 0xFF);
 				D_DrawZSpans (s->spans);
@@ -250,7 +264,10 @@ void D_DrawSurfaces (void)
 												// R_RotateBmodel ()
 					VectorSubtract (r_origin, currententity->origin,
 							local_modelorg);
-					TransformVector (local_modelorg, transformed_modelorg);
+							TransformVector (local_modelorg, transformed_modelorg);
+							Fix16_FromVec3 (currententity->origin, local_modelorg_f);
+					Fix16_Sub3 (r_origin_f, local_modelorg_f, local_modelorg_f);
+							TransformVectorFix (local_modelorg_f, transformed_modelorg_f);
 
 					R_RotateBmodel ();	// FIXME: don't mess with the frustum,
 										// make entity passed in
@@ -269,7 +286,9 @@ void D_DrawSurfaces (void)
 				//
 					currententity = &cl_entities[0];
 					VectorCopy (world_transformed_modelorg,
-								transformed_modelorg);
+							transformed_modelorg);
+					Fix16_Copy3 (world_transformed_modelorg_f,
+							transformed_modelorg_f);
 					VectorCopy (base_vpn, vpn);
 					VectorCopy (base_vup, vup);
 					VectorCopy (base_vright, vright);
@@ -291,6 +310,9 @@ void D_DrawSurfaces (void)
 												// R_RotateBmodel ()
 					VectorSubtract (r_origin, currententity->origin, local_modelorg);
 					TransformVector (local_modelorg, transformed_modelorg);
+					Fix16_FromVec3 (currententity->origin, local_modelorg_f);
+					Fix16_Sub3 (r_origin_f, local_modelorg_f, local_modelorg_f);
+					TransformVectorFix (local_modelorg_f, transformed_modelorg_f);
 
 					R_RotateBmodel ();	// FIXME: don't mess with the frustum,
 										// make entity passed in
@@ -321,7 +343,9 @@ void D_DrawSurfaces (void)
 				//
 					currententity = &cl_entities[0];
 					VectorCopy (world_transformed_modelorg,
-								transformed_modelorg);
+							transformed_modelorg);
+					Fix16_Copy3 (world_transformed_modelorg_f,
+							transformed_modelorg_f);
 					VectorCopy (base_vpn, vpn);
 					VectorCopy (base_vup, vup);
 					VectorCopy (base_vright, vright);

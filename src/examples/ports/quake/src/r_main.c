@@ -79,6 +79,12 @@ float		xcenter, ycenter;
 float		xscale, yscale;
 float		xscaleinv, yscaleinv;
 float		xscaleshrink, yscaleshrink;
+
+//The projection constants in 16.16, for the world renderer. Everything the
+//renderer projects with comes from these.
+fix16_t		xcenter_f, ycenter_f;
+fix16_t		xscale_f, yscale_f;
+fix16_t		xscaleinv_f, yscaleinv_f;
 float		aliasxscale, aliasyscale, aliasxcenter, aliasycenter;
 
 int		screenwidth;
@@ -429,6 +435,14 @@ void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 	yscaleinv = 1.0 / yscale;
 	xscaleshrink = (r_refdef.vrect.width-6)/r_refdef.horizontalFieldOfView;
 	yscaleshrink = xscaleshrink*pixelAspect;
+
+// and the 16.16 copies the world renderer works from
+	xcenter_f = Fix16_FromFloat (xcenter);
+	ycenter_f = Fix16_FromFloat (ycenter);
+	xscale_f = Fix16_FromFloat (xscale);
+	yscale_f = Fix16_FromFloat (yscale);
+	xscaleinv_f = Fix16_FromFloat (xscaleinv);
+	yscaleinv_f = Fix16_FromFloat (yscaleinv);
 
 // left side clip
 	screenedge[0].normal[0] = -1.0 / (xOrigin*r_refdef.horizontalFieldOfView);

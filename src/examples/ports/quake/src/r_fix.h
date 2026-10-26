@@ -189,6 +189,28 @@ static inline fix16_t Fix32_MulToFix16(fix32_t a, fix16_t b)
 	return (fix16_t)((a * (fix32_t)b) >> 32);
 }
 
+//16.16 * 32.32 giving 32.32 - the gradient case: a texture axis (16.16) times
+//the per-pixel step of a perspective value (32.32).
+static inline fix32_t Fix16_MulToFix32(fix16_t a, fix32_t b)
+{
+	return ((fix32_t)a * b) >> 16;
+}
+
+//16.16 * 16.16 giving 32.32, with no shift at all: the raw product of two
+//16.16 values is already scaled by 2^32. Used to build the first gradient step
+//from two 16.16 inputs without losing the low bits.
+static inline fix32_t Fix16_Mul16ToFix32(fix16_t a, fix16_t b)
+{
+	return (fix32_t)a * (fix32_t)b;
+}
+
+//Reciprocal of a 16.16 value, as 32.32: 1/(a/2^16) * 2^32 = 2^48/a. This is
+//1/distance-to-plane, which the renderer needs per surface.
+static inline fix32_t Fix16_Recip32(fix16_t a)
+{
+	return ((fix32_t)1 << 48) / (fix32_t)a;
+}
+
 //Reciprocal of a 32.32 value, as 16.16. This is 1/(1/z), i.e. z, which is what
 //the texture mapper needs to scale s/z and t/z back to s and t. One 64-bit
 //divide per span chunk.

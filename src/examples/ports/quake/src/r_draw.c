@@ -388,8 +388,8 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	int			i, lindex;
 	unsigned	mask;
 	mplane_t	*pplane;
-	float		distinv;
-	vec3_t		p_normal;
+	fix32_t		distinv;
+	fix16_t		p_normal[3];
 	medge_t		*pedges, tedge;
 	clipplane_t	*pclip;
 
@@ -561,15 +561,19 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 
 	pplane = fa->plane;
 // FIXME: cache this?
-	TransformVector (pplane->normal, p_normal);
+	p_normal[0] = Fix16_Dot3 (pplane->fnormal, vright_f);
+	p_normal[1] = Fix16_Dot3 (pplane->fnormal, vup_f);
+	p_normal[2] = Fix16_Dot3 (pplane->fnormal, vpn_f);
 // FIXME: cache this?
-	distinv = 1.0 / (pplane->dist - DotProduct (modelorg, pplane->normal));
+	distinv = Fix16_Recip32 (pplane->fdist - Fix16_Dot3 (modelorg_f, pplane->fnormal));
 
-	surface_p->d_zistepu = p_normal[0] * xscaleinv * distinv;
-	surface_p->d_zistepv = -p_normal[1] * yscaleinv * distinv;
-	surface_p->d_ziorigin = p_normal[2] * distinv -
-			xcenter * surface_p->d_zistepu -
-			ycenter * surface_p->d_zistepv;
+//The 1/z plane across the surface, in 32.32: a 16.16 view-space normal
+//component times the 1/distance scale, then the screen origin term.
+	surface_p->d_zistepu = Fix16_MulToFix32 (Fix16_Mul (p_normal[0], xscaleinv_f), distinv);
+	surface_p->d_zistepv = -Fix16_MulToFix32 (Fix16_Mul (p_normal[1], yscaleinv_f), distinv);
+	surface_p->d_ziorigin = Fix16_MulToFix32 (p_normal[2], distinv)
+			- Fix16_MulToFix32 (xcenter_f, surface_p->d_zistepu)
+			- Fix16_MulToFix32 (ycenter_f, surface_p->d_zistepv);
 
 //JDC	VectorCopy (r_worldmodelorg, surface_p->modelorg);
 	surface_p++;
@@ -586,8 +590,8 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 	int			i;
 	unsigned	mask;
 	mplane_t	*pplane;
-	float		distinv;
-	vec3_t		p_normal;
+	fix32_t		distinv;
+	fix16_t		p_normal[3];
 	static medge_t		tedge; //pvmk - made static to squelch dangling-pointer warning
 	clipplane_t	*pclip;
 
@@ -676,15 +680,19 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 
 	pplane = psurf->plane;
 // FIXME: cache this?
-	TransformVector (pplane->normal, p_normal);
+	p_normal[0] = Fix16_Dot3 (pplane->fnormal, vright_f);
+	p_normal[1] = Fix16_Dot3 (pplane->fnormal, vup_f);
+	p_normal[2] = Fix16_Dot3 (pplane->fnormal, vpn_f);
 // FIXME: cache this?
-	distinv = 1.0 / (pplane->dist - DotProduct (modelorg, pplane->normal));
+	distinv = Fix16_Recip32 (pplane->fdist - Fix16_Dot3 (modelorg_f, pplane->fnormal));
 
-	surface_p->d_zistepu = p_normal[0] * xscaleinv * distinv;
-	surface_p->d_zistepv = -p_normal[1] * yscaleinv * distinv;
-	surface_p->d_ziorigin = p_normal[2] * distinv -
-			xcenter * surface_p->d_zistepu -
-			ycenter * surface_p->d_zistepv;
+//The 1/z plane across the surface, in 32.32: a 16.16 view-space normal
+//component times the 1/distance scale, then the screen origin term.
+	surface_p->d_zistepu = Fix16_MulToFix32 (Fix16_Mul (p_normal[0], xscaleinv_f), distinv);
+	surface_p->d_zistepv = -Fix16_MulToFix32 (Fix16_Mul (p_normal[1], yscaleinv_f), distinv);
+	surface_p->d_ziorigin = Fix16_MulToFix32 (p_normal[2], distinv)
+			- Fix16_MulToFix32 (xcenter_f, surface_p->d_zistepu)
+			- Fix16_MulToFix32 (ycenter_f, surface_p->d_zistepv);
 
 //JDC	VectorCopy (r_worldmodelorg, surface_p->modelorg);
 	surface_p++;

@@ -33,9 +33,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // FIXME: make into one big structure, like cl or sv
 // FIXME: do separately for refresh engine and driver
 
-float	d_sdivzstepu, d_tdivzstepu, d_zistepu;
-float	d_sdivzstepv, d_tdivzstepv, d_zistepv;
-float	d_sdivzorigin, d_tdivzorigin, d_ziorigin;
+//Perspective gradients, 32.32. These are s/z, t/z and 1/z and their steps
+//across the screen; they need range (s/z reaches ~4e5 near geometry) and
+//precision (a 1/z step is ~1e-6 per pixel) at the same time, which 16.16
+//cannot do. They are touched once per span chunk, not per pixel.
+fix32_t	d_sdivzstepu, d_tdivzstepu, d_zistepu;
+fix32_t	d_sdivzstepv, d_tdivzstepv, d_zistepv;
+fix32_t	d_sdivzorigin, d_tdivzorigin, d_ziorigin;
 
 fixed16_t	sadjust, tadjust, bbextents, bbextentt;
 

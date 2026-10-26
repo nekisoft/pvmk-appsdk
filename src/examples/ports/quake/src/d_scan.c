@@ -124,8 +124,9 @@ void Turbulent8 (espan_t *pspan)
 {
 	int				count;
 	fixed16_t		snext, tnext;
-	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
-	float			sdivz16stepu, tdivz16stepu, zi16stepu;
+	fix32_t			sdivz, tdivz, zi, sdivz16stepu, tdivz16stepu, zi16stepu;
+	fix16_t			z;
+	int				spancountminus1;
 	
 	r_turb_turb = sintable + ((int)(cl.time*SPEED)&(CYCLE-1));
 
@@ -146,21 +147,18 @@ void Turbulent8 (espan_t *pspan)
 		count = pspan->count;
 
 	// calculate the initial s/z, t/z, 1/z, s, and t and clamp
-		du = (float)pspan->u;
-		dv = (float)pspan->v;
+		sdivz = d_sdivzorigin + pspan->v * d_sdivzstepv + pspan->u * d_sdivzstepu;
+		tdivz = d_tdivzorigin + pspan->v * d_tdivzstepv + pspan->u * d_tdivzstepu;
+		zi = d_ziorigin + pspan->v * d_zistepv + pspan->u * d_zistepu;
+		z = Fix32_Recip (zi);	//1/zi, which is view z, in 16.16
 
-		sdivz = rf_add(d_sdivzorigin, rf_add(rf_mul(dv,d_sdivzstepv), rf_mul(du,d_sdivzstepu)));
-		tdivz = rf_add(d_tdivzorigin, rf_add(rf_mul(dv,d_tdivzstepv), rf_mul(du,d_tdivzstepu)));
-		zi = rf_add(d_ziorigin, rf_add(rf_mul(dv,d_zistepv), rf_mul(du,d_zistepu)));
-		z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-
-		r_turb_s = (int)(sdivz * z) + sadjust;
+		r_turb_s = Fix32_MulToFix16 (sdivz, z) + sadjust;
 		if (r_turb_s > bbextents)
 			r_turb_s = bbextents;
 		else if (r_turb_s < 0)
 			r_turb_s = 0;
 
-		r_turb_t = (int)(tdivz * z) + tadjust;
+		r_turb_t = Fix32_MulToFix16 (tdivz, z) + tadjust;
 		if (r_turb_t > bbextentt)
 			r_turb_t = bbextentt;
 		else if (r_turb_t < 0)
@@ -183,9 +181,9 @@ void Turbulent8 (espan_t *pspan)
 				sdivz += sdivz16stepu;
 				tdivz += tdivz16stepu;
 				zi += zi16stepu;
-				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
+				z = Fix32_Recip (zi);
 
-				snext = (int)(sdivz * z) + sadjust;
+				snext = Fix32_MulToFix16 (sdivz, z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < 16)
@@ -193,7 +191,7 @@ void Turbulent8 (espan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(tdivz * z) + tadjust;
+				tnext = Fix32_MulToFix16 (tdivz, z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < 16)
@@ -208,12 +206,12 @@ void Turbulent8 (espan_t *pspan)
 			// can't step off polygon), clamp, calculate s and t steps across
 			// span by division, biasing steps low so we don't run off the
 			// texture
-				spancountminus1 = (float)(r_turb_spancount - 1);
+				spancountminus1 = r_turb_spancount - 1;
 				sdivz += d_sdivzstepu * spancountminus1;
 				tdivz += d_tdivzstepu * spancountminus1;
 				zi += d_zistepu * spancountminus1;
-				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-				snext = (int)(sdivz * z) + sadjust;
+				z = Fix32_Recip (zi);
+				snext = Fix32_MulToFix16 (sdivz, z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < 16)
@@ -221,7 +219,7 @@ void Turbulent8 (espan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(tdivz * z) + tadjust;
+				tnext = Fix32_MulToFix16 (tdivz, z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < 16)
@@ -261,8 +259,9 @@ void D_DrawSpans8 (espan_t *pspan)
 	unsigned char	*pbase; 
 	pixel_t *pdest;
 	fixed16_t		s, t, snext, tnext, sstep, tstep;
-	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
-	float			sdivz8stepu, tdivz8stepu, zi8stepu;
+	fix32_t			sdivz, tdivz, zi, sdivz8stepu, tdivz8stepu, zi8stepu;
+	fix16_t			z;
+	int				spancountminus1;
 
 	sstep = 0;	// keep compiler happy
 	tstep = 0;	// ditto
@@ -284,21 +283,18 @@ void D_DrawSpans8 (espan_t *pspan)
 		count = pspan->count;
 
 	// calculate the initial s/z, t/z, 1/z, s, and t and clamp
-		du = (float)pspan->u;
-		dv = (float)pspan->v;
+		sdivz = d_sdivzorigin + pspan->v * d_sdivzstepv + pspan->u * d_sdivzstepu;
+		tdivz = d_tdivzorigin + pspan->v * d_tdivzstepv + pspan->u * d_tdivzstepu;
+		zi = d_ziorigin + pspan->v * d_zistepv + pspan->u * d_zistepu;
+		z = Fix32_Recip (zi);	//1/zi, which is view z, in 16.16
 
-		sdivz = rf_add(d_sdivzorigin, rf_add(rf_mul(dv,d_sdivzstepv), rf_mul(du,d_sdivzstepu)));
-		tdivz = rf_add(d_tdivzorigin, rf_add(rf_mul(dv,d_tdivzstepv), rf_mul(du,d_tdivzstepu)));
-		zi = rf_add(d_ziorigin, rf_add(rf_mul(dv,d_zistepv), rf_mul(du,d_zistepu)));
-		z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-
-		s = (int)(rf_mul(sdivz,z)) + sadjust;
+		s = Fix32_MulToFix16 (sdivz, z) + sadjust;
 		if (s > bbextents)
 			s = bbextents;
 		else if (s < 0)
 			s = 0;
 
-		t = (int)(rf_mul(tdivz, z)) + tadjust;
+		t = Fix32_MulToFix16 (tdivz, z) + tadjust;
 		if (t > bbextentt)
 			t = bbextentt;
 		else if (t < 0)
@@ -321,9 +317,9 @@ void D_DrawSpans8 (espan_t *pspan)
 				sdivz += sdivz8stepu;
 				tdivz += tdivz8stepu;
 				zi += zi8stepu;
-				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
+				z = Fix32_Recip (zi);
 
-				snext = (int)(rf_mul(sdivz, z)) + sadjust;
+				snext = Fix32_MulToFix16 (sdivz, z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < SPANGRAN)
@@ -331,7 +327,7 @@ void D_DrawSpans8 (espan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(rf_mul(tdivz, z)) + tadjust;
+				tnext = Fix32_MulToFix16 (tdivz, z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < SPANGRAN)
@@ -346,12 +342,12 @@ void D_DrawSpans8 (espan_t *pspan)
 			// can't step off polygon), clamp, calculate s and t steps across
 			// span by division, biasing steps low so we don't run off the
 			// texture
-				spancountminus1 = (float)(spancount - 1);
-				sdivz = rf_add(sdivz, rf_mul(d_sdivzstepu, spancountminus1));
-				tdivz = rf_add(tdivz, rf_mul(d_tdivzstepu, spancountminus1));
-				zi = rf_add(zi, rf_mul(d_zistepu, spancountminus1));
-				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-				snext = (int)(rf_mul(sdivz, z)) + sadjust;
+				spancountminus1 = spancount - 1;
+				sdivz += d_sdivzstepu * spancountminus1;
+				tdivz += d_tdivzstepu * spancountminus1;
+				zi += d_zistepu * spancountminus1;
+				z = Fix32_Recip (zi);
+				snext = Fix32_MulToFix16 (sdivz, z) + sadjust;
 				if (snext > bbextents)
 					snext = bbextents;
 				else if (snext < SPANGRAN)
@@ -359,7 +355,7 @@ void D_DrawSpans8 (espan_t *pspan)
 								//  from causing overstepping & running off the
 								//  edge of the texture
 
-				tnext = (int)(rf_mul(tdivz, z)) + tadjust;
+				tnext = Fix32_MulToFix16 (tdivz, z) + tadjust;
 				if (tnext > bbextentt)
 					tnext = bbextentt;
 				else if (tnext < SPANGRAN)
@@ -403,13 +399,13 @@ void D_DrawZSpans (espan_t *pspan)
 	int				izi;
 	short			*pdest;
 	unsigned		ltemp;
-	//double			zi;
-	float zi;
-	float			du, dv;
+	fix32_t			zi;
 
-// FIXME: check for clamping/range problems
-// we count on FP exceptions being turned off to avoid range problems
-	izistep = (int)(d_zistepu * 0x8000 * 0x10000);
+//The z buffer holds 1/z scaled by 2^31, top half only, as it always has.
+//Note that a 1/z above 1 (geometry nearer than one unit) now wraps where the
+//float build saturated to INT_MIN; the z buffer is only used for
+//depth-sorted sprites and particles, and the world is drawn without it.
+	izistep = (int)(d_zistepu >> 1);
 
 	do
 	{
@@ -418,12 +414,8 @@ void D_DrawZSpans (espan_t *pspan)
 		count = pspan->count;
 
 	// calculate the initial 1/z
-		du = (float)pspan->u;
-		dv = (float)pspan->v;
-
-		zi = rf_add(d_ziorigin, rf_add(rf_mul(dv,d_zistepv), rf_mul(du,d_zistepu)));
-	// we count on FP exceptions being turned off to avoid range problems
-		izi = (int)(zi * 0x8000 * 0x10000);
+		zi = d_ziorigin + pspan->v * d_zistepv + pspan->u * d_zistepu;
+		izi = (int)(zi >> 1);
 
 		if ((long)pdest & 0x02)
 		{

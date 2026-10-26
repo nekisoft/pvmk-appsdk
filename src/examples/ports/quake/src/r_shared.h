@@ -100,7 +100,7 @@ typedef struct surf_s
 	entity_t	*entity;
 	float		nearzi;				// nearest 1/z on surface, for mipmapping
 	qboolean	insubmodel;
-	float		d_ziorigin, d_zistepu, d_zistepv;
+	fix32_t		d_ziorigin, d_zistepu, d_zistepv;	//32.32, see d_vars.c
 
 	int			pad[2];				// to 64 bytes
 } surf_t;
@@ -122,6 +122,9 @@ extern vec3_t	modelorg, base_modelorg;
 extern fix16_t	modelorg_f[3], base_modelorg_f[3];
 
 extern	float	xcenter, ycenter;
+extern	fix16_t	xcenter_f, ycenter_f;
+extern	fix16_t	xscale_f, yscale_f;
+extern	fix16_t	xscaleinv_f, yscaleinv_f;
 extern	float	xscale, yscale;
 extern	float	xscaleinv, yscaleinv;
 extern	float	xscaleshrink, yscaleshrink;
@@ -130,6 +133,7 @@ extern	int d_lightstylevalue[256]; // 8.8 frac of base light value
 
 extern void TransformVector (vec3_t in, vec3_t out);
 extern void TransformVector_Shitty (vec3_t in, vec3_t out);
+extern void TransformVectorFix (const fix16_t in[3], fix16_t out[3]);
 extern void SetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 	fixed8_t endvertu, fixed8_t endvertv);
 
