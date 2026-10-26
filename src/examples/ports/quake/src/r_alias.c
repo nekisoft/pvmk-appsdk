@@ -506,10 +506,18 @@ void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv, const stvert_t *pstv
 		fv[i].v[1] = Fix16_ToInt (Fix16_MulSat (Fix16_MulSat (y, zi), aliasyscale_f)
 				+ aliasycenter_f);
 
-	// 1/z for the z test. The float build wrote ziscale*(1/z) here, which is 2^47/z: that
-	// overflows an int for any z under 65536 units, and 16.16 cannot hold a z that large,
-	// so the conversion saturated to INT_MAX every time. Same value, no arithmetic.
-		fv[i].v[5] = 0x7fffffff;
+	// 1/z for the z test, scaled by 2^31 - which is what the 1/(0x8000*0x10000) folded into
+	// the float transform leaves behind. d_polyse compares v[5]>>16 against the world's z
+	// buffer, so this has to be the real reciprocal: writing INT_MAX here (which is what I
+	// did first, having misread 0x8000*0x10000 as 2^47) makes every alias pixel win the test
+	// and monsters draw through walls.
+		fix32_t zi31 = Fix16_Recip32 (z) >> 1;	//1/z, 32.32, halved to 2^31
+		if (zi31 > 0x7fffffff)
+			fv[i].v[5] = 0x7fffffff;
+		else if (zi31 < -0x7fffffff - 1)
+			fv[i].v[5] = -0x7fffffff - 1;
+		else
+			fv[i].v[5] = (int)zi31;
 
 		fv[i].v[2] = pstverts[i].s;
 		fv[i].v[3] = pstverts[i].t;
