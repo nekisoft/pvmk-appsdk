@@ -47,6 +47,7 @@ BRUSH MODELS
 typedef struct
 {
 	vec3_t		position;
+	fix16_t		fpos[3];	//same, in 16.16 - what the renderer uses
 } mvertex_t;
 
 #define	SIDE_FRONT	0
@@ -60,6 +61,8 @@ typedef struct mplane_s
 {
 	vec3_t	normal;
 	float	dist;
+	fix16_t	fnormal[3];	//same plane in 16.16, for the renderer. Collision
+	fix16_t	fdist;		//keeps using the floats above.
 	byte	type;			// for texture axis selection and fast side tests
 	byte	signbits;		// signx + signy<<1 + signz<<1
 	byte	pad[2];
@@ -94,6 +97,7 @@ typedef struct
 typedef struct
 {
 	float		vecs[2][4];
+	fix16_t		fvecs[2][4];	//same, in 16.16 - what the renderer uses
 	float		mipadjust;
 	texture_t	*texture;
 	int			flags;

@@ -569,9 +569,12 @@ void Mod_LoadVertexes (lump_t *l)
 
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
-		out->position[0] = LittleFloat (in->point[0]);
-		out->position[1] = LittleFloat (in->point[1]);
-		out->position[2] = LittleFloat (in->point[2]);
+		int		j;
+		for (j=0 ; j<3 ; j++)
+		{
+			out->position[j] = LittleFloat (in->point[j]);
+			out->fpos[j] = Fix16_FromFloat (LittleFloat (in->point[j]));
+		}
 	}
 }
 
@@ -663,7 +666,10 @@ void Mod_LoadTexinfo (lump_t *l)
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
 		for (j=0 ; j<8 ; j++)
+		{
 			out->vecs[0][j] = LittleFloat (in->vecs[0][j]);
+			out->fvecs[0][j] = Fix16_FromFloat (LittleFloat (in->vecs[0][j]));
+		}
 		len1 = Length (out->vecs[0]);
 		len2 = Length (out->vecs[1]);
 		len1 = (len1 + len2)/2;
@@ -1107,11 +1113,13 @@ void Mod_LoadPlanes (lump_t *l)
 		for (j=0 ; j<3 ; j++)
 		{
 			out->normal[j] = LittleFloat (in->normal[j]);
+			out->fnormal[j] = Fix16_FromFloat (LittleFloat (in->normal[j]));
 			if (out->normal[j] < 0)
 				bits |= 1<<j;
 		}
 
 		out->dist = LittleFloat (in->dist);
+		out->fdist = Fix16_FromFloat (LittleFloat (in->dist));
 		out->type = LittleLong (in->type);
 		out->signbits = bits;
 	}

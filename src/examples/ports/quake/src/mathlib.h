@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //betopp - adding shitty "rough" low-precision softfloat routines
 #include "rough_float.h"
 
+//betopp - fixed point for the world renderer
+#include "r_fix.h"
+
 typedef float vec_t;
 typedef vec_t vec3_t[3];
 typedef vec_t vec5_t[5];
