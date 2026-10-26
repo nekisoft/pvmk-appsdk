@@ -63,8 +63,9 @@ typedef struct
 } evert_t;
 
 int				r_emitted;
-float			r_nearzi;
-float			r_u1, r_v1, r_lzi1;
+fix32_t			r_nearzi;
+fix16_t			r_u1, r_v1;
+fix32_t			r_lzi1;
 int				r_ceilv1;
 
 qboolean	r_lastvertvalid;
@@ -81,11 +82,12 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 {
 	edge_t	*edge, *pcheck;
 	int		u_check;
-	float	u, u_step;
-	vec3_t	local, transformed;
-	float	*world;
+	fix16_t	u, u_step;
+	fix16_t	local[3], transformed[3], scale;
+	fix16_t	*world;
 	int		v, v2, ceilv0;
-	float	scale, lzi0, u0, v0;
+	fix32_t	lzi0;
+	fix16_t	u0, v0;
 	int		side;
 
 	if (r_lastvertvalid)
@@ -97,59 +99,59 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 	}
 	else
 	{
-		world = &pv0->position[0];
+		world = pv0->fpos;
 	
-	// transform and project
-		VectorSubtract_Shitty (world, modelorg, local);
-		TransformVector_Shitty (local, transformed);
+	// transform and project. 1/z keeps its 32 bits of fraction: it is small
+	// near the far clipping distance, and every texel coordinate downstream is
+	// scaled by it.
+		Fix16_Sub3 (world, modelorg_f, local);
+		TransformVectorFix (local, transformed);
 	
-		if (transformed[2] < NEAR_CLIP)
-			transformed[2] = NEAR_CLIP;
+		if (transformed[2] < NEAR_CLIP_FIX16)
+			transformed[2] = NEAR_CLIP_FIX16;
 	
-		lzi0 = 1.0 / transformed[2];
+		lzi0 = Fix16_Recip32 (transformed[2]);
 	
 	// FIXME: build x/yscale into transform?
-		scale = rf_mul(xscale, lzi0);
-		u0 = (xcenter + rf_mul(scale,transformed[0]));
-		if (u0 < r_refdef.fvrectx_adj)
-			u0 = r_refdef.fvrectx_adj;
-		if (u0 > r_refdef.fvrectright_adj)
-			u0 = r_refdef.fvrectright_adj;
+		scale = Fix32_ToFix16 (Fix16_MulToFix32 (xscale_f, lzi0));
+		u0 = xcenter_f + Fix32_MulToFix16 (Fix16_MulToFix32 (xscale_f, lzi0), transformed[0]);
+		if (u0 < r_fvrectx_adj)
+			u0 = r_fvrectx_adj;
+		if (u0 > r_fvrectright_adj)
+			u0 = r_fvrectright_adj;
 	
-		scale = rf_mul(yscale, lzi0);
-		v0 = (ycenter - rf_mul(scale,transformed[1]));
-		if (v0 < r_refdef.fvrecty_adj)
-			v0 = r_refdef.fvrecty_adj;
-		if (v0 > r_refdef.fvrectbottom_adj)
-			v0 = r_refdef.fvrectbottom_adj;
+		scale = Fix32_ToFix16 (Fix16_MulToFix32 (yscale_f, lzi0));
+		v0 = ycenter_f - Fix32_MulToFix16 (Fix16_MulToFix32 (yscale_f, lzi0), transformed[1]);
+		if (v0 < r_fvrecty_adj)
+			v0 = r_fvrecty_adj;
+		if (v0 > r_fvrectbottom_adj)
+			v0 = r_fvrectbottom_adj;
 	
-		ceilv0 = (int) ceil(v0);
+		ceilv0 = Fix16_Ceil (v0);
 	}
 
-	world = &pv1->position[0];
+	world = pv1->fpos;
 
 // transform and project
-	VectorSubtract_Shitty (world, modelorg, local);
-	TransformVector_Shitty (local, transformed);
+	Fix16_Sub3 (world, modelorg_f, local);
+	TransformVectorFix (local, transformed);
 
-	if (transformed[2] < NEAR_CLIP)
-		transformed[2] = NEAR_CLIP;
+	if (transformed[2] < NEAR_CLIP_FIX16)
+		transformed[2] = NEAR_CLIP_FIX16;
 
-	r_lzi1 = 1.0 / transformed[2];
+	r_lzi1 = Fix16_Recip32 (transformed[2]);
 
-	scale = rf_mul(xscale, r_lzi1);
-	r_u1 = (xcenter + rf_mul(scale,transformed[0]));
-	if (r_u1 < r_refdef.fvrectx_adj)
-		r_u1 = r_refdef.fvrectx_adj;
-	if (r_u1 > r_refdef.fvrectright_adj)
-		r_u1 = r_refdef.fvrectright_adj;
+	r_u1 = xcenter_f + Fix32_MulToFix16 (Fix16_MulToFix32 (xscale_f, r_lzi1), transformed[0]);
+	if (r_u1 < r_fvrectx_adj)
+		r_u1 = r_fvrectx_adj;
+	if (r_u1 > r_fvrectright_adj)
+		r_u1 = r_fvrectright_adj;
 
-	scale = rf_mul(yscale, r_lzi1);
-	r_v1 = (ycenter - rf_mul(scale,transformed[1]));
-	if (r_v1 < r_refdef.fvrecty_adj)
-		r_v1 = r_refdef.fvrecty_adj;
-	if (r_v1 > r_refdef.fvrectbottom_adj)
-		r_v1 = r_refdef.fvrectbottom_adj;
+	r_v1 = ycenter_f - Fix32_MulToFix16 (Fix16_MulToFix32 (yscale_f, r_lzi1), transformed[1]);
+	if (r_v1 < r_fvrecty_adj)
+		r_v1 = r_fvrecty_adj;
+	if (r_v1 > r_fvrectbottom_adj)
+		r_v1 = r_fvrectbottom_adj;
 
 	if (r_lzi1 > lzi0)
 		lzi0 = r_lzi1;
@@ -163,7 +165,7 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 
 	r_emitted = 1;
 
-	r_ceilv1 = (int) ceil(r_v1);
+	r_ceilv1 = Fix16_Ceil (r_v1);
 
 
 // create the edge
@@ -196,8 +198,8 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 		edge->surfs[0] = surface_p - surfaces;
 		edge->surfs[1] = 0;
 
-		u_step = ((r_u1 - u0) / (r_v1 - v0));
-		u = u0 + ((float)v - v0) * u_step;
+		u_step = Fix16_DivSat (r_u1 - u0, r_v1 - v0);
+		u = u0 + Fix16_Mul (Fix16_FromInt (v) - v0, u_step);
 	}
 	else
 	{
@@ -208,12 +210,13 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 		edge->surfs[0] = 0;
 		edge->surfs[1] = surface_p - surfaces;
 
-		u_step = ((u0 - r_u1) / (v0 - r_v1));
-		u = r_u1 + ((float)v - r_v1) * u_step;
+		u_step = Fix16_DivSat (u0 - r_u1, v0 - r_v1);
+		u = r_u1 + Fix16_Mul (Fix16_FromInt (v) - r_v1, u_step);
 	}
 
-	edge->u_step = u_step*0x100000;
-	edge->u = u*0x100000 + 0xFFFFF;
+//20.12: a 16.16 coordinate shifted left four bits, and the same for the step
+	edge->u_step = u_step * 16;
+	edge->u = u * 16 + 0xFFFFF;
 
 // we need to do this to avoid stepping off the edges if a very nearly
 // horizontal edge is less than epsilon above a scan, and numeric error causes
@@ -258,15 +261,15 @@ R_ClipEdge
 */
 void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 {
-	float		d0, d1, f;
+	fix16_t		d0, d1, f;
 	mvertex_t	clipvert;
 
 	if (clip)
 	{
 		do
 		{
-			d0 = rf_sub(DotProduct_Shitty (pv0->position, clip->normal) , clip->dist);
-			d1 = rf_sub(DotProduct_Shitty (pv1->position, clip->normal) , clip->dist);
+			d0 = Fix16_Dot3 (pv0->fpos, clip->fnormal) - clip->fdist;
+			d1 = Fix16_Dot3 (pv1->fpos, clip->fnormal) - clip->fdist;
 
 			if (d0 >= 0)
 			{
@@ -282,13 +285,10 @@ void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 			// we don't cache clipped edges
 				cacheoffset = 0x7FFFFFFF;
 
-				f = d0 / rf_sub(d0 , d1);
-				clipvert.position[0] = rf_add(pv0->position[0] ,
-						rf_mul(f , rf_sub(pv1->position[0] , pv0->position[0])));
-				clipvert.position[1] = rf_add(pv0->position[1] ,
-						rf_mul(f , rf_sub(pv1->position[1] , pv0->position[1])));
-				clipvert.position[2] = rf_add(pv0->position[2] ,
-						rf_mul(f , rf_sub(pv1->position[2] , pv0->position[2])));
+				f = Fix16_Div (d0, d0 - d1);
+				clipvert.fpos[0] = pv0->fpos[0] + Fix16_Mul (f, pv1->fpos[0] - pv0->fpos[0]);
+				clipvert.fpos[1] = pv0->fpos[1] + Fix16_Mul (f, pv1->fpos[1] - pv0->fpos[1]);
+				clipvert.fpos[2] = pv0->fpos[2] + Fix16_Mul (f, pv1->fpos[2] - pv0->fpos[2]);
 
 				if (clip->leftedge)
 				{
@@ -323,13 +323,10 @@ void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 			// we don't cache partially clipped edges
 				cacheoffset = 0x7FFFFFFF;
 
-				f = d0 / rf_sub(d0 , d1);
-				clipvert.position[0] = rf_add(pv0->position[0] ,
-						rf_mul(f , rf_sub(pv1->position[0] , pv0->position[0])));
-				clipvert.position[1] = rf_add(pv0->position[1] ,
-						rf_mul(f , rf_sub(pv1->position[1] , pv0->position[1])));
-				clipvert.position[2] = rf_add(pv0->position[2] ,
-						rf_mul(f , rf_sub(pv1->position[2] , pv0->position[2])));
+				f = Fix16_Div (d0, d0 - d1);
+				clipvert.fpos[0] = pv0->fpos[0] + Fix16_Mul (f, pv1->fpos[0] - pv0->fpos[0]);
+				clipvert.fpos[1] = pv0->fpos[1] + Fix16_Mul (f, pv1->fpos[1] - pv0->fpos[1]);
+				clipvert.fpos[2] = pv0->fpos[2] + Fix16_Mul (f, pv1->fpos[2] - pv0->fpos[2]);
 
 				if (clip->leftedge)
 				{
@@ -873,7 +870,7 @@ void R_RenderPoly (msurface_t *fa, int clipflags)
 // build the polygon descriptor, including fa, r_nearzi, and u, v, s, t, and z
 // for each vertex
 	r_polydesc.numverts = lnumverts;
-	r_polydesc.nearzi = r_nearzi;
+	r_polydesc.nearzi = Fix32_ToFloat (r_nearzi);
 	r_polydesc.pcurrentface = fa;
 	r_polydesc.pverts = pverts;
 

@@ -81,6 +81,7 @@ extern cvar_t	r_numedges;
 
 #define BACKFACE_EPSILON	0.01
 #define BACKFACE_EPSILON_FIX16	655	//0.01 in 16.16
+#define NEAR_CLIP_FIX16			655	//NEAR_CLIP (0.01) in 16.16
 
 //===========================================================================
 

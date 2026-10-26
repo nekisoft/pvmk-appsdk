@@ -98,7 +98,7 @@ typedef struct surf_s
 	int			flags;				// currentface flags
 	void		*data;				// associated data like msurface_t
 	entity_t	*entity;
-	float		nearzi;				// nearest 1/z on surface, for mipmapping
+	fix32_t		nearzi;				// nearest 1/z on surface, for mipmapping, 32.32
 	qboolean	insubmodel;
 	fix32_t		d_ziorigin, d_zistepu, d_zistepv;	//32.32, see d_vars.c
 
@@ -125,6 +125,8 @@ extern	float	xcenter, ycenter;
 extern	fix16_t	xcenter_f, ycenter_f;
 extern	fix16_t	xscale_f, yscale_f;
 extern	fix16_t	xscaleinv_f, yscaleinv_f;
+extern	fix16_t	r_fvrectx_adj, r_fvrecty_adj;
+extern	fix16_t	r_fvrectright_adj, r_fvrectbottom_adj;
 extern	float	xscale, yscale;
 extern	float	xscaleinv, yscaleinv;
 extern	float	xscaleshrink, yscaleshrink;
@@ -161,7 +163,7 @@ typedef struct edge_s
 	struct edge_s	*prev, *next;
 	unsigned short	surfs[2];
 	struct edge_s	*nextremove;
-	float			nearzi;
+	fix32_t			nearzi;	//nearest 1/z on the edge, for mipmapping, 32.32
 	medge_t			*owner;
 } edge_t;
 

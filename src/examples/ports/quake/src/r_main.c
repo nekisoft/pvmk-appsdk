@@ -87,6 +87,9 @@ fix16_t		xscale_f, yscale_f;
 fix16_t		xscaleinv_f, yscaleinv_f;
 float		aliasxscale, aliasyscale, aliasxcenter, aliasycenter;
 
+//the view rect edges in 16.16, for clamping projected vertices
+fix16_t		r_fvrectx_adj, r_fvrecty_adj, r_fvrectright_adj, r_fvrectbottom_adj;
+
 int		screenwidth;
 
 float	pixelAspect;
@@ -392,6 +395,12 @@ void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 	r_refdef.vrectbottom = r_refdef.vrect.y + r_refdef.vrect.height;
 	r_refdef.fvrectbottom = (float)r_refdef.vrectbottom;
 	r_refdef.fvrectbottom_adj = (float)r_refdef.vrectbottom - 0.5;
+
+// and the 16.16 copies R_EmitEdge clamps its projected vertices against
+	r_fvrectx_adj = Fix16_FromFloat (r_refdef.fvrectx_adj);
+	r_fvrecty_adj = Fix16_FromFloat (r_refdef.fvrecty_adj);
+	r_fvrectright_adj = Fix16_FromFloat (r_refdef.fvrectright_adj);
+	r_fvrectbottom_adj = Fix16_FromFloat (r_refdef.fvrectbottom_adj);
 
 	r_refdef.aliasvrect.x = (int)(r_refdef.vrect.x * r_aliasuvscale);
 	r_refdef.aliasvrect.y = (int)(r_refdef.vrect.y * r_aliasuvscale);

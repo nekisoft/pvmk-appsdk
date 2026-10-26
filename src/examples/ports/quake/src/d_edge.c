@@ -319,7 +319,7 @@ void D_DrawSurfaces (void)
 				}
 
 				pface = s->data;
-				miplevel = D_MipLevelForScale (s->nearzi * scale_for_mip
+				miplevel = D_MipLevelForScale (Fix32_ToFloat (s->nearzi) * scale_for_mip
 				* pface->texinfo->mipadjust);
 
 			// FIXME: make this passed in to D_CacheSurface

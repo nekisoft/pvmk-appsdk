@@ -107,6 +107,33 @@ static inline fix16_t Fix16_Div(fix16_t a, fix16_t b)
 	return (fix16_t)((((fix32_t)a) << 16) / (fix32_t)b);
 }
 
+//Divide, saturating instead of wrapping. Edge slopes divide by the height of
+//the edge, which is nearly zero for a horizontal edge; the float build got a
+//huge slope there and then clamped the result to the view rect, and so must
+//we, rather than overflow into a wrong-signed coordinate.
+static inline fix16_t Fix16_DivSat(fix16_t a, fix16_t b)
+{
+	fix32_t q;
+
+	if (b == 0)
+		return (a < 0) ? -0x7FFFFFFF - 1 : 0x7FFFFFFF;
+
+	q = (((fix32_t)a) << 16) / (fix32_t)b;
+
+	if (q > 0x7FFFFFFF)
+		return 0x7FFFFFFF;
+	if (q < -0x7FFFFFFF - 1)
+		return -0x7FFFFFFF - 1;
+	return (fix16_t)q;
+}
+
+//Smallest integer not less than v. Screen coordinates are clamped into the
+//view rect first, so this never has to think about negatives.
+static inline int Fix16_Ceil(fix16_t v)
+{
+	return (int)((v + 0xFFFF) >> 16);
+}
+
 //Dot product of two 3-vectors, accumulated in 64 bits.
 static inline fix16_t Fix16_Dot3(const fix16_t a[3], const fix16_t b[3])
 {
@@ -175,6 +202,11 @@ static inline fix32_t Fix32_FromFix16(fix16_t v)
 static inline fix16_t Fix32_ToFix16(fix32_t v)
 {
 	return (fix16_t)(v >> 16);
+}
+
+static inline float Fix32_ToFloat(fix32_t v)
+{
+	return (float)v * (1.0f / 4294967296.0f);
 }
 
 static inline int Fix32_ToInt(fix32_t v)
