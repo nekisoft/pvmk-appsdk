@@ -122,6 +122,12 @@ void prof_count(int idx, uint32_t pc)
 
 void prof_sysc_hit(uint32_t nr)
 {
+	//Windowed like the histogram, so the two line up: a flip count from the whole run
+	//dividing a window's instructions would be a different number every time the window
+	//moved, which is exactly the mistake this profiler exists to avoid.
+	if(!prof_enabled)
+		return;
+
 	if(nr < 256)
 		prof_sysc[nr]++;
 	prof_sysc_total++;

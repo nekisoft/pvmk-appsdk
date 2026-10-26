@@ -28,6 +28,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 unsigned char	*r_turb_pbase;
 pixel_t *r_turb_pdest;
 fixed16_t		r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
+//16.16 reciprocals of 1..32, for stepping a span without dividing. The step is
+//(end - start) / (spancount - 1), spans are at most SPANGRAN (32) pixels, and
+//turbulent spans are 16.
+const fix16_t r_spanrecip[SPANRECIP_MAX] =
+{
+	0, 65536, 32768, 21845, 16384, 13107, 10923, 9362,
+	8192, 7282, 6554, 5958, 5461, 5041, 4681, 4369,
+	4096, 3855, 3641, 3449, 3277, 3121, 2979, 2849,
+	2731, 2621, 2521, 2427, 2341, 2260, 2185, 2114,
+	2048
+};
+
 int				*r_turb_turb;
 int				r_turb_spancount;
 
@@ -227,8 +239,8 @@ void Turbulent8 (espan_t *pspan)
 
 				if (r_turb_spancount > 1)
 				{
-					r_turb_sstep = (snext - r_turb_s) / (r_turb_spancount - 1);
-					r_turb_tstep = (tnext - r_turb_t) / (r_turb_spancount - 1);
+					r_turb_sstep = Fix16_Mul (snext - r_turb_s, r_spanrecip[r_turb_spancount - 1]);
+					r_turb_tstep = Fix16_Mul (tnext - r_turb_t, r_spanrecip[r_turb_spancount - 1]);
 				}
 			}
 
@@ -363,8 +375,9 @@ void D_DrawSpans8 (espan_t *pspan)
 
 				if (spancount > 1)
 				{
-					sstep = (snext - s) / (spancount - 1);
-					tstep = (tnext - t) / (spancount - 1);
+					//Divide by the count-1 without dividing: the divisor is 1..7
+					sstep = Fix16_Mul (snext - s, r_spanrecip[spancount - 1]);
+					tstep = Fix16_Mul (tnext - t, r_spanrecip[spancount - 1]);
 				}
 			}
 

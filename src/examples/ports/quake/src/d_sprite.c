@@ -153,8 +153,8 @@ void D_SpriteDrawSpans (sspan_t *pspan)
 
 				if (spancount > 1)
 				{
-					sstep = (snext - s) / (spancount - 1);
-					tstep = (tnext - t) / (spancount - 1);
+					sstep = Fix16_Mul (snext - s, r_spanrecip[spancount - 1]);
+					tstep = Fix16_Mul (tnext - t, r_spanrecip[spancount - 1]);
 				}
 			}
 

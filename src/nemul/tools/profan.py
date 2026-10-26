@@ -201,6 +201,23 @@ def main():
     window = f"{meta.get('from','?')}..{meta.get('to','?')} ms"
     print(f"window {window}   instructions {total_i:,}   modelled cycles {total_c:,}"
           f"   ({total_c/total_i:.2f} cycles/instruction)")
+
+    #A frame-rate coupled program draws as many frames as it has time for, so its total
+    #instructions per second barely move when it gets faster - it just draws more frames.
+    #Instructions per frame is the number that moves, so report it when the run says how
+    #many frames it drew.
+    flips = 0
+    try:
+        with open(args.hist.rsplit("-", 1)[0] + "-sysc.txt") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 3 and parts[1] == "gfx_flip":
+                    flips = int(parts[2])
+    except (OSError, ValueError):
+        pass
+    if flips:
+        print(f"                {flips} frames   {total_i/flips:,.0f} instructions per frame"
+              f"   {total_c/flips:,.0f} cycles per frame")
     print()
 
     def table(title, counts, cycles, top):

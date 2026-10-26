@@ -31,7 +31,8 @@ static inline void prof_hit(int idx, uint32_t pc)
 		prof_count(idx, pc);
 }
 
-//Counts a system-call by number, so the picture includes what leaves emulated code.
+//Counts a system-call by number, within the recording window, so the picture includes what
+//leaves emulated code - and so a frame count can be divided into the instruction count.
 void prof_sysc_hit(uint32_t nr);
 
 //Writes the histogram out. Called on the way out of the run.

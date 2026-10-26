@@ -24,6 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_shared.h"
 
+//16.16 reciprocals of 1..32, so a span step can be divided by its count without
+//dividing. Defined in d_scan.c.
+#define SPANRECIP_MAX 33
+extern const fix16_t r_spanrecip[SPANRECIP_MAX];
+
 //
 // TODO: fine-tune this; it's based on providing some overage even if there
 // is a 2k-wide scan, with subdivision every 8, for 256 spans of 12 bytes each
