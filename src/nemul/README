@@ -1,0 +1,224 @@
+# Nemul - the Neki32 simulator
+
+Two front ends over one emulation core.
+
+    gmake            # bin/nemul.elf            graphical, SDL2 + Dear ImGui
+    gmake headless   # bin/nemul-headless.elf   console, no display at all
+
+The core - `interp.cpp`, `process.cpp`, `sysc.cpp`, `rsp.cpp`, `trace.cpp`, `prof.cpp` and the
+embedded init image `init.inc` - knows nothing about either front end. What differs is the
+main loop, the input, the preferences and the picture.
+
+## Dependencies
+
+`bin/nemul.elf` needs SDL2 (2.0.17 or later; `pkg-config sdl2` or `sdl2-config` must find it,
+otherwise the Makefile assumes `/usr/local`). Dear ImGui is vendored in `third_party/imgui`.
+There is no OpenGL, no native widget toolkit and no build step for either: `gmake` compiles
+SDL2's two backend files and five ImGui files along with the emulator.
+
+`bin/nemul-headless.elf` needs nothing beyond the C++ runtime and libm.
+
+## Running
+
+    ./bin/nemul.elf [<card image>]
+
+A plain file name is the card image to run; `--image <iso>` does the same thing. File > Open
+Image (or dropping a `.iso` on the window) inserts a card image; File > Open Menu runs the boot
+menu with no card in. Everything else is on the menu bar:
+
+    Ctrl+O   open a card image          F5    pause the simulation
+    Ctrl+M   run with no card           F11   fullscreen
+    Ctrl+R   restart the simulation     Ctrl+Q   quit
+    Ctrl+P   preferences
+
+A key bound to a pad button is pad input; nothing else on the keyboard reaches the emulated
+console. Key bindings are stored as SDL keycodes in an INI file:
+
+    $NEMUL_PREFS, or $XDG_CONFIG_HOME/nemul/nemul.ini, or ~/.config/nemul/nemul.ini
+    (%APPDATA%\nemul.ini on Windows)
+
+The first run uses defaults - arrows, Z/X/C for A/B/C, A/S/D for X/Y/Z, Return for Start, Tab
+for Mode - and nothing is written until the preferences window is saved.
+
+## Threads
+
+The simulation runs on a thread of its own and the window on the main one, because an
+interpreter that manages a third of real time on a heavy program cannot also draw sixty frames
+a second from the same core. What the two share is a mutex and a handful of things: the pads
+going one way, the newest picture, the status line and the crash box coming back, and a one-slot
+channel for "reset" and "put this card in". Everything else - the process table, the interpreter,
+the emulated console's memory - belongs to the simulation thread, so the front end is the only
+part of the emulator that knows about threads at all.
+
+The window draws only when there is something new to show: a fresh picture, an input event, or a
+screenshot to take. Redrawing an unchanged picture sixty times a second keeps a core warm and
+takes memory bandwidth away from the simulation, and this emulator's picture often changes only
+a handful of times a second.
+
+`NEMUL_LOG_TIMING=1` reports where the time went at exit - wall clock, cpu in the emulation, cpu
+in the drawing, and how many emulated milliseconds each host second is worth.
+
+## Debugger
+
+`Debug > Debugger...`, or F7, opens a window on the machine: the process list with each
+program counter and the function it is in, the registers and status word of the process on
+show, a disassembly around the program counter with the current instruction marked, and the
+instructions that process has run most recently. F5 stops and resumes the simulation, F10 runs
+one instruction, and while stopped `Step 10` and `Step 100` hurry along a loop.
+
+Addresses are entered as hexadecimal. `Break at PC` sets a breakpoint where the program is
+standing; breakpoints stop the whole machine with the instruction under them not yet run, and
+resuming lets that instruction go before the breakpoint can catch it again. A breakpoint in a
+loop is therefore hit on every pass.
+
+Source positions come from the program's own ELF file, loaded with `Debug > Load Symbols` or
+`--symbols <elf>`. That gives the function names and the `file:line` notes beside each
+instruction, and the source line at the program counter. What the SDK's toolchain writes is
+DWARF debug line information - which file and line each address came from - and symbol tables.
+It does not write variable or type information, so the window can say where the program is but
+not what the variables hold; the registers and the memory they point at are all there is.
+
+The trace list shows the branch of each instruction that took one, whether the branch was taken
+and where to, which is the quickest way to see why a program went where it did.
+
+Nothing in the window touches the machine: the simulation thread fills in a snapshot, the
+window draws from a copy of it, and requests go back through atomics. That is why it can be open
+while the machine runs at full speed.
+
+## GDB
+
+The emulator serves GDB's remote serial protocol, so a stock `gdb` can drive the machine. It
+listens on `Rsp/Port` from the preferences, which is 14292 unless it is changed:
+
+    gdb bin/boot.elf -ex "target remote :14292"
+
+Attaching stops the machine, as attaching to a running program always does, and detaching lets
+it run again - by itself, without the emulator having to be told. Every emulated process is a
+thread to GDB, numbered and named after the process: `Thread <pid>`, named `pid <pid>`, all of
+them in one inferior. That is the whole of the machine's threading - there are no threads inside
+a process and no scheduler to inspect, so a thread's registers are its process's registers - and
+one inferior is enough, because the machine has one memory and one program running in it. It is
+also what makes a restarted machine work: a process that is an inferior of its own is a different
+inferior every time the machine starts again, and the breakpoints set in the old one stay there
+while the new one runs past them.
+
+What that gives you, per process:
+
+- `info threads` lists them, and `thread <n>` picks one. A process that has just been created
+  turns up at the next stop.
+- Registers and memory of the selected process: `info registers`, `x`, `print`, `p $pc = ...`,
+  `set var`, `display`. The register set is GDB's full ARM one, so `cpsr` and the floating point
+  registers are there too - the machine has no floating point unit, so those read as zero and
+  writes to them are accepted and forgotten.
+- Breakpoints, set with `break`, `tbreak` or `hbreak`, and hardware breakpoints too, since the
+  emulator stops on an address either way. A breakpoint is for whichever process reaches the
+  the address, unless the client names a thread in the packet, which GDB does only when it means one
+  thread rather than the program as a whole. GDB's ARM support moves a breakpoint that lands on a
+  function's first instruction to just past the prologue and then steps over that location instead
+  of reporting it, so a breakpoint on, say, `_start` stops nowhere: break inside the function, or on
+  an address no symbol names, and it stops where it should. This is GDB's doing, not the stub's,
+  and happens with any ARM remote target.
+- `continue`, `stepi` and `nexti`, each stopping on one instruction's worth of progress and
+  reporting which thread stopped and why. Everything else GDB builds on those two - running to
+  a temporary breakpoint, stepping out of a function - comes along with them.
+- Registers and memory can be written as well as read, so `set var`, `set $r0` and
+  `set *(int*)0x1000 = ...` all change the machine.
+- Ctrl-C interrupts a running machine and reports SIGINT on the thread that was running.
+- `signal`, and the signals a program raises itself: a breakpoint instruction, a data or
+  prefetch abort and an alignment check all arrive as the signal they would on real hardware.
+
+Two things GDB is not told, because the machine has nothing to tell it. There are no fork or
+exec events: a process that starts another one appears in `info threads` at the next stop rather
+than leaving GDB to decide what to follow. And there are no watchpoints, since the emulator has
+no way to trap a write to an address.
+
+`monitor threads` lists the processes as the emulator sees them, and `monitor prep` resets the
+process table as if a game had just been booted. A process has no parent, no working directory
+and no command line to report, so those columns stay empty rather than being filled in with
+guesses.
+
+## Running a new build
+
+Rebuilding a program and starting the new one should not mean restarting the emulator, so the
+same connection can be told to start the machine again with a different image - or with the same
+one, read from disk as it is now:
+
+    (gdb) target extended-remote :14292
+    (gdb) set remote exec-file /path/to/img/game.iso
+    (gdb) run                      restarts the machine with that image, as it is on disk
+    (gdb) break main
+    (gdb) continue                 boots, and stops in the program you just built
+
+`run` is GDB's own command and goes through the protocol's `vRun`, so it also works for an `.nne`
+given as the exec file, which runs on its own with the boot menu out of the way. Between runs,
+`monitor reload` does the same thing as `run` without starting the machine going again, which is
+the useful form when the breakpoints are already where they belong:
+
+    (gdb) monitor reload           restarts the machine with the loaded image, as it is now
+    (gdb) continue                 stops in the new build at the same breakpoints
+
+Breakpoints belong to the machine rather than to a process, so they survive that restart: the
+emulator keeps them, and puts them back into the process table it has just thrown away. The
+machine stands still after a restart asked for by a client, so that the breakpoints go in before
+the new program runs past them. `monitor run <file>` boots a particular image, `monitor image`
+says which one is loaded, and `qXfer:exec-file:read` tells GDB the same, so `info inferiors`
+shows the file the machine was started from.
+
+
+
+GDB's own end of it can be checked without a window too: the emulator is happy with either a
+real `gdb` or a script that speaks the protocol, and both work with `SDL_VIDEODRIVER=dummy`.
+`NEMUL_LOG_RSP=1` puts every protocol decision worth knowing about on stderr - what was loaded,
+which breakpoint went in and for whom, what was resumed and what was reported - because a client
+shows you none of it and a session that stops making sense is otherwise guesswork.
+
+The front end can be driven where there is no display, which is how it is checked on a build
+machine. `SDL_VIDEODRIVER=dummy` selects SDL's headless video driver, and the rest of the
+options script a run:
+
+    --image <iso>               insert a card image at startup
+    --frames <n>                draw n frames and exit
+    --shot <file.bmp>           write the last frame to a BMP
+    --ui prefs|files|crash      open that window at startup
+    --debug                     open the debugger at startup
+    --symbols <elf>             load function names and source lines, and open the debugger
+    --break <hex address>       stop at an address, and open the debugger
+    --step <n>                  start stopped and run n instructions first
+    --ui-key <key>:<frame>[:<n>]
+                                push a key into the window itself once n frames have been
+                                drawn, for driving menus and the debugger; repeatable
+    --press <key>:<ms>[:<ms>]
+                                push a real SDL key event once the console has reached that
+                                many emulated milliseconds, and let go after <ms>; repeatable
+
+Presses are timed in *emulated* milliseconds, not in frames: the window draws at its own speed
+and the console at its own, so only the console's clock makes a scripted run repeatable.
+
+For example, to boot the `showinput` example, dismiss the saved-data prompt with START, hold the
+A button and photograph the result:
+
+    SDL_VIDEODRIVER=dummy ./bin/nemul.elf showinput.iso --frames 900 \
+        --press Return:3000:200 --press z:5000:20000 --shot /tmp/showinput.bmp
+
+`NEMUL_LOG_INPUT` prints pad state changes to stderr, like the core's other `NEMUL_LOG_*`
+switches.
+
+
+Note that the interpreter runs at roughly one emulated millisecond per host millisecond on a
+current machine for a game, and a good deal slower for the boot menu, which spends its time
+probing for a card. Whatever it manages, the window keeps drawing: the simulation runs behind
+it at its own speed and drops emulated time it cannot keep up with, rather than the window
+waiting for it.
+
+## Layout
+
+    src/nemul.cpp          main loop, window, menu bar, status line, crash box, screenshot
+    src/ui_prefs.cpp/.h    preferences window and key binding (was cfgwin.cpp + bindprompt.cpp)
+    src/ui_files.cpp/.h    in-window disk image picker (Dear ImGui has no file dialog)
+    src/prefs.cpp          INI preferences (was wxConfig)
+    src/nemul_headless.cpp console front end (PPM frame dumps, --bp/--step)
+    src/prefs_headless.cpp no-op preferences for the console build
+    third_party/imgui      vendored Dear ImGui 1.93.0, see README.vendored.md there
+
+The wxWidgets front end this replaces is in the git history, along with the wxWidgets tarball
+and `wx_build.sh` that used to be needed to build it.

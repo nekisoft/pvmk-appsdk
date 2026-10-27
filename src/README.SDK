@@ -11,5 +11,7 @@ The following subdirectories are included:
 	examples          - Examples of game software built for the Neki32. Contains demos, ports, and examples to accompany the manual.
 	sdlsc             - A phony system-call library that actually runs on SDL on a desktop. Games that normally target PVMK could be compiled for Linux with this.
 
+The bin directory also holds pvmk-nemul, the Neki32 simulator, which runs Neki32 software and card images on the desktop. It needs no card reader and no installation: pvmk-nemul <image.iso> runs a card image, pvmk-nemul on its own runs the system menu. pvmk-nemul-headless runs the same emulator with no display at all, which is how images can be tested on a build machine.
+
 There are also scripts to launch a shell with the right PATH for using the pvmk- utilities from the bin directory. One script is for Windows and one for Unix-like systems.
 

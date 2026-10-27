@@ -99,4 +99,32 @@ extern int emul_stop_requested;
 //Tries to make a copy of the given process
 int process_fork(int parent);
 
+//Runs exactly one instruction of one process, for the debugger's step
+int process_run_insn(int pid);
+
+//Instructions each process has run lately, back=0 being the one that ran most recently: the
+//program counter stands on the instruction after it. Returns -1 when there is nothing that far
+//back.
+int process_hist(int pid, int back, uint32_t *pc, uint32_t *ir);
+
+//Lets the instruction under a breakpoint run once, so that resuming does not stop on it again
+void process_bp_skip_once(int pid, uint32_t addr);
+
+//Breakpoints the debugger window sets and clears while the machine runs. A hit leaves the machine
+//standing on the instruction, sets emul_stop_requested, and records where it happened.
+#define PROCESS_BP_MAX 32
+extern uint32_t process_bp[PROCESS_BP_MAX];
+extern int process_bp_count;
+extern int process_bp_hit_pid;
+extern uint32_t process_bp_hit_addr;
+int process_bp_add(uint32_t addr);
+int process_bp_del(uint32_t addr);
+void process_bp_clear(void);
+
+//Breakpoints belonging to one process, for a debugger that keeps its own set per program. A pid of
+//zero means every process, which is what the window and a plain address mean.
+int process_bp_add_owner(uint32_t addr, int pid);
+int process_bp_del_owner(uint32_t addr, int pid);
+extern int process_bp_pid[];
+
 #endif //_PROCESS_H

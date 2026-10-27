@@ -20,6 +20,7 @@ mkdir -p obj
 ./src/xorriso_build.sh
 ./src/sdlsc_build.sh
 ./src/bsdutils_build.sh
+./src/nemul_build.sh
 
 #Picolibc needs to come first so it can put its standard headers where GCC can find them in the following steps
 ./src/picolibc_build.sh

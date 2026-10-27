@@ -35,6 +35,7 @@ process_t process_table[PROCESS_MAX];
 static uint32_t hist_pc[PROCESS_MAX][HIST_LEN];
 static uint32_t hist_ir[PROCESS_MAX][HIST_LEN];
 static int hist_pos[PROCESS_MAX];
+static uint32_t hist_total[PROCESS_MAX];   //How many entries have ever been written
 
 //Breakpoint state, see emul_set_break below
 static uint32_t emul_bp_addr;
@@ -50,6 +51,134 @@ void emul_set_break(uint32_t addr, int steps)
 	emul_bp_hit = 0;
 	emul_bp_left = 0;
 	emul_stop_requested = 0;
+}
+
+//Breakpoints that the debugger window sets and clears while the machine runs, unlike the one-shot
+//break above. Checked before each instruction, so a hit leaves the machine standing on the
+//instruction that was about to run rather than after it.
+uint32_t process_bp[PROCESS_BP_MAX];
+int process_bp_pid[PROCESS_BP_MAX];
+int process_bp_count;
+int process_bp_hit_pid;
+uint32_t process_bp_hit_addr;
+
+//Adds a breakpoint for one process, or for all of them when the pid is zero
+int process_bp_add_owner(uint32_t addr, int pid)
+{
+	for(int bb = 0; bb < process_bp_count; bb++)
+	{
+		if(process_bp[bb] == addr && process_bp_pid[bb] == pid)
+			return -1;
+	}
+	if(process_bp_count >= PROCESS_BP_MAX)
+		return -1;
+
+	process_bp[process_bp_count] = addr;
+	process_bp_pid[process_bp_count] = pid;
+	process_bp_count++;
+	return 0;
+}
+
+int process_bp_add(uint32_t addr)
+{
+	return process_bp_add_owner(addr, 0);
+}
+
+//Removes the breakpoint one process owns
+int process_bp_del_owner(uint32_t addr, int pid)
+{
+	for(int bb = 0; bb < process_bp_count; bb++)
+	{
+		if(process_bp[bb] == addr && process_bp_pid[bb] == pid)
+		{
+			process_bp[bb] = process_bp[process_bp_count - 1];
+			process_bp_pid[bb] = process_bp_pid[process_bp_count - 1];
+			process_bp_count--;
+			return 0;
+		}
+	}
+	return -1;
+}
+
+//Removes every breakpoint at an address, whoever asked for it
+int process_bp_del(uint32_t addr)
+{
+	int removed = 0;
+	for(int bb = 0; bb < process_bp_count; )
+	{
+		if(process_bp[bb] == addr)
+		{
+			process_bp[bb] = process_bp[process_bp_count - 1];
+			process_bp_pid[bb] = process_bp_pid[process_bp_count - 1];
+			process_bp_count--;
+			removed++;
+			continue;
+		}
+		bb++;
+	}
+	return removed ? 0 : -1;
+}
+
+void process_bp_clear(void)
+{
+	process_bp_count = 0;
+	process_bp_hit_pid = 0;
+	process_bp_hit_addr = 0;
+}
+
+//True when this process is standing on a breakpoint, in which case it must not run the
+//instruction there until the debugger says so
+//A breakpoint the machine was just stopped at, which it has been told to step past
+static int bp_skip_pid = 0;
+static uint32_t bp_skip_addr = 0;
+
+void process_bp_skip_once(int pid, uint32_t addr)
+{
+	bp_skip_pid = pid;
+	bp_skip_addr = addr;
+}
+
+static int process_bp_check(process_t *pptr)
+{
+	//Resuming from a breakpoint runs the instruction that was standing there
+	if(bp_skip_pid == pptr->pid && bp_skip_addr == pptr->regs[15])
+	{
+		bp_skip_pid = 0;
+		bp_skip_addr = 0;
+		return 0;
+	}
+
+	for(int bb = 0; bb < process_bp_count; bb++)
+	{
+		if(process_bp[bb] != pptr->regs[15])
+			continue;
+		if(process_bp_pid[bb] != 0 && process_bp_pid[bb] != pptr->pid)
+			continue;
+
+		{
+			process_bp_hit_pid = pptr->pid;
+			process_bp_hit_addr = process_bp[bb];
+			emul_stop_requested = 1;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int process_hist(int pid, int back, uint32_t *pc, uint32_t *ir)
+{
+	process_t *pptr = process_find(pid);
+	if(pptr == NULL) return -1;
+
+	const int idx = (int)(pptr - process_table);
+	const int valid = (hist_total[idx] < HIST_LEN) ? (int)hist_total[idx] : HIST_LEN;
+	if(back < 0 || back >= valid)
+		return -1;
+
+	const int at = (hist_pos[idx] + HIST_LEN - 1 - back) % HIST_LEN;
+	if(pc) *pc = hist_pc[idx][at];
+	if(ir) *ir = hist_ir[idx][at];
+	return 0;
 }
 
 //Set NEMUL_LOG_INSTR to have the interpreter explain itself when a process runs into memory
@@ -113,6 +242,7 @@ static void hist_record(int idx, process_t *pptr)
 	hist_pc[idx][hist_pos[idx]] = pc;
 	hist_ir[idx][hist_pos[idx]] = ir;
 	hist_pos[idx] = (hist_pos[idx] + 1) % HIST_LEN;
+	hist_total[idx]++;
 }
 
 static void hist_dump(int idx, process_t *pptr)
@@ -146,8 +276,14 @@ void process_reset(void)
 		}
 	}
 	
-	//Clear the process table
+	//Clear the process table, and what the debugger remembers of the last run
 	memset(process_table, 0, sizeof(process_table));
+	memset(hist_pc, 0, sizeof(hist_pc));
+	memset(hist_ir, 0, sizeof(hist_ir));
+	memset(hist_pos, 0, sizeof(hist_pos));
+	memset(hist_total, 0, sizeof(hist_total));
+	memset(hist_walked, 0, sizeof(hist_walked));
+	process_bp_clear();
 	TINFO("%s", "Process table reset.\n");
 	
 	//Make the initial process
@@ -171,6 +307,79 @@ void process_reset(void)
 	process_table[1].state = PROCESS_STATE_ALIVE;
 	
 	TDEBUG("PID1 set up, %lu bytes in init process.\n", sizeof(init));
+}
+
+//Handles whatever an instruction did that was not simply going on to the next one: a system
+//call, a breakpoint, an exception. Shared by the timeslice runner and the single-step.
+static void process_after_result(int procidx, process_t *pptr, interp_result_t result)
+{
+	//Anything that is not a syscall or a clean timeslice end is a surprise worth explaining
+	if(result != INTERP_RESULT_OK && result != INTERP_RESULT_SYSCALL && hist_logging)
+		hist_dump(procidx, pptr);
+
+	//See what happened to the process
+	switch(result)
+	{
+		case INTERP_RESULT_OK:
+		{
+			//The process just ran out its timeslice in user mode.
+			//No action is needed, we can keep running it more later.
+			break;
+		}
+		case INTERP_RESULT_SYSCALL:
+		{
+			//User code triggered a system-call, handle it before continuing
+			sysc(pptr);
+
+			//A call like exit kills the process, and a killed process does not get to run the
+			//instruction after the trap. Without this the caller carries on and the program
+			//restarts itself instead of stopping.
+			if(pptr->state == PROCESS_STATE_DEAD)
+				return;
+			break;
+		}
+		case INTERP_RESULT_BKPT:
+		{
+			//Hit a GDB breakpoint instruction
+			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
+			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_BKPT);
+			break;
+		}
+		case INTERP_RESULT_FATAL:
+		{
+			//Interpreter failure
+			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
+			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_FATAL);
+			break;
+		}
+		case INTERP_RESULT_AC:
+		{
+			//Alignment check
+			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
+			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_AC);
+			break;
+		}
+		case INTERP_RESULT_ABT:
+		{
+			//Data abort
+			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
+			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_ABT);
+			break;
+		}
+		case INTERP_RESULT_PF:
+		{
+			//Prefetch abort
+			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
+			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_PF);
+			break;
+		}
+		default:
+		{
+			TFATAL("%s", "Unhandled result from ARM code interpreter\n");
+			exit(-1);
+		}
+	}
+	
 }
 
 void process_step(void)
@@ -250,6 +459,19 @@ void process_step(void)
 			}
 		}
 
+		//A breakpoint the debugger set stops the machine standing on the instruction, so that it
+		//can be looked at before it runs
+		if(process_bp_count > 0 && process_bp_check(pptr))
+		{
+			if(getenv("NEMUL_LOG_RSP"))
+				fprintf(stderr, "rsp: breakpoint in pid %d at %08X\n", pptr->pid, (unsigned)(pptr->regs[15]));
+
+			//A client waiting on a continue has to be told what stopped the thread
+			if(rsp_present())
+				rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_BKPT);
+			return;
+		}
+
 		result = interp_step(pptr->regs, &(pptr->cpsr), pptr->mem, pptr->size);
 		if(result != INTERP_RESULT_OK)
 		{
@@ -258,74 +480,28 @@ void process_step(void)
 		}
 	}
 	
-	//Anything that is not a syscall or a clean timeslice end is a surprise worth explaining
-	if(result != INTERP_RESULT_OK && result != INTERP_RESULT_SYSCALL && hist_logging)
-		hist_dump(procidx, pptr);
-
-	//See what happened to the process
-	switch(result)
-	{
-		case INTERP_RESULT_OK:
-		{
-			//The process just ran out its timeslice in user mode.
-			//No action is needed, we can keep running it more later.
-			break;
-		}
-		case INTERP_RESULT_SYSCALL:
-		{
-			//User code triggered a system-call, handle it before continuing
-			sysc(pptr);
-
-			//A call like exit kills the process, and a killed process does not get to run the
-			//instruction after the trap. Without this the caller carries on and the program
-			//restarts itself instead of stopping.
-			if(pptr->state == PROCESS_STATE_DEAD)
-				return;
-			break;
-		}
-		case INTERP_RESULT_BKPT:
-		{
-			//Hit a GDB breakpoint instruction
-			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
-			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_BKPT);
-			break;
-		}
-		case INTERP_RESULT_FATAL:
-		{
-			//Interpreter failure
-			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
-			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_FATAL);
-			break;
-		}
-		case INTERP_RESULT_AC:
-		{
-			//Alignment check
-			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
-			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_AC);
-			break;
-		}
-		case INTERP_RESULT_ABT:
-		{
-			//Data abort
-			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
-			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_ABT);
-			break;
-		}
-		case INTERP_RESULT_PF:
-		{
-			//Prefetch abort
-			pptr->regs[15] -= 4; //Back off, stay at the instruction we tried to run
-			rsp_dbgstop(pptr->pid, PROCESS_DBGSTOP_PF);
-			break;
-		}
-		default:
-		{
-			TFATAL("%s", "Unhandled result from ARM code interpreter\n");
-			exit(-1);
-		}
-	}
-	
+	process_after_result(procidx, pptr, result);
 	return;
+}
+
+//Runs exactly one instruction of one process, for the debugger's step. Whatever the instruction
+//did is handled the same way the timeslice runner handles it, so stepping through a system call
+//or a fault behaves like running into it.
+int process_run_insn(int pid)
+{
+	process_t *pptr = process_find(pid);
+	if(pptr == NULL)
+		return -1;
+	if(pptr->state != PROCESS_STATE_ALIVE)
+		return -1;
+
+	const int procidx = (int)(pptr - process_table);
+	prof_hit(procidx, pptr->regs[15]);
+	hist_record(procidx, pptr);
+
+	const interp_result_t result = interp_step(pptr->regs, &(pptr->cpsr), pptr->mem, pptr->size);
+	process_after_result(procidx, pptr, result);
+	return (int)result;
 }
 
 int process_fork(int parent)
@@ -387,6 +563,12 @@ int process_fork(int parent)
 	child_pptr->state = PROCESS_STATE_ALIVE;
 	child_pptr->paused = false;
 	child_pptr->unpaused = false;
+
+	//A child starts running, whatever the process that last used this slot was doing. Without
+	//this, a slot left behind by a process the debugger had stopped hands its stop to the next
+	//program to be forked, and that program starts frozen at whatever the fork left in its
+	//registers - a new program that never runs, for no reason its own author can see.
+	child_pptr->dbgstop = PROCESS_DBGSTOP_NONE;
 	
 	//Child gets a PID corresponding to its index in the process table
 	child_pptr->pid += PROCESS_MAX;

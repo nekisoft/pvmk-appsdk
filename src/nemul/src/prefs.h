@@ -59,6 +59,9 @@ typedef struct prefs_s
 	
 } prefs_t;
 
+//Fills in the default configuration (key bindings, no joysticks, RSP listener on)
+void prefs_defaults(prefs_t *out);
+
 //Reads configuration or initializes defaults
 void prefs_read(prefs_t *out);
 

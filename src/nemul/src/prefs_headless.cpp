@@ -9,7 +9,7 @@
 #include "prefs.h"
 #include <string.h>
 
-void prefs_read(prefs_t *out)
+void prefs_defaults(prefs_t *out)
 {
 	memset(out, 0, sizeof(*out));
 
@@ -27,6 +27,11 @@ void prefs_read(prefs_t *out)
 	//No GDB listener unless asked for
 	out->rsp_enabled = false;
 	out->rsp_port = 0;
+}
+
+void prefs_read(prefs_t *out)
+{
+	prefs_defaults(out);
 }
 
 void prefs_write(const prefs_t *in)

@@ -15,6 +15,7 @@
 #include "sysc.h"
 #include "prefs.h"
 #include "prof.h"
+#include "rsp.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -409,6 +410,7 @@ void pvmk_sc_exit(uint32_t code, uint32_t sig)
 
 	//The real kernel ends the process here; nothing in it runs again
 	sysc_pptr->state = PROCESS_STATE_DEAD;
+	rsp_notify_exit(sysc_pptr->pid);
 	(void)sig;
 }
 
@@ -754,6 +756,7 @@ void pvmk_sc_mexec_apply(void)
 	{
 		TWARNING("Process %d killed itself by mexec'ing with no pending image\n", sysc_pptr->pid);
 		sysc_pptr->state = PROCESS_STATE_DEAD;
+		rsp_notify_exit(sysc_pptr->pid);
 	}
 	
 	//Reset CPU regs
