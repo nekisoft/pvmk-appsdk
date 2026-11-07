@@ -16,7 +16,41 @@ otherwise the Makefile assumes `/usr/local`). Dear ImGui is vendored in `third_p
 There is no OpenGL, no native widget toolkit and no build step for either: `gmake` compiles
 SDL2's two backend files and five ImGui files along with the emulator.
 
-`bin/nemul-headless.elf` needs nothing beyond the C++ runtime and libm.
+`bin/nemul-headless.elf` needs nothing beyond the C++ runtime and libm. It is the front end
+an automated harness drives: no window, no audio device, no X.
+
+    nemul-headless --disk <card> [--nne <program>] --frames 300 \
+        --input test.input --hash-file run.hashes --shot last.ppm --json run.json
+
+- `--frames N` stops after N displayed frames; `--ticks MS` stops after MS emulated
+  milliseconds, whichever comes first.
+- `--hash-file FILE` writes `FRAME <n> TICKS <ms> MODE <m> HASH <hex>` per displayed frame.
+  The hash is FNV-1a over the displayed RGB565 buffer, so a regression is a changed hash and
+  no images are needed. `--hash` prints the same lines on stdout, but the guest writes there
+  too, so a harness should use the file.
+- `--input FILE` scripts the pads: `<frame> <buttons>`, buttons named or as a mask, port
+  prefixed (`2:b`). A pad holds its state until a later line changes it.
+- `--json FILE` writes a summary: ticks, frames, stop reason, and the fault if there was one.
+- `--gdb [port]` serves GDB's remote protocol on port 14292 (or the given one). Attach with
+  `gdb -ex "set architecture arm" -ex "file bin/boot.elf" -ex "target remote :14292"`; the
+  architecture must be set explicitly because the stub does not report XML target
+  descriptions. `monitor reload` reloads the image from disk, which is edit-and-continue.
+- `--symbols FILE` names the faulting function and source line in the `FAULT` line.
+
+Exit status: 0 the stop condition was reached, 2 bad usage or I/O, 3 the program faulted
+(data abort, prefetch abort, alignment check, interpreter failure), 5 stopped somewhere it
+was not asked to.
+
+Sound is not played, but its queue is modelled: `_sc_snd_play` accepts 48K/16-bit/stereo
+chunks, returns the queue occupancy, and returns `-_SC_EAGAIN` when the chunk would exceed
+the caller's maximum. It drains at one frame's worth per vertical blank, so audio flow
+control behaves as it does on hardware.
+
+NVM is a 128KB record that lives for the process's life. With `NEMUL_NVM=path` it is a host
+file and survives a restart; the layout is the four bytes `PVMKNVM1`, the stored length as a
+little-endian 32-bit number, then the bytes. A record that has never been saved reads back
+zero bytes, which is how a game tells "nothing saved" from "saved, and the first byte happens
+to be zero".
 
 ## Running
 

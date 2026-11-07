@@ -263,7 +263,6 @@ int app_main(int argc, const char **argv)
 
 	int back = 0;
 	int frame = 0;
-	int saved = 0;
 
 	for(;;)
 	{
@@ -272,16 +271,16 @@ int app_main(int argc, const char **argv)
 		if(pressed[0] & _SC_BTNBIT_A)
 			play_tone();
 
-		//Leave the game with START; save and say so first, because PVMK restarts a
-		//program that exits and would otherwise lose the score.
+		//START saves and starts a fresh round. Do not leave the program: PVMK restarts a
+		//program that exits, which on a real console looks like a crash rather than a quit.
 		if(pressed[0] & _SC_BTNBIT_START)
 		{
 			if(game.score > (int)save.best_score)
 				save.best_score = (uint32_t)game.score;
 			int wrote = _sc_nvm_save(&save, sizeof(save));
 			printf("[EVENT] SAVE result %d best %u\n", wrote, (unsigned)save.best_score);
-			saved = 1;
-			break;
+			game.score = 0;
+			play_tone();
 		}
 
 		step_game(&game);
@@ -316,7 +315,6 @@ int app_main(int argc, const char **argv)
 			printf("[EVENT] SECOND %d\n", frame / 60);
 	}
 
-	(void)saved;
 	return 0;
 }
 

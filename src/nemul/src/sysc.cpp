@@ -319,7 +319,10 @@ int sysc_bootimage(const char *path)
 }
 
 void sysc_popfbptr(uint16_t **bufptr_out, int *mode_out)
-{	
+{
+	//One frame of audio has played since the last vertical blank
+	sysc_snd_vblank();
+
 	//Default if we don't have anything to display
 	*bufptr_out = NULL;
 	*mode_out = 0;
@@ -533,25 +536,174 @@ int pvmk_sc_input(uint32_t buf, uint32_t each, uint32_t total)
 	return nread;
 }
 
+//--- emulated audio queue ---------------------------------------------------
+//The kernel copies enqueued PCM into its own buffer and plays it at 48kHz. Nothing is
+//actually played here, but the queue exists and drains at the right rate, because games use
+//its fullness to decide when to enqueue the next chunk and a stub returning ENOSYS makes
+//that logic untestable (and looks like a broken game).
+#define SYSC_SND_MAXQ (256 * 1024)   //Same order as the kernel's buffer
+#define SYSC_SND_BYTES_PER_VBLANK 3200 //48000 frames/s * 4 bytes/frame / 60Hz
+
+static uint8_t sysc_sndq[SYSC_SND_MAXQ];
+static int sysc_sndq_len = 0;
+
+void sysc_snd_vblank(void)
+{
+	sysc_sndq_len -= SYSC_SND_BYTES_PER_VBLANK;
+	if(sysc_sndq_len < 0)
+		sysc_sndq_len = 0;
+}
+
 int pvmk_sc_snd_play(uint32_t mode, uint32_t chunk, uint32_t chunkbytes, uint32_t maxbuf)
 {
 	TDEBUG("%s %u %8.8X %u %u\n", "pvmk_sc_snd_play", mode, chunk, chunkbytes, maxbuf);
-	
-	return -PVMK_ENOSYS;
+
+	if(mode == 0)
+	{
+		//Silence: chunk must be NULL and the sizes zero, as in the kernel
+		if(chunk != 0 || chunkbytes != 0 || maxbuf != 0)
+			return -PVMK_EINVAL;
+		sysc_sndq_len = 0;
+		return 0;
+	}
+
+	if(mode != 1)
+		return -PVMK_EINVAL;
+
+	if((chunkbytes % 4) != 0)
+		return -PVMK_EINVAL;
+
+	if(maxbuf < 4 || (maxbuf % 4) != 0)
+		return -PVMK_EINVAL;
+
+	if(maxbuf > SYSC_SND_MAXQ)
+		maxbuf = SYSC_SND_MAXQ;
+
+	if(chunkbytes > maxbuf)
+		return -PVMK_EINVAL;
+
+	if(chunk == 0 || chunkbytes == 0)
+		return -PVMK_EINVAL;
+
+	if((chunk % 4) != 0)
+		return -PVMK_EINVAL;
+
+	//The whole chunk must be real memory in the calling process
+	if(chunk < 4096 || (uint64_t)chunk + chunkbytes > sysc_pptr->size)
+		return -PVMK_EFAULT;
+
+	//Either the whole chunk fits or none of it does
+	if((uint32_t)sysc_sndq_len + chunkbytes > maxbuf)
+		return -PVMK_EAGAIN;
+
+	memcpy(sysc_sndq + sysc_sndq_len, (const uint8_t *)sysc_pptr->mem + chunk, chunkbytes);
+	sysc_sndq_len += (int)chunkbytes;
+
+	//The kernel returns its current queue occupancy in bytes
+	return sysc_sndq_len;
+}
+
+//--- emulated nonvolatile memory --------------------------------------------
+//One 128KB record per emulator instance, which is what a console has per game. With
+//NEMUL_NVM set, the record lives in a host file so a save survives a restart; without it the
+//record is memory only, like a console that has not written the flash yet.
+#define SYSC_NVM_MAX 131072
+static uint8_t sysc_nvmdata[SYSC_NVM_MAX];
+static int sysc_nvmlen = 0;
+static int sysc_nvminit = 0;
+
+static void sysc_nvm_open(void)
+{
+	if(sysc_nvminit)
+		return;
+	sysc_nvminit = 1;
+
+	const char *path = getenv("NEMUL_NVM");
+	if(path == NULL || path[0] == '\0')
+		return;
+
+	FILE *ff = fopen(path, "rb");
+	if(ff == NULL)
+		return;
+
+	char magic[8];
+	uint8_t lenb[4];
+	if(fread(magic, 1, 8, ff) == 8 && memcmp(magic, "PVMKNVM1", 8) == 0 &&
+		fread(lenb, 1, 4, ff) == 4)
+	{
+		uint32_t len = (uint32_t)lenb[0] | ((uint32_t)lenb[1] << 8) |
+			((uint32_t)lenb[2] << 16) | ((uint32_t)lenb[3] << 24);
+		if(len > SYSC_NVM_MAX)
+			len = SYSC_NVM_MAX;
+		if(fread(sysc_nvmdata, 1, len, ff) == len)
+			sysc_nvmlen = (int)len;
+	}
+	fclose(ff);
+}
+
+static void sysc_nvm_flush(void)
+{
+	const char *path = getenv("NEMUL_NVM");
+	if(path == NULL || path[0] == '\0')
+		return;
+
+	FILE *ff = fopen(path, "wb");
+	if(ff == NULL)
+	{
+		TWARNING("cannot write NVM file %s\n", path);
+		return;
+	}
+	fwrite("PVMKNVM1", 1, 8, ff);
+	uint8_t lenb[4] = {
+		(uint8_t)(sysc_nvmlen & 0xFF), (uint8_t)((sysc_nvmlen >> 8) & 0xFF),
+		(uint8_t)((sysc_nvmlen >> 16) & 0xFF), (uint8_t)((sysc_nvmlen >> 24) & 0xFF) };
+	fwrite(lenb, 1, 4, ff);
+	fwrite(sysc_nvmdata, 1, (size_t)sysc_nvmlen, ff);
+	fclose(ff);
 }
 
 int pvmk_sc_nvm_save(uint32_t buf, uint32_t len)
 {
 	TDEBUG("%s %8.8X %u\n", "pvmk_sc_nvm_save", buf, len);
-	
-	return -PVMK_ENOSYS;
+
+	sysc_nvm_open();
+
+	if(len > SYSC_NVM_MAX)
+		return -PVMK_EFBIG;
+
+	if(buf < 4096 || (uint64_t)buf + len > sysc_pptr->size)
+		return -PVMK_EFAULT;
+
+	memcpy(sysc_nvmdata, (const uint8_t *)sysc_pptr->mem + buf, len);
+	sysc_nvmlen = (int)len;
+	sysc_nvm_flush();
+
+	//The kernel's save returns 0 on success
+	return 0;
 }
 
 int pvmk_sc_nvm_load(uint32_t buf, uint32_t len)
 {
 	TDEBUG("%s %8.8X %u\n", "pvmk_sc_nvm_load", buf, len);
-	
-	return -PVMK_ENOSYS;
+
+	sysc_nvm_open();
+
+	if(len > SYSC_NVM_MAX)
+		len = SYSC_NVM_MAX;
+
+	if(buf < 4096 || (uint64_t)buf + len > sysc_pptr->size)
+		return -PVMK_EFAULT;
+
+	//A newly allocated record reads back zero bytes, not a page of zeroes, which is how a
+	//game tells "nothing saved yet" from "saved, and the first byte happens to be zero".
+	int copylen = (int)len;
+	if(copylen > sysc_nvmlen)
+		copylen = sysc_nvmlen;
+
+	if(copylen > 0)
+		memcpy((uint8_t *)sysc_pptr->mem + buf, sysc_nvmdata, (size_t)copylen);
+
+	return copylen;
 }
 
 int pvmk_sc_env_save(uint32_t buf, uint32_t len)

@@ -535,12 +535,12 @@ It can access its nonvolatile memory record without concern for space or data in
 	The contents should be in the buffer at ``data", of length ``len".
 	Writes are atomic and update the whole record each time. No partial writes are possible.
 	If no record is configured, this call writes to a temporary per-process buffer instead.
-	Returns the number of bytes written on success or a negative error number.
+	Returns 0 on success or a negative error number.
 }
 {
 	\SysParm{r1}{const void *}{data}{Location of data in memory to store to nonvolatile memory.}
 	\SysParm{r2}{int}{len}{How many bytes to store.}
-	\SysRetn{int}{The number of bytes written or a negative error number.}
+	\SysRetn{int}{0 on success, or a negative error number.}
 }
 
 \SysCall{nvm{\Undie}load}{0x82}
@@ -744,6 +744,34 @@ This is an implementation of some system-calls on top of the SDL2 library.
 Using this, instead of the real system-call library, you can build and test your code on a desktop Linux machine.
 Then, you could compile the same application for Neki32 with minimal changes.
 
+\subsubsection{Testing without a console}
+
+Two tools let a game be run and tested without a Neki32 on the desk, and both are part of the
+SDK.
+
+The SDL shim, described above, runs the game as a desktop program. Its behaviour is controlled
+by environment variables: \Const{SDLSC_HEADLESS=1} runs with no window, \Const{SDLSC_FRAMES=N}
+exits after N displayed frames, \Const{SDLSC_CLOCK=virtual} makes time advance one millisecond
+per clock read and removes all sleeping so a run is deterministic, \Const{SDLSC_INPUT=FILE}
+feeds scripted controller input, and \Const{SDLSC_TRACE=1} prints a frame number and a hash of
+each frame.
+
+The emulator, \PathName{pvmk-nemul}, runs a card image (or a single program) on the desktop with
+the real kernel interface emulated. Its console front end, \PathName{pvmk-nemul-headless}, needs
+no display and is intended for automated tests: \Const{--frames N} stops after N displayed
+frames, \Const{--hash-file FILE} writes a hash of every frame, \Const{--input FILE} scripts the
+pads, \Const{--shot FILE} writes the last frame as a PPM, \Const{--json FILE} writes a summary,
+and \Const{--symbols ELF} names the faulting function and source line if the program crashes.
+The emulator also serves GDB's remote protocol with \Const{--gdb}, so a stock \Const{gdb} can
+set breakpoints and single-step the game, and \Const{monitor reload} restarts the machine on a
+freshly built image without restarting the emulator.
+
+\PathName{pvmk-run} joins the two: it builds a project with the SDK, runs the program in the
+headless emulator, prints one line per displayed frame, checks expected strings from the
+program's output, and compares the frame hashes against a saved baseline. A regression is then
+a failing command and a diff, not a screenshot somebody has to remember. The game template in
+\PathName{examples/template} ships such a test.
+
 \section{Examples}
 \subsection{Development workflows}
 \subsubsection{Just Assembly}
@@ -821,7 +849,7 @@ The game knows, of course, the largest event it will handle, and can size its ar
 Array entries are zero-filled if the event is smaller. Events are truncated if they do not fit.
 
 Right now all events are 4 bytes in length.
-A single character identifies which controller port is considered, ``A", ``B", ``C", or ``D" (ASCII codes 0x61, 0x62, 0x63, 0x64).
+A single character identifies which controller port is considered, ``A", ``B", ``C", or ``D" (ASCII codes 0x41, 0x42, 0x43, 0x44).
 Then, one dummy byte is usually zero.
 Then a 16-bit value identifies which buttons are pressed as a bit-map.
 
@@ -875,6 +903,15 @@ The return value from \VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} is the buffer 
 Therefore, the game finds whichever buffer is neither of those. It continues rendering into that one.
 
 Source code for this example is found in \PathName{examples/tplbuf} in the SDK.
+
+Note that triple-buffering, used on its own, does not pace the game: the CPU may render many
+frames ahead of the display, and the simulation then runs at whatever speed the CPU happens to
+achieve. A game that wants one simulation step per displayed frame must wait for its buffer to
+be the one on screen. The common form is to enqueue a buffer and then loop on
+\VarName{{\Undie}sc{\Undie}gfx{\Undie}flip} with \VarName{{\Undie}sc{\Undie}pause} until the
+return value is that buffer. The game template in \PathName{examples/template} does this, and
+also explains the trade-off: running ahead gains frame rate headroom but makes a recorded run
+depend on CPU speed.
 
 \subsubsection{Saving saves}
 It is simple to save the player's progress to Nonvolatile Memory in the console.

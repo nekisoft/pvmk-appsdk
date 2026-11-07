@@ -22,6 +22,7 @@
 #define PVMK_ENOMEM 12
 #define PVMK_EFAULT 14
 #define PVMK_EINVAL 22
+#define PVMK_EFBIG  27
 #define PVMK_ENOSPC 28
 #define PVMK_ENOSYS 38
 
@@ -45,5 +46,9 @@ void sysc_popfbptr(uint16_t **bufptr_out, int *mode_out);
 
 //Enqueues input events for _sc_input to return
 void sysc_pushpads(const uint16_t *pads);
+
+//Drains one vertical blank's worth of audio from the emulated kernel queue. Called from
+//sysc_popfbptr, so both front ends get it without knowing about sound.
+void sysc_snd_vblank(void);
 
 #endif //_SYSC_H

@@ -136,12 +136,14 @@ Headless front end options that matter to a harness:
 | `--frames N` | stop after N displayed frames (the main stop condition) |
 | `--ticks MS` | stop after MS emulated milliseconds, whichever comes first |
 | `--hash` | print `FRAME <n> TICKS <ms> MODE <m> HASH <hex>` per displayed frame |
+| `--hash-file F` | same lines to a file (use this; the guest also writes to stdout) |
 | `--shot FILE.ppm` | write the last displayed frame |
 | `--fb PREFIX`, `--fb-every N` | dump every Nth displayed frame as `PREFIX-00012.ppm` |
 | `--input FILE` | scripted pads; `120 a,start` presses on frame 120, `128 -` releases |
 | `--json FILE` | machine-readable summary: ticks, frames, stop reason, fault |
 | `--symbols ELF` | name the faulting function and source line |
 | `--gdb [PORT]` | serve GDB's remote protocol (default 14292) |
+| `NEMUL_NVM=path` | keep the 128 KB NVM record in a host file across runs |
 | `--trace-sysc` | log system calls and card traffic |
 | `--bp HEX`, `--step N` | stop at an address, print N instructions, exit |
 
@@ -178,7 +180,10 @@ automated agent: **never judge a change by eye when a hash will do.**
 
 - **GDB**: run the headless emulator with `--gdb 14292` (or the GUI, which listens on
   `Rsp/Port`, default 14292), then
-  `gdb bin/boot.elf -ex "target remote :14292"`. Every process is a thread (`pid N`),
+  `gdb -ex "set architecture arm" -ex "file bin/boot.elf" -ex "target remote :14292"`.
+  The `set architecture arm` is required: the stub reports no XML target description, so a
+  host gdb otherwise assumes the machine's own architecture and disassembles garbage. Every
+  process is a thread (`pid N`),
   breakpoints survive a restart, and `monitor reload` reloads the image from disk so a
   rebuilt program starts without restarting the emulator: that is the edit-and-continue loop.
   `p`/`x`/`set var` work; there is no variable DWARF, only function names and line numbers.
@@ -224,6 +229,10 @@ What is expensive on this machine, in order of likelihood:
   vertical blank and returns the buffer currently displayed. Never draw into the buffer you
   just enqueued or the one flip reported as displayed. See `src/examples/sysusage/tplbuf`.
 - Never busy-wait on the clock for pacing. Flip is the pacing mechanism.
+- **Triple buffering does not pace a game by itself.** `examples/sysusage/tplbuf` deliberately
+  renders as fast as it can. A game that wants one simulation step per displayed frame must
+  enqueue its buffer and loop on `_sc_gfx_flip` + `_sc_pause` until the return value is that
+  buffer; `examples/sysusage/template` does this.
 - Input events arrive as a stream; drain `_sc_input` in a loop until it returns 0. The port
   byte is uppercase `'A'`..`'D'` (the manual's lowercase text is a typo; `sc.h` is right).
 - Audio is a queue: enqueue a chunk, and if `_sc_snd_play` returns `-_SC_EAGAIN`, keep playing
@@ -249,7 +258,8 @@ What is expensive on this machine, in order of likelihood:
   text; draw your own font if you need text in a game.
 - **Emulator vs hardware:** nemul emulates the system-call side, not the hardware. It cannot
   show you cache misses, DMA cost, or controller timing. It is excellent for logic,
-  memory-safety faults, and instruction counts.
+  memory-safety faults, and instruction counts. It models the audio queue's flow control but
+  plays nothing, and its NVM record lives in a file only when `NEMUL_NVM` is set.
 
 ## Documentation map
 
