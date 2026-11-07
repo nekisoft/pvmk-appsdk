@@ -167,7 +167,7 @@ then
 fi
 HASHFILE="$(mktemp "${TMPDIR:-/tmp}/pvmk-hash.XXXXXX")"
 trap 'cleanup; rm -f "$HASHFILE"' EXIT
-ARGS+=(--hash)
+ARGS+=(--hash-file "$HASHFILE")
 
 REALSHOT="$SHOT"
 [ -z "$SHOT" ] && REALSHOT="$RUNLOG.final.ppm"
@@ -188,7 +188,7 @@ set +e
 (cd "$PROJDIR" && "$NEMUL" "${ARGS[@]}") >"$RUNLOG" 2>&1
 RUNEXIT=$?
 set -e
-grep '^FRAME ' "$RUNLOG" > "$HASHFILE" || true
+#hashes are already in $HASHFILE
 
 echo "exit $RUNEXIT"
 while read -r line

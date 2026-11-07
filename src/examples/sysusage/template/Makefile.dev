@@ -1,0 +1,31 @@
+#Makefile.dev for the Neki32 game template - builds the same game against the SDL shim
+#Bryan E. Topp <betopp@betopp.com> 2026
+
+CC     =cc
+FIND   =find
+MKDIR  =mkdir
+RM     =rm
+
+GCCOPTS += -std=c99 -Wall -Werror -Wextra -pedantic -g -O2
+GCCOPTS += -I../../../sdlsc/include -DUSE_SDLSC=1
+GCCOPTS += $(shell sdl2-config --cflags)
+LIBS += -lm $(shell sdl2-config --libs)
+
+CSRC:=$(shell $(FIND) -L src/ -name "*.c")
+COBJ:=$(patsubst src/%.c, obj.dev/%.o, $(CSRC))
+
+bin.dev/boot.elf: $(COBJ)
+	$(MKDIR) -p $(@D)
+	$(CC) $^ $(LIBS) -o $@
+
+obj.dev/%.o : src/%.c
+	$(MKDIR) -p $(@D)
+	$(CC) $(GCCOPTS) $< -c -o $@
+
+test: bin.dev/boot.elf
+	SDLSC_HEADLESS=1 SDLSC_FRAMES=300 SDLSC_CLOCK=virtual SDLSC_INPUT=tests/input.txt ./bin.dev/boot.elf
+
+clean :
+	$(RM) -rf obj.dev bin.dev
+
+.PHONY: test clean

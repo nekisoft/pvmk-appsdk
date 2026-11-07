@@ -929,10 +929,18 @@ bool symbols_line(symbols_t *syms, uint32_t addr, const char **file_out, int *li
 	if(file_out)
 	{
 		const char *name = "";
-		if(row->file > 0 && row->file < syms->nfiles)
+		//File index zero is legitimate: the first unit's file table starts at the first entry
+		//this reader stored, so a row's file can be 0. Only a row that pointed at nothing is
+		//nameless.
+		if(row->file >= 0 && row->file < syms->nfiles)
 			name = syms->files[row->file];
 		*file_out = name;
 	}
+	if(getenv("NEMUL_SYM_DEBUG"))
+		fprintf(stderr, "symbols: line %8.8X row %d file %d of %d name '%s' line %d\n",
+			addr, best, row->file, syms->nfiles,
+			(row->file >= 0 && row->file < syms->nfiles) ? syms->files[row->file] : "",
+			row->line);
 	if(line_out) *line_out = row->line;
 	return true;
 }

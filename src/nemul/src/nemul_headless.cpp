@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "process.h"
 #include "sysc.h"
@@ -435,6 +436,7 @@ int main(int argc, char **argv)
 	const char *inputpath = NULL;
 	const char *shotpath = NULL;
 	const char *jsonpath = NULL;
+	const char *hashpath = NULL;
 	const char *symbolspath = NULL;
 	long ticks = 30000; //Thirty seconds of emulated time
 	long wantframes = -1; //Or a number of displayed frames
@@ -475,6 +477,8 @@ int main(int argc, char **argv)
 			inputpath = argv[++aa];
 		else if(strcmp(argv[aa], "--hash") == 0)
 			dohash = 1;
+		else if(strcmp(argv[aa], "--hash-file") == 0 && aa + 1 < argc)
+			hashpath = argv[++aa];
 		else if(strcmp(argv[aa], "--gdb") == 0)
 		{
 			gdbport = 14292;
@@ -495,7 +499,7 @@ int main(int argc, char **argv)
 				"usage: %s --disk <card image> [--records <record sector>] "
 				"[--nne <image>] [--ticks <ms>] [--frames <n>] [--input <script>] "
 				"[--fb <prefix>] [--fb-every <n>] [--shot <file.ppm>] [--hash] "
-				"[--json <file>] [--symbols <elf>] [--gdb [port]] "
+				"[--json <file>] [--hash-file <file>] [--symbols <elf>] [--gdb [port]] "
 				"[--bp <hex addr>] [--step <n>] [--quiet] [--trace] [--trace-sysc]\n",
 				argv[0]);
 			return 2;
@@ -597,6 +601,7 @@ int main(int argc, char **argv)
 
 	if(gdbport > 0)
 	{
+		prefs.rsp_enabled = true;
 		prefs.rsp_port = gdbport;
 		rsp_set_image_hooks(headless_load_program, headless_loaded_image);
 		rsp_init(&prefs);
@@ -615,6 +620,19 @@ int main(int argc, char **argv)
 	long frames = 0;
 	int stop_reason = 0; //0 limit, 1 fault, 2 breakpoint/other stop
 
+	//Hashes can go to a file of their own: the guest is writing to stdout too, and its
+	//line buffering is not ours to control, so mixing the two makes parsing fragile.
+	FILE *hashfp = NULL;
+	if(hashpath != NULL)
+	{
+		hashfp = fopen(hashpath, "w");
+		if(hashfp == NULL)
+		{
+			fprintf(stderr, "cannot write %s\n", hashpath);
+			return 2;
+		}
+	}
+
 	if(breakat != 0)
 		emul_set_break(breakat, breaksteps);
 
@@ -624,6 +642,17 @@ int main(int argc, char **argv)
 	for(long tick = 0; tick < ticks; tick++)
 	{
 		rsp_poll();
+
+		//A debugger that attached stopped every process; that is not the run being over.
+		//Stand still (emulated time included) until it resumes or goes away.
+		if(all_stopped() && rsp_present())
+		{
+			struct timespec nap = { 0, 1000000 };
+			nanosleep(&nap, NULL);
+			tick--;
+			continue;
+		}
+
 		prof_tick((long)EmulTimerTicks, quiet);
 		process_step();
 		EmulTimerTicks++;
@@ -656,7 +685,10 @@ int main(int argc, char **argv)
 			if(vsync_logging && vsyncs <= 5)
 				fprintf(stderr, "vsync %ld: buffer %p mode %d\n", vsyncs, (void*)fb, fbmode);
 
-			if(dohash)
+			if(hashfp != NULL)
+				fprintf(hashfp, "FRAME %ld TICKS %ld MODE %d HASH %8.8X\n",
+					frames, (long)EmulTimerTicks, fbmode, fbfnv(fb, fbmode));
+			else if(dohash)
 				printf("FRAME %ld TICKS %ld MODE %d HASH %8.8X\n",
 					frames, (long)EmulTimerTicks, fbmode, fbfnv(fb, fbmode));
 
@@ -679,6 +711,9 @@ int main(int argc, char **argv)
 		dumpfb(fbprefix, lastframe, fb, fbmode);
 	if(shotpath != NULL)
 		dumpfb_path(shotpath, fb, fbmode);
+
+	if(hashfp != NULL)
+		fclose(hashfp);
 
 	prof_dump();
 
@@ -736,13 +771,13 @@ int main(int argc, char **argv)
 			func = symbols_func(syms, fault_pc, NULL, NULL);
 		if(syms != NULL)
 			symbols_line(syms, fault_pc, &file, &line);
+		const char *fname = (file != NULL && file[0] != '\0') ? file : NULL;
 		printf("FAULT pid %d reason %s pc %8.8X%s%s%s%s\n",
 			fault_pid, dbgstop_name(fault_why), fault_pc,
 			func ? " in " : "", func ? func : "",
-			(file && line > 0) ? " at " : "",
-			(file && line > 0) ? file : "");
-		if(file && line > 0)
-			printf("FAULT-LINE %d\n", line);
+			fname ? " at " : "", fname ? fname : "");
+		if(fname != NULL && line > 0)
+			printf("FAULT-LINE %s:%d\n", fname, line);
 	}
 	else if(stopped_pid != 0 && breakat == 0)
 	{
