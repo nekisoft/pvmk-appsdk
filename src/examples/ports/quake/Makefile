@@ -35,7 +35,8 @@ COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
 #Flags to use when compiling
 CFLAGS += -std=c99 -pedantic
 CFLAGS += -Wall -Werror -Wextra
-CFLAGS += -O2 -g
+PVMK_OPT?=-O2
+CFLAGS += $(PVMK_OPT) -g
 CFLAGS += -fstack-usage
 CFLAGS += -Wno-sign-compare
 CFLAGS += -Wno-shift-overflow

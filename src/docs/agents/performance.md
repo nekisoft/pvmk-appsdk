@@ -125,3 +125,18 @@ Attribution of samples to functions needs the symbols for *that* binary. Re-runn
 profiler against a rebuilt executable gives convincing but wrong function names, which is
 how a Doom profile once read "60% in the sound mixer" and "0% in R_DrawColumn". Profile, then
 read, then rebuild for the next configuration.
+
+## The same experiment on Quake
+
+`examples/ports/quake` also takes `PVMK_OPT`; the default is `-O3` because it wins here.
+Attract demo, window 14000..20000 modelled ms:
+
+```
+-O2  10.65M instructions  18.67M modelled cycles per frame  136 frames in 6s
+-O3  10.39M instructions  18.15M modelled cycles per frame  138 frames in 6s
+```
+
+So the optimisation level is worth measuring per project and not worth guessing: Doom
+prefers `-O2`, Quake prefers `-O3`, and the difference is a few percent either way. Neither
+compiler flag touches the real costs, which are `D_DrawSpans8` (23% of Quake) and the
+floating-point alias path (about 20%).
