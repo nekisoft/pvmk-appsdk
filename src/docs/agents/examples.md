@@ -32,7 +32,7 @@ games; `ports/*` are ports of existing games and are much larger.
 | project | what it is |
 |---|---|
 | `neki3d` | an early textured span renderer with PLY models and PNG textures |
-| `neki3d2` | a faster fixed-point Z-buffered renderer with procedural geometry and a benchmark |
+| `neki3d2` | a fixed-point Z-buffered renderer with procedural geometry, per-face lighting and a printed per-frame benchmark; see its README for the measured cost |
 | `invade` | "Chasin Gators", a complete small game |
 | `rockshot` | a shooter demo |
 | `soccest` | "Soccer 2: The Soccest", a menu-heavy sports game |
@@ -59,5 +59,28 @@ They are also the best source material for how a real game drives the console: D
 
 ## SDL examples
 
-`src/examples/sdl3/*` and `sdl2/sopwith` are ports of SDL's own tests and games. They are
-useful as smoke tests for the desktop shim, not as examples of how to write for the console.
+`src/examples/sdl3/*` are ports of SDL's own tests; they are useful as smoke tests for the
+desktop shim, not as examples of how to write for the console.
+
+`sdl2/sopwith` is a port of the SDL2 version of Sopwith and does **not** build against this
+SDK, which ships SDL3 headers and `libsdl3.a`. Its README records what porting it involves.
+It is left in the tree as the starting point for that work.
+
+## What the audit found
+
+`src/tools/audit-examples.sh /path/to/out` builds every project below `src/examples` twice -
+once for the console and once with `Makefile.dev` where there is one - and lists failures.
+Last full run: everything builds except `sdl2/sopwith`, which is the SDL2 port above. Fixes
+that came out of it:
+
+- Five makefiles hard-assigned `PVMKSDK`, so an override on the command line was ignored; they
+  now use `PVMKSDK?=`.
+- `goofs/sausage` and `goofs/soccest` declared `0xFF` font bytes in `char` arrays, which
+  `-Werror=overflow` rejects; the fonts are `unsigned char` now.
+- `goofs/sausage` was missing the `cardroot/neki_upd.tar` symlink its ISO recipe needs.
+- `goofs/democard` compiled `src/sdlsc.c.dev`; clang treats a `.dev` file as a linker input,
+  so the rule passes `-x c`. The file is a symlink to the SDK's `sdlsc.c`, not a copy.
+- `sysusage/template` and `goofs/neki3d2` dev builds never linked the shim implementation, so
+  they linked but would not run; both link `src/sdlsc/src/sdlsc.c` now. If you write another
+  `Makefile.dev`, remember that `sdlsc/include/sc.h` only declares the calls - something has
+  to provide `_sdlsc_run` and the `_sc_*` implementations.

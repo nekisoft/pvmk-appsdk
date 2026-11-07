@@ -272,6 +272,7 @@ What is expensive on this machine, in order of likelihood:
 | `src/docs/agents/testing.md` | harness recipes: scenarios, baselines, fault triage |
 | `src/docs/agents/performance.md` | how to profile and what the numbers mean |
 | `src/docs/agents/examples.md` | what each example demonstrates and how to build it |
+| `src/docs/agents/display.md` | flip semantics, buffers and how to pace a loop correctly |
 
 ## House rules for this repository
 
