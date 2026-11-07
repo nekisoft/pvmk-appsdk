@@ -75,14 +75,24 @@ flat penalty per memory access as a sensitivity check.
 Both ports live in `src/examples/ports/`. Their `Makefile.dev` builds a desktop binary with
 the SDL shim, and `gmake SDKVER=<sdk>/out/bin/pvmk-sdkversion` builds the card.
 
-- Doom (freedoom1/freedoom2) renders 320x240 through its own span rasteriser. At 640x480 it
-  does 4x the pixel work and writes 4x the bytes; the scanout also reads 4x per frame. Expect
-  it to be pixel-bound first and memory-bound second. Measure `R_RenderPlayerView` and the
-  span drawers with profan before changing the resolution; if the frame is already over
-  budget at 320x240, 640x480 cannot be made fast without a different renderer (fewer spans,
-  lower internal resolution with a 640x480 HUD, or column-major caching).
+- Doom (freedoom1/freedoom2) renders 320x240 through its own span rasteriser. Measured on
+  the attract demo: 2.28M instructions and 4.28M modelled cycles per frame, 65% of it in
+  `R_DrawColumn` (46%) and `R_DrawSpan` (19%), about 19 instructions per pixel. On a 300MHz
+  part that is roughly 7.6ms of issue time against a 16.7ms frame, before SDRAM stalls.
+  `I_UpdateSound` is 5.7% and is pumped eight times per frame by the port.
+  640x480 is four times the pixels and the HUD/menus are 320x200 artwork:
+  see `doom-640x480.md` for the experiment, the numbers that were and were not obtained,
+  and why a 2x2 scanout of a 320x240 image is the practical route to a bigger picture.
 - Quake's world/BSP path is fixed point already; the alias-model path is not. That is the
   next conversion: transform in 16.16, one reciprocal per model, fixed dot-product lighting.
+  Measured on the attract demo (window 14-20s, 136 frames): **10.65M instructions and 18.7M
+  modelled cycles per frame**, i.e. about 62ms of issue time per frame at 300MHz - roughly
+  four times the budget for 60Hz. Top functions: `D_DrawSpans8` 22.8%, the alias path
+  (`R_AliasTransformAndProjectFinalVerts` 10.4%, `__mulsf3` 3.3%, `__aeabi_fadd` 3.1%,
+  `R_AliasTransformFinalVert` 1.8%, `__floatdisf` 1.7%) about 20%, `D_PolysetCalcGradients`
+  5.7%, edge setup (`R_EmitEdge`/`R_LeadingEdge`/`R_TrailingEdge`) 11.4%, `D_DrawZSpans` 4.2%.
+  Converting the alias path to fixed point removes most of a fifth of the frame; the rest
+  needs the span rasteriser and edge setup.
   Its `Makefile` has no header dependencies: clean after touching a header.
 - Both need their WAD/PAK data in `cardroot/`; the ISO is what the emulator reads.
 
