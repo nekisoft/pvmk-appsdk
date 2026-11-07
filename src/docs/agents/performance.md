@@ -108,23 +108,25 @@ the SDL shim, and `gmake SDKVER=<sdk>/out/bin/pvmk-sdkversion` builds the card.
 
 ## A measured example: -O2 versus -O3 on Freedoom
 
-`examples/ports/freedoom1` takes `PVMK_OPT` (default `-O2`) so two builds can be compared
-without editing the makefile. Building the same source with `-O3`, playing the same demo for
-the same window (4000..10000 modelled ms), and profiling both:
+`examples/ports/freedoom1` takes `PVMK_OPT` (default `-O3`) so two builds can be compared
+without editing the makefile. Attract demo, same window of 4000..10000 modelled ms, each
+profile read with the ELF from that exact build:
 
 ```
--O2   2.99M instructions   5.41M modelled cycles per frame   210 frames in 6s
--O3   2.91M instructions   5.50M modelled cycles per frame   210 frames in 6s
+-O2   2.987M instructions   5.607M modelled cycles per frame   210 frames in 6s
+-O3   2.906M instructions   5.503M modelled cycles per frame   210 frames in 6s
 ```
 
-`-O3` issues slightly fewer instructions and takes slightly more modelled cycles on this
-CPU model, so the default stays at `-O2`. That is the point of measuring: the instruction
-count is not the cost.
+`-O3` wins on both counts, so it is the default. The margin is small - a few percent - but it
+is real and it reproduced.
 
-Attribution of samples to functions needs the symbols for *that* binary. Re-running the
-profiler against a rebuilt executable gives convincing but wrong function names, which is
-how a Doom profile once read "60% in the sound mixer" and "0% in R_DrawColumn". Profile, then
-read, then rebuild for the next configuration.
+The point of measuring is also to catch yourself: the first attempt at this comparison
+reported `-O2` as the winner, because the profile histogram from the `-O2` run was read with
+the `-O3` binary's symbols. The instruction total was identical either way, but the modelled
+cycle total changed, because the profiler's cycle model is per function and the symbol map
+decides which function an address belongs to. Read a profile with the ELF that produced it,
+and if two totals disagree with identical instruction counts, suspect the symbols before the
+compiler.
 
 ## The same experiment on Quake
 
