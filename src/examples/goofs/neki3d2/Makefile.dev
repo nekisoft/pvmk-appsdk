@@ -1,0 +1,28 @@
+#Makefile.dev for the neki3d2 renderer - the same source against the SDL shim
+#Bryan E. Topp <betopp@betopp.com> 2026
+
+CC     =cc
+FIND   =find
+MKDIR  =mkdir
+RM     =rm
+
+CFLAGS += -std=c99 -Wall -Werror -Wextra -pedantic -g -O2
+CFLAGS += -I../../../sdlsc/include -DUSE_SDLSC=1
+CFLAGS += $(shell sdl2-config --cflags)
+LIBS += -lm $(shell sdl2-config --libs)
+
+CSRC:=$(shell $(FIND) -L src/ -name "*.c")
+COBJ:=$(patsubst src/%.c, obj.dev/%.o, $(CSRC))
+
+bin.dev/boot.elf: $(COBJ)
+	$(MKDIR) -p $(@D)
+	$(CC) $^ $(LIBS) -o $@
+
+obj.dev/%.o : src/%.c
+	$(MKDIR) -p $(@D)
+	$(CC) $(CFLAGS) $< -c -o $@
+
+clean :
+	$(RM) -rf obj.dev bin.dev
+
+.PHONY: clean

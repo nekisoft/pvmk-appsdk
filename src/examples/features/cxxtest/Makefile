@@ -2,7 +2,7 @@
 #Bryan E. Topp <betopp@betopp.com> 2024
 
 #Toolchain location
-PVMKSDK=../../..
+PVMKSDK?=../../..
 CC     =$(PVMKSDK)/bin/pvmk-cc
 CXX    =$(PVMKSDK)/bin/pvmk-c++
 OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy

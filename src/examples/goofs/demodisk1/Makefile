@@ -2,7 +2,7 @@
 #Bryan E. Topp <betopp@betopp.com> 2024
 
 #Toolchain location
-PVMKSDK=../../..
+PVMKSDK?=../../..
 CC     =$(PVMKSDK)/bin/pvmk-cc
 OBJCOPY=$(PVMKSDK)/bin/pvmk-objcopy
 MKISOFS=$(PVMKSDK)/bin/pvmk-xorriso -as mkisofs
