@@ -12,6 +12,8 @@
 /src/examples/*/*/obj.dev/
 /src/examples/*/*/img.dev/
 /src/examples/*/*/isoroot/*.NNE
+/src/examples/*/*/cardroot/boot.nne
+/src/examples/*/*/cardroot/*.nne
 
 #Editor and OS noise
 .DS_Store

@@ -17,7 +17,7 @@ typedef struct font_style_data_s
 } font_style_data_t;
 font_style_data_t font_style_table[FS_MAX] = 
 {
-	[FS_FAT] = { .width = font_fat_width, .height = font_fat_height, .bits = font_fat_bits },
+	[FS_FAT] = { .width = font_fat_width, .height = font_fat_height, .bits = (const char *)font_fat_bits },
 };
 
 static int font_draw_char(font_style_t style, char ch, uint16_t color, int x, int y)

@@ -83,7 +83,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 #Dev-only targets - object for each C file
 $(OBJDIR)/%.o : $(SRCDIR)/%.c.dev
 	$(MKDIR) -p $(@D)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -x c -c $< -o $@
 	
 #Cleanup target
 clean:

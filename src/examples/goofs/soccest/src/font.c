@@ -18,8 +18,8 @@ typedef struct font_style_data_s
 } font_style_data_t;
 font_style_data_t font_style_table[FS_MAX] = 
 {
-	[FS_REGULAR] = { .width = font_regular_width, .height = font_regular_height, .bits = font_regular_bits },
-	[FS_SMALL]   = { .width = font_small_width,   .height = font_small_height,   .bits = font_small_bits   },
+	[FS_REGULAR] = { .width = font_regular_width, .height = font_regular_height, .bits = (const char *)font_regular_bits },
+	[FS_SMALL]   = { .width = font_small_width,   .height = font_small_height,   .bits = (const char *)font_small_bits   },
 };
 
 static int font_draw_char(font_style_t style, char ch, uint16_t color, int x, int y)

@@ -216,7 +216,7 @@ static void drawpitch(void)
 		
 		uint32_t ycoord = texy + (PITCHTEX_DIM*128);
 		
-		if(ycoord < 0 || ycoord >= (PITCHTEX_DIM<<8))
+		if(ycoord >= (PITCHTEX_DIM<<8))
 		{
 			for(int xx = 0; xx < 640; xx++)
 			{
