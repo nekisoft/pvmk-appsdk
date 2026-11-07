@@ -105,3 +105,23 @@ the SDL shim, and `gmake SDKVER=<sdk>/out/bin/pvmk-sdkversion` builds the card.
   comparison is meaningless.
 - Report the machine cost in instructions per frame and the implied frame rate against the
   300 MIPS the scheduler assumes, plus the measured frame count if you have it.
+
+## A measured example: -O2 versus -O3 on Freedoom
+
+`examples/ports/freedoom1` takes `PVMK_OPT` (default `-O2`) so two builds can be compared
+without editing the makefile. Building the same source with `-O3`, playing the same demo for
+the same window (4000..10000 modelled ms), and profiling both:
+
+```
+-O2   2.99M instructions   5.41M modelled cycles per frame   210 frames in 6s
+-O3   2.91M instructions   5.50M modelled cycles per frame   210 frames in 6s
+```
+
+`-O3` issues slightly fewer instructions and takes slightly more modelled cycles on this
+CPU model, so the default stays at `-O2`. That is the point of measuring: the instruction
+count is not the cost.
+
+Attribution of samples to functions needs the symbols for *that* binary. Re-running the
+profiler against a rebuilt executable gives convincing but wrong function names, which is
+how a Doom profile once read "60% in the sound mixer" and "0% in R_DrawColumn". Profile, then
+read, then rebuild for the next configuration.
