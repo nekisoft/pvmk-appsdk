@@ -20,3 +20,7 @@ pushd src/docs
 cp ARM_DDI01001.pdf ${OUTDIR}
 popd
 
+#Markdown notes for people and agents working on games
+mkdir -p ${OUTDIR}/agents
+cp src/docs/agents/*.md ${OUTDIR}/agents/
+

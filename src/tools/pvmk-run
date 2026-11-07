@@ -1,0 +1,289 @@
+#!/usr/bin/env bash
+#pvmk-run - build a PVMK project and run it under nemul-headless, with a result an agent can read
+#Bryan E. Topp <betopp@betopp.com> 2026
+#
+#This is the iteration loop for a game: one command builds, boots, runs a fixed number of
+#frames, and reports what happened in a form that can be compared against the last run.
+#
+#    pvmk-run -C examples/sysusage/tplbuf --frames 60 --input demo.input
+#
+#Everything it reads and writes is a plain file, so a baseline is reviewable:
+#
+#    pvmk-run -C mygame --frames 120 --save-baseline test/golden.txt
+#    pvmk-run -C mygame --frames 120 --baseline test/golden.txt
+#
+#Baseline format:
+#    exit N
+#    frame <n> <hash>            one per displayed frame
+#    text <regex>                one per --expect, in order
+#
+#Exit status: 0 pass, 1 build failed, 2 run failed (bad usage, missing files), 3 the program
+#faulted, 4 baseline mismatch, 5 an expected string did not appear.
+
+set -u
+
+PROJDIR="."
+DOBUILD=1
+BOOTMENU=0
+FRAMES=""
+TICKS=""
+INPUT=""
+DUMP=""
+SHOT=""
+TRACESYSC=0
+BASELINE=""
+SAVEBASELINE=""
+JSON=""
+QUIET=0
+EXPECTS=()
+KEEP=0
+
+usage()
+{
+	sed -n '2,20p' "$0" | sed 's/^#//' >&2
+	exit 2
+}
+
+while [ $# -gt 0 ]
+do
+	case "$1" in
+		-C) PROJDIR="$2"; shift 2 ;;
+		--no-build) DOBUILD=0; shift ;;
+		--boot-menu) BOOTMENU=1; shift ;;
+		--frames) FRAMES="$2"; shift 2 ;;
+		--ticks) TICKS="$2"; shift 2 ;;
+		--input) INPUT="$2"; shift 2 ;;
+		--dump) DUMP="$2"; shift 2 ;;
+		--shot) SHOT="$2"; shift 2 ;;
+		--trace-sysc) TRACESYSC=1; shift ;;
+		--baseline) BASELINE="$2"; shift 2 ;;
+		--save-baseline) SAVEBASELINE="$2"; shift 2 ;;
+		--expect) EXPECTS+=("$2"); shift 2 ;;
+		--json) JSON="$2"; shift 2 ;;
+		--quiet) QUIET=1; shift ;;
+		--) shift; break ;;
+		-h|--help) usage ;;
+		*) echo "pvmk-run: unknown option $1" >&2; usage ;;
+	esac
+done
+
+if [ ! -d "$PROJDIR" ]
+then
+	echo "pvmk-run: no such project directory: $PROJDIR" >&2
+	exit 2
+fi
+
+#Locate the SDK: PVMKSDK, else a pvmk-sdkversion on PATH, else the checkout this script is in
+if [ -z "${PVMKSDK:-}" ]
+then
+	SELF="$(cd "$(dirname "$0")" && pwd)"
+	for cand in "$SELF/../../out" "$SELF/.."
+	do
+		if [ -x "$cand/bin/pvmk-cc" ]
+		then
+			PVMKSDK="$(cd "$cand" && pwd)"
+			break
+		fi
+	done
+fi
+if [ -z "${PVMKSDK:-}" ] || [ ! -x "$PVMKSDK/bin/pvmk-cc" ]
+then
+	echo "pvmk-run: cannot find the SDK; set PVMKSDK to the directory holding bin/pvmk-cc" >&2
+	exit 2
+fi
+
+NEMUL="${PVMK_NEMUL:-$PVMKSDK/bin/pvmk-nemul-headless}"
+if [ ! -x "$NEMUL" ]
+then
+	NEMUL="$(command -v pvmk-nemul-headless 2>/dev/null || true)"
+fi
+if [ -z "$NEMUL" ] || [ ! -x "$NEMUL" ]
+then
+	echo "pvmk-run: cannot find pvmk-nemul-headless (set PVMK_NEMUL)" >&2
+	exit 2
+fi
+
+MAKE="gmake"
+command -v gmake >/dev/null 2>&1 || MAKE="make"
+
+BUILDLOG="$(mktemp "${TMPDIR:-/tmp}/pvmk-build.XXXXXX")"
+RUNLOG="$(mktemp "${TMPDIR:-/tmp}/pvmk-run.XXXXXX")"
+cleanup()
+{
+	rm -f "$BUILDLOG" "$RUNLOG"
+}
+trap cleanup EXIT
+
+if [ "$DOBUILD" = 1 ]
+then
+	[ "$QUIET" = 1 ] || echo "pvmk-run: building $PROJDIR"
+	if ! PVMKSDK="$PVMKSDK" "$MAKE" -C "$PROJDIR" >"$BUILDLOG" 2>&1
+	then
+		echo "BUILD FAILED"
+		tail -40 "$BUILDLOG"
+		exit 1
+	fi
+	if grep -q -i "warning:" "$BUILDLOG" && [ "$QUIET" != 1 ]
+	then
+		echo "build warnings:"
+		grep -i "warning:" "$BUILDLOG" | head -20
+	fi
+fi
+
+ISO="$PROJDIR/img/game.iso"
+NNE="$PROJDIR/bin/boot.nne"
+if [ ! -f "$ISO" ]
+then
+	echo "pvmk-run: no card image at $ISO (did the build produce it?)" >&2
+	exit 2
+fi
+
+ARGS=(--disk "$ISO")
+if [ "$BOOTMENU" != 1 ]
+then
+	if [ ! -f "$NNE" ]
+	then
+		echo "pvmk-run: no program at $NNE" >&2
+		exit 2
+	fi
+	ARGS+=(--nne "$NNE")
+fi
+if [ -n "$FRAMES" ]
+then
+	ARGS+=(--frames "$FRAMES")
+fi
+if [ -n "$TICKS" ]
+then
+	ARGS+=(--ticks "$TICKS")
+fi
+if [ -n "$INPUT" ]
+then
+	ARGS+=(--input "$INPUT")
+fi
+if [ -n "$DUMP" ]
+then
+	mkdir -p "$DUMP"
+	ARGS+=(--fb "$DUMP/frame" --fb-every "${PVMK_DUMP_EVERY:-1}")
+fi
+HASHFILE="$(mktemp "${TMPDIR:-/tmp}/pvmk-hash.XXXXXX")"
+trap 'cleanup; rm -f "$HASHFILE"' EXIT
+ARGS+=(--hash)
+
+REALSHOT="$SHOT"
+[ -z "$SHOT" ] && REALSHOT="$RUNLOG.final.ppm"
+ARGS+=(--shot "$REALSHOT")
+[ -z "$SHOT" ] && trap 'cleanup; rm -f "$HASHFILE" "$RUNLOG.final.ppm"' EXIT
+
+[ "$TRACESYSC" = 1 ] && ARGS+=(--trace-sysc)
+if [ "$QUIET" = 1 ]
+then
+	ARGS+=(--quiet)
+fi
+
+[ "$QUIET" = 1 ] || echo "pvmk-run: running $NNE"
+
+#Guest output and the emulator's own lines share stdout, so the frame hashes are filtered out
+#of the same log rather than run separately.
+set +e
+(cd "$PROJDIR" && "$NEMUL" "${ARGS[@]}") >"$RUNLOG" 2>&1
+RUNEXIT=$?
+set -e
+grep '^FRAME ' "$RUNLOG" > "$HASHFILE" || true
+
+echo "exit $RUNEXIT"
+while read -r line
+do
+	printf 'frame %s %s\n' "$(echo "$line" | awk '{print $2}')" "$(echo "$line" | awk '{print $8}')"
+done < "$HASHFILE"
+
+#The program's own text is a log an agent can grep; print it indented and without the hashes
+if [ "$QUIET" != 1 ]
+then
+	grep -v '^FRAME ' "$RUNLOG" | sed 's/^/  | /' | tail -40
+fi
+
+PASS=1
+if [ "$RUNEXIT" = 3 ]
+then
+	echo "PROGRAM FAULTED"
+	PASS=0
+fi
+
+EXPECT_OK=1
+for pat in "${EXPECTS[@]:-}"
+do
+	[ -z "$pat" ] && continue
+	if grep -Eq -- "$pat" "$RUNLOG"
+	then
+		echo "expect ok: $pat"
+	else
+		echo "expect MISSING: $pat"
+		EXPECT_OK=0
+	fi
+done
+
+if [ -n "$SAVEBASELINE" ]
+then
+	mkdir -p "$(dirname "$SAVEBASELINE")"
+	{
+		echo "exit $RUNEXIT"
+		while read -r line
+		do
+			printf 'frame %s %s\n' "$(echo "$line" | awk '{print $2}')" "$(echo "$line" | awk '{print $8}')"
+		done < "$HASHFILE"
+		for pat in "${EXPECTS[@]:-}"
+		do
+			[ -n "$pat" ] && echo "text $pat"
+		done
+	} > "$SAVEBASELINE"
+	echo "baseline saved: $SAVEBASELINE"
+fi
+
+if [ -n "$BASELINE" ]
+then
+	if [ ! -f "$BASELINE" ]
+	then
+		echo "pvmk-run: no baseline at $BASELINE" >&2
+		PASS=0
+	else
+		CMP="$(mktemp "${TMPDIR:-/tmp}/pvmk-cmp.XXXXXX")"
+		{
+			echo "exit $RUNEXIT"
+			while read -r line
+			do
+				printf 'frame %s %s\n' "$(echo "$line" | awk '{print $2}')" "$(echo "$line" | awk '{print $8}')"
+			done < "$HASHFILE"
+		} > "$CMP"
+		if diff -u "$BASELINE" "$CMP" > "$CMP.diff"
+		then
+			echo "baseline ok: $BASELINE ($(grep -c '^frame ' "$CMP") frames)"
+		else
+			echo "BASELINE MISMATCH: $BASELINE"
+			head -40 "$CMP.diff"
+			PASS=0
+		fi
+		rm -f "$CMP" "$CMP.diff"
+	fi
+fi
+
+if [ -n "$JSON" ]
+then
+	NF=$(grep -c '^FRAME ' "$RUNLOG" || true)
+	cat > "$JSON" <<EOF
+{
+  "project": "$PROJDIR",
+  "program": "$NNE",
+  "exit": $RUNEXIT,
+  "frames": $NF,
+  "pass": $([ "$PASS" = 1 ] && [ "$EXPECT_OK" = 1 ] && echo true || echo false)
+}
+EOF
+fi
+
+[ "$EXPECT_OK" = 1 ] || exit 5
+[ "$PASS" = 1 ] || exit 4
+if [ "$RUNEXIT" != 0 ]
+then
+	exit "$RUNEXIT"
+fi
+exit 0

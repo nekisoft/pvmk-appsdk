@@ -1,0 +1,19 @@
+#Build products
+/out/
+/obj/
+/src/nemul/bin/
+/src/nemul/obj/
+
+#Per-example build products
+/src/examples/*/*/bin/
+/src/examples/*/*/obj/
+/src/examples/*/*/img/
+/src/examples/*/*/bin.dev/
+/src/examples/*/*/obj.dev/
+/src/examples/*/*/img.dev/
+/src/examples/*/*/isoroot/*.NNE
+
+#Editor and OS noise
+.DS_Store
+*.core
+*.swp
