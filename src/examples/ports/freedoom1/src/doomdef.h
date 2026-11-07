@@ -106,13 +106,21 @@ typedef enum
 #define	SCREEN_MUL		1
 #define	INV_ASPECT_RATIO	0.75 //0.625 // 0.75, ideally
 
-// Defines suck. C sucks.
-// C++ might sucks for OOP, but it sure is a better C.
+//Defines suck. C sucks.
+//C++ might sucks for OOP, but it sure is a better C.
 // So there.
+//Build with -DPVMK_640X480 to render the 3D view at 640x480 instead of 320x240. Note that
+//the status bar, menus and all artwork are 320-wide; they stay at their own size and the
+//right-hand side is left black, so this is a renderer experiment, not a finished mode.
+#ifdef PVMK_640X480
+#define SCREENWIDTH  640
+#define SCREENHEIGHT 480
+#else
 #define SCREENWIDTH  320
 //SCREEN_MUL*BASE_WIDTH //320
 #define SCREENHEIGHT 240
 //(int)(SCREEN_MUL*BASE_WIDTH*INV_ASPECT_RATIO) //200
+#endif
 
 
 

@@ -701,6 +701,13 @@ int main(int argc, char **argv)
 				break;
 		}
 
+		//A breakpoint hit or a debugger stop is not the end of the run while a client is
+		//attached: stand still and let rsp_poll serve it until it resumes or leaves.
+		if(all_stopped() && rsp_present())
+		{
+			emul_stop_requested = 0;
+			continue;
+		}
 		if(all_stopped() || emul_stop_requested)
 			break;
 	}

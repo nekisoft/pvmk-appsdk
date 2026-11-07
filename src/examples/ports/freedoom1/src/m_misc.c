@@ -266,7 +266,11 @@ default_t	defaults[] =
     {"joyb_use",&joybuse,3},
     {"joyb_speed",&joybspeed,2},
 
+#ifdef PVMK_640X480
+    {"screenblocks",&screenblocks, 11}, //full screen; 10 is a 320-wide window in the middle
+#else
     {"screenblocks",&screenblocks, 10}, //neki32
+#endif
     //{"screenblocks",&screenblocks, 10},
     {"detaillevel",&detailLevel, 0},
 

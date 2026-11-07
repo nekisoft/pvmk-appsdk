@@ -36,6 +36,11 @@ COBJ:=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CSRC))
 CFLAGS += -std=c99 -pedantic
 CFLAGS += -Wall -Werror -Wextra
 CFLAGS += -O2
+#Debug information: the profiler attributes by symbol without it, but the debugger can only
+#show variables and source lines when it is present.
+CFLAGS += -g
+#Extra switches from the command line, e.g. PVMK_DEFS=-DPVMK_640X480
+CFLAGS += $(PVMK_DEFS)
 
 #Flags to use when linking
 LINKFLAGS += 

@@ -1650,7 +1650,11 @@ void G_DoPlayDemo (void)
 	 
     gameaction = ga_nothing; 
     demobuffer = demo_p = W_CacheLumpName (defdemoname, PU_STATIC); 
-    if ( (*demo_p++) != VERSION)
+    //Freedoom's attract demos are recorded by Doom 1.9, whose demo format is the same as
+    //1.10's but whose version byte is 109. The original engine only accepted its own
+    //version, which made every shipped demo unplayable and left the attract loop dead.
+    int demover = *demo_p++;
+    if ( (demover != VERSION) && (demover != 109) )
     {
       fprintf( stderr, "Demo is from a different game version!\n");
       gameaction = ga_nothing;

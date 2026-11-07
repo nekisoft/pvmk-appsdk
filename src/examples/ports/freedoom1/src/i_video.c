@@ -116,10 +116,16 @@ uint32_t sparsepal[256];
 uint16_t fbs[3][SCREENHEIGHT][SCREENWIDTH] __attribute__((aligned(256)));
 int fb_next;
 
+#ifdef PVMK_640X480
+#define PVMK_GFX_MODE _SC_GFX_MODE_VGA_16BPP
+#else
+#define PVMK_GFX_MODE _SC_GFX_MODE_320X240_16BPP
+#endif
+
 void I_FinishUpdate (void)
 {
 	//Flip that to the front at vertical blanking
-	int displayed = _sc_gfx_flip(_SC_GFX_MODE_320X240_16BPP, fbs[fb_next]);
+	int displayed = _sc_gfx_flip(PVMK_GFX_MODE, fbs[fb_next]);
 	
 	//Pick a free buffer to draw into next - not the one we just asked to display, and not what's currently displayed.
 	int freebuf = 0;
@@ -201,7 +207,7 @@ void I_LoadingScreen(void)
 			}
 		}
 		close(loading_graphic);
-		while(_sc_gfx_flip(_SC_GFX_MODE_320X240_16BPP, fbs[fb_next]) != (int)(fbs[fb_next])) { _sc_pause(); }
+		while(_sc_gfx_flip(PVMK_GFX_MODE, fbs[fb_next]) != (int)(fbs[fb_next])) { _sc_pause(); }
 		fb_next = fb_next ? 0 : 1;
 	}
 }

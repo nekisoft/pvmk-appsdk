@@ -207,8 +207,23 @@ void D_Display (void)
 
     if (nodrawers)
 	return;                    // for comparative timing / profiling
-		
+
+#ifdef PVMK_NOHUD
+    //A pure 640x480 renderer benchmark: draw the world and flip, and nothing else. Every
+    //other drawer in the game (status bar, menus, wipes, intermission) is artwork laid out
+    //for 320x200 and would either land in the wrong place or abort.
+    if (gamestate == GS_LEVEL && gametic)
+    {
+	R_RenderPlayerView (&players[displayplayer]);
+	I_FinishUpdate ();
+    }
+    return;
+#endif
+
     redrawsbar = false;
+#ifdef PVMK_NOHUD
+    (void)redrawsbar; //the 640x480 experiment skips the status bar, its only reader
+#endif
     
     // change the view size if needed
     if (setsizeneeded)
@@ -219,6 +234,11 @@ void D_Display (void)
     }
 
     // save the current screen if about to wipe
+#ifdef PVMK_NOHUD
+    //640x480 experiment: the wipe is 320x200 artwork machinery and its intermediate buffers
+    //are sized for the old screen; a benchmark frame should be a 3D frame and nothing else.
+    wipe = false;
+#else
     if (gamestate != wipegamestate)
     {
 	wipe = true;
@@ -226,6 +246,7 @@ void D_Display (void)
     }
     else
 	wipe = false;
+#endif
 
     if (gamestate == GS_LEVEL && gametic)
 	HU_Erase();
@@ -244,20 +265,31 @@ void D_Display (void)
 	    redrawsbar = true;              // just put away the help screen
 	
 	redrawsbar = true; //Broke something during 16bpp changes -betopp
+#ifndef PVMK_NOHUD
+	//A 640x480 experiment skips the status bar: its widgets are laid out for 320x200 and
+	//STlib_drawNum aborts when they fall outside the taller screen. Scaling the HUD is a
+	//separate job from making the 3D view bigger.
 	ST_Drawer (viewheight == SCREENHEIGHT, redrawsbar );
+#endif
 	fullscreen = viewheight == SCREENHEIGHT;
 	break;
 
       case GS_INTERMISSION:
+#ifndef PVMK_NOHUD
 	WI_Drawer ();
+#endif
 	break;
 
       case GS_FINALE:
+#ifndef PVMK_NOHUD
 	F_Drawer ();
+#endif
 	break;
 
       case GS_DEMOSCREEN:
+#ifndef PVMK_NOHUD
 	D_PageDrawer ();
+#endif
 	break;
     }
     
@@ -313,7 +345,9 @@ void D_Display (void)
 
 
     // menus go directly to the screen
+#ifndef PVMK_NOHUD
     M_Drawer ();          // menu is drawn even on top of everything
+#endif
     NetUpdate ();         // send out any new accumulation
 
 
@@ -1135,6 +1169,13 @@ void D_DoomMain (void)
 	printf ("External statistics registered.\n");
     }
     
+    //Benchmark and automated-test builds: skip the title screen and go straight into the
+    //first attract demo, so a fixed window of emulated time is rendering, not loading menus.
+#ifdef PVMK_AUTODEMO
+    G_DeferedPlayDemo ("demo1");
+    D_DoomLoop ();  // never returns
+#endif
+
     // start the apropriate game based on parms
     p = M_CheckParm ("-record");
 
