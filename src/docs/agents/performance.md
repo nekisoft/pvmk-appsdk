@@ -139,4 +139,6 @@ Attract demo, window 14000..20000 modelled ms:
 So the optimisation level is worth measuring per project and not worth guessing: Doom
 prefers `-O2`, Quake prefers `-O3`, and the difference is a few percent either way. Neither
 compiler flag touches the real costs, which are `D_DrawSpans8` (23% of Quake) and the
-floating-point alias path (about 20%).
+floating-point alias path (about 20%). Adding `-fomit-frame-pointer` to `-O3` measured
+identical instructions and cycles, because the compiler already omits the frame pointer
+for this target; it is not worth a build.
