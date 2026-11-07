@@ -46,7 +46,6 @@ depth test.
 Profiled with `NEMUL_PROF` over a 2000..5000ms window with `profan.py`:
 
 ```
-2.33M instructions per frame   (earlier, throttled measurement)
 6.83M instructions per frame   12.15M modelled cycles per frame
   raster_tri  82%   __udivsi3 13.6%   app_main 3%
 18,380 pixels and 5,222 runs per frame
@@ -58,6 +57,10 @@ pixels are visited even when only 18k of them are inside a triangle. The fix is 
 rasteriser that walks the edges and touches only the spans inside the triangle, which is the
 next piece of work. After that, the run setup (two reciprocals per run) and the 16-bit
 texture fetch are what remain.
+
+An earlier version of this measurement read 2.33M instructions per frame; that run counted
+every `_sc_gfx_flip` in a pacing loop as a frame, so it divided by three times too many
+frames. The numbers above count one flip per frame.
 
 `-DPVMK_640X480` is not a thing here: the framebuffer and the depth buffer are sized for
 320x240, which is the resolution this renderer is meant for.
