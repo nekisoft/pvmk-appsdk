@@ -183,3 +183,28 @@ of the total; the per-frame renderer saving is the number that matters for frame
 `singletics`, plays demo1, and reports gametics against emulated milliseconds. It exits
 through `I_Error` when the demo ends, which on the console means the kernel restarts the
 program - the line is printed first, so capture stdout.
+
+## Doom: where the remaining banding came from, and the distance interpolation
+
+After the shading rows landed, floors still banded. The light itself was continuous by then; the
+steps were in the *distance* term. Doom dims by picking a whole colormap out of a table indexed
+by `spryscale>>LIGHTSCALESHIFT` (walls) or `distance>>LIGHTZSHIFT` (flats), and the level stored
+there is itself a whole colormap: `(scale/DISTMAP)*256`. Every index step - 16 map units for
+flats - therefore moved the brightness by a full 1/31 of the light range.
+
+The fix keeps Doom's levels exactly and interpolates between the two entries either side of the
+lookup, using the sub-index remainder (`distance & ((1<<LIGHTZSHIFT)-1)`, and the low bits of
+`spryscale` for walls, whose term is linear so it is computed directly). Tables are in 1/256 of
+a colormap. At an index boundary the result is Doom's own colour; inside a step it is the blend
+Doom never had.
+
+Verification, because frames at the same emulated tick are different demo positions: build both
+versions with `-DPVMK_STOPTIC=n`, which quits after game tic n, so both screenshots are the same
+frame. At tic 650, original versus new: mean pixel difference 5.62/255 and mean luminance 45.7
+versus 46.9 - the same picture, 2.6% brighter because the blend follows the continuous scale
+instead of Doom's round-up-to-the-next-index.
+
+Trap worth remembering: the first attempt at this change also switched the light base to Doom's
+`light>>4` quantisation in the same build, and measured 45.7 against 39.3 - a 12% darkening that
+looks exactly like a unit error in the distance term. It was the light change. Change one thing
+per measurement.

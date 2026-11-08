@@ -172,8 +172,9 @@ R_MapPlane
 	    index = MAXLIGHTZ-1;
 
 	ds_colormap = planezlight[index];
-	ds_shade = R_ShadeForLevel31(plane_shade_base8 - r_z_dist8[index]);
-	ds_sparseshade = R_SparseForLevel31(plane_shade_base8 - r_z_dist8[index]);
+	int lvl8p = plane_shade_base8 - R_ZDist8(distance);
+	ds_shade = R_ShadeForLevel31(lvl8p);
+	ds_sparseshade = R_SparseForLevel31(lvl8p);
     }
 	
     ds_y = y;

@@ -148,6 +148,11 @@ void I_FinishUpdate (void)
 	screens[0] = &(fbs[fb_next][0][0]);
 	R_UpdateBufferPointers();
 	
+#ifdef PVMK_STOPTIC
+	if(gametic >= PVMK_STOPTIC)
+		I_Quit ();
+#endif
+
 	//Pump sound
 	for(int ss = 0; ss < 8; ss++)
 	{

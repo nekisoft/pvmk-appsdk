@@ -86,10 +86,14 @@ extern lighttable_t*	fixedcolormap;
 // There a 0-31, i.e. 32 LUT in the COLORMAP lump.
 #define NUMCOLORMAPS		32
 
+//Distance dimming in 1/256 colormap units, filled with Doom's own levels by R_InitLightTables.
+extern int r_z_dist8[MAXLIGHTZ + 1];
+int R_WallDist8(int scale);
+int R_ZDist8(int distance);
+
 //Distance dimming for walls and flats, in 8.8 colormap-index units, filled by the light-table
 //setup so a continuous light value can become a shading row with no division per column.
 extern int r_wall_dist8[MAXLIGHTSCALE];
-extern int r_z_dist8[MAXLIGHTZ];
 
 
 // Blocky/low detail mode.

@@ -184,7 +184,9 @@ R_RenderMaskedSegRange
 		    index = MAXLIGHTSCALE-1;
 
 		dc_colormap = walllights[index];
-		dc_shade = R_ShadeForLevel31(r_shade_base8 - r_wall_dist8[index]);
+		int lvl8m = r_shade_base8 - R_WallDist8(spryscale);
+		dc_shade = R_ShadeForLevel31(lvl8m);
+		dc_sparseshade = R_SparseForLevel31(lvl8m);
 	    }
 			
 	    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
@@ -286,8 +288,9 @@ void R_RenderSegLoop (void)
 		index = MAXLIGHTSCALE-1;
 
 	    dc_colormap = walllights[index];
-	    dc_shade = R_ShadeForLevel31(r_shade_base8 - r_wall_dist8[index]);
-	    dc_sparseshade = R_SparseForLevel31(r_shade_base8 - r_wall_dist8[index]);
+	    int lvl8w = r_shade_base8 - R_WallDist8(rw_scale);
+	    dc_shade = R_ShadeForLevel31(lvl8w);
+	    dc_sparseshade = R_SparseForLevel31(lvl8w);
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}

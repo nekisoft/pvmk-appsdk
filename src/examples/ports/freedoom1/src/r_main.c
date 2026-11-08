@@ -111,9 +111,6 @@ angle_t			xtoviewangle[SCREENWIDTH+1];
 fixed_t*		finecosine = &finesine[FINEANGLES/4];
 
 
-int			r_wall_dist8[MAXLIGHTSCALE];
-int			r_z_dist8[MAXLIGHTZ];
-
 lighttable_t*		scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
 lighttable_t*		scalelightfixed[MAXLIGHTSCALE];
 lighttable_t*		zlight[LIGHTLEVELS][MAXLIGHTZ];
@@ -647,6 +644,35 @@ void R_InitLightTables (void)
     }
 }
 
+//Distance dimming, in 1/256 of a colormap, interpolated between Doom's integer level indices.
+//Doom picks one whole colormap index per scale index (spryscale>>LIGHTSCALESHIFT for walls,
+//distance>>LIGHTZSHIFT for flats), which is what puts visible steps across a floor going into
+//the distance. The tables hold Doom's own levels - so the curve is unchanged - and the lookups
+//blend two adjacent entries by the sub-index remainder.
+int r_z_dist8[MAXLIGHTZ + 1];
+
+int R_WallDist8(int scale)
+{
+	//Doom: level = (scale>>LIGHTSCAKESHIFT) * SCREENWIDTH / (viewwidth<<detailshift) / DISTMAP
+	//in whole colormaps. The same expression in 16.16, with only the final rounding to 1/256.
+	int64_t num = (int64_t)scale * SCREENWIDTH;
+	int64_t den = (int64_t)(viewwidth << detailshift) * DISTMAP * 16;
+	if(den <= 0)
+		return 0;
+	return (int)(num / den);
+}
+
+int R_ZDist8(int distance)
+{
+	int j = distance >> LIGHTZSHIFT;
+	if(j >= MAXLIGHTZ)
+		j = MAXLIGHTZ - 1;
+	int frac = (distance >> (LIGHTZSHIFT - 8)) & 255;
+	int a = r_z_dist8[j];
+	int b = r_z_dist8[j + 1];
+	return a + (((b - a) * frac) >> 8);
+}
+
 //Rows are built by interpolating Doom's own colormaps in colour space, so the brightness
 //curve is the one id authored and the only thing that changes is that levels between two
 //colormaps no longer snap to one of them. 0 is full bright, 31 is the darkest map.
@@ -844,7 +870,6 @@ void R_ExecuteSetViewSize (void)
 	    scalelight[i][j] = colormaps + level*256;
 
 	    //Continuous counterpart, in 8.8 units: j*SCREENWIDTH/(viewwidth<<detailshift)/DISTMAP.
-	    r_wall_dist8[j] = ((j * SCREENWIDTH) / (viewwidth << detailshift) / DISTMAP) * 256;
 	}
     }
 }
