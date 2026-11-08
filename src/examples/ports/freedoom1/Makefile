@@ -42,7 +42,10 @@ CFLAGS += $(PVMK_OPT)
 #Debug information: the profiler attributes by symbol without it, but the debugger can only
 #show variables and source lines when it is present.
 CFLAGS += -g
-#Extra switches from the command line, e.g. PVMK_DEFS=-DPVMK_640X480
+#Extra switches from the command line. Useful ones:
+#  -DPVMK_640X480    render and display 640x480 instead of 320x240 (about four times the cost)
+#  -DPVMK_AUTODEMO   skip the title screen and play demo1 forever
+#  -DPVMK_TIMEDEMO   play demo1 as fast as possible and print "timed N gametics in M realtics"
 CFLAGS += $(PVMK_DEFS)
 
 #Flags to use when linking

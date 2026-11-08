@@ -1176,6 +1176,14 @@ void D_DoomMain (void)
     D_DoomLoop ();  // never returns
 #endif
 
+    //Benchmark build: play the demo as fast as the machine allows and report, at the end,
+    //"timed <gametics> gametics in <realtics> realtics" (realtics are emulated milliseconds).
+    //This is Doom's own -timedemo path, reachable without a command line.
+#ifdef PVMK_TIMEDEMO
+    G_TimeDemo ("demo1");
+    D_DoomLoop ();  // never returns
+#endif
+
     // start the apropriate game based on parms
     p = M_CheckParm ("-record");
 

@@ -111,6 +111,9 @@ angle_t			xtoviewangle[SCREENWIDTH+1];
 fixed_t*		finecosine = &finesine[FINEANGLES/4];
 
 
+int			r_wall_dist8[MAXLIGHTSCALE];
+int			r_z_dist8[MAXLIGHTZ];
+
 lighttable_t*		scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
 lighttable_t*		scalelightfixed[MAXLIGHTSCALE];
 lighttable_t*		zlight[LIGHTLEVELS][MAXLIGHTZ];
@@ -635,8 +638,88 @@ void R_InitLightTables (void)
 		level = NUMCOLORMAPS-1;
 
 	    zlight[i][j] = colormaps + level*256;
+
+	    //Continuous counterpart of the same formula, in 8.8 units of colormap index.
+	    scale = FixedDiv ((SCREENWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
+	    scale >>= LIGHTSCALESHIFT;
+	    r_z_dist8[j] = (scale / DISTMAP) * 256;
 	}
     }
+}
+
+//Rows are built by interpolating Doom's own colormaps in colour space, so the brightness
+//curve is the one id authored and the only thing that changes is that levels between two
+//colormaps no longer snap to one of them. 0 is full bright, 31 is the darkest map.
+void R_BuildShadeTables(void)
+{
+	for(int row = 0; row < 256; row++)
+	{
+		int lvl8 = (row * 31 * 256) / 255;
+		int c0 = lvl8 >> 8;
+		int frac = lvl8 & 255;
+		int c1 = c0 + 1;
+		if(c1 >= NUMCOLORMAPS)
+			c1 = NUMCOLORMAPS - 1;
+
+		for(int i = 0; i < 256; i++)
+		{
+			int p0 = colormaps[c0 * 256 + i];
+			int p1 = colormaps[c1 * 256 + i];
+			unsigned r0 = r_palrgb[p0 * 3 + 0], g0 = r_palrgb[p0 * 3 + 1], b0 = r_palrgb[p0 * 3 + 2];
+			unsigned r1 = r_palrgb[p1 * 3 + 0], g1 = r_palrgb[p1 * 3 + 1], b1 = r_palrgb[p1 * 3 + 2];
+			unsigned rr = (r0 * (255 - frac) + r1 * frac + 127) / 255;
+			unsigned gg = (g0 * (255 - frac) + g1 * frac + 127) / 255;
+			unsigned bb = (b0 * (255 - frac) + b1 * frac + 127) / 255;
+			shadetab[row][i] = ((rr >> 3) << 11) | ((gg >> 2) << 5) | (bb >> 3);
+			sparseshadetab[row][i] = ((rr >> 2) << 20) | ((gg >> 2) << 10) | (bb >> 2);
+		}
+	}
+}
+
+//Convert one of Doom's colormaps to a shading row. Integer colormaps land exactly on their
+//own colours; paths without a continuous light (sprites, fuzz, specials) keep Doom's levels.
+uint16_t *R_ShadeForColormap(lighttable_t *cm)
+{
+	int idx = 0;
+	if(cm)
+		idx = (int)((cm - colormaps) / 256);
+	if(idx < 0)
+		idx = 0;
+	if(idx >= NUMCOLORMAPS)
+		idx = NUMCOLORMAPS - 1;
+	return shadetab[(idx * 255) / (NUMCOLORMAPS - 1)];
+}
+
+uint32_t *R_SparseForColormap(lighttable_t *cm)
+{
+	int idx = 0;
+	if(cm)
+		idx = (int)((cm - colormaps) / 256);
+	if(idx < 0)
+		idx = 0;
+	if(idx >= NUMCOLORMAPS)
+		idx = NUMCOLORMAPS - 1;
+	return sparseshadetab[(idx * 255) / (NUMCOLORMAPS - 1)];
+}
+
+//A light level given as a continuous colormap-index value: 0 is full bright, 31*256 is the
+//darkest Doom colormap. This is where the banding goes away - the level is not a whole map.
+uint16_t *R_ShadeForLevel31(int lvl8)
+{
+	if(lvl8 < 0)
+		lvl8 = 0;
+	if(lvl8 > 31 * 256)
+		lvl8 = 31 * 256;
+	return shadetab[(lvl8 * 255) / (31 * 256)];
+}
+
+uint32_t *R_SparseForLevel31(int lvl8)
+{
+	if(lvl8 < 0)
+		lvl8 = 0;
+	if(lvl8 > 31 * 256)
+		lvl8 = 31 * 256;
+	return sparseshadetab[(lvl8 * 255) / (31 * 256)];
 }
 
 
@@ -759,6 +842,9 @@ void R_ExecuteSetViewSize (void)
 		level = NUMCOLORMAPS-1;
 
 	    scalelight[i][j] = colormaps + level*256;
+
+	    //Continuous counterpart, in 8.8 units: j*SCREENWIDTH/(viewwidth<<detailshift)/DISTMAP.
+	    r_wall_dist8[j] = ((j * SCREENWIDTH) / (viewwidth << detailshift) / DISTMAP) * 256;
 	}
     }
 }

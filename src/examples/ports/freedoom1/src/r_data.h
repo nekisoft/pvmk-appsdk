@@ -66,3 +66,17 @@ int R_CheckTextureNumForName (char *name);
 // $Log:$
 //
 //-----------------------------------------------------------------------------
+//Brightness rows, built by I_SetPalette. Index with a level from R_ShadeForLevel31(), or
+//convert one of Doom's colormaps with R_ShadeForColormap() for paths that still use them.
+extern uint16_t shadetab[256][256];
+extern uint32_t sparseshadetab[256][256];
+extern uint16_t *dc_shade;
+extern uint16_t *ds_shade;
+extern uint32_t *dc_sparseshade;
+extern uint32_t *ds_sparseshade;
+uint16_t *R_ShadeForColormap(lighttable_t *cm);
+uint16_t *R_ShadeForLevel31(int lvl8);
+uint32_t *R_SparseForColormap(lighttable_t *cm);
+uint32_t *R_SparseForLevel31(int lvl8);
+void R_BuildShadeTables(void);
+extern uint8_t r_palrgb[768];

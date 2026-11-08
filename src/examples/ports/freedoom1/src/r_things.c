@@ -395,6 +395,9 @@ R_DrawVisSprite
     patch = W_CacheLumpNum (vis->patch+firstspritelump, PU_CACHE);
 
     dc_colormap = vis->colormap;
+    dc_shade = vis->colormap ? R_ShadeForColormap(vis->colormap) : shadetab[255];
+    dc_sparseshade = vis->colormap ? R_SparseForColormap(vis->colormap)
+				   : sparseshadetab[255];
 
     if (!dc_colormap)
     {

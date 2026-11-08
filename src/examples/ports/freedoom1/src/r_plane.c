@@ -78,6 +78,7 @@ int			spanstop[SCREENHEIGHT];
 // texture mapping
 //
 lighttable_t**		planezlight;
+static int		plane_shade_base8;
 fixed_t			planeheight;
 
 fixed_t			yslope[SCREENHEIGHT];
@@ -158,7 +159,11 @@ R_MapPlane
     ds_length = distance; //for MIP mapping
 
     if (fixedcolormap)
+    {
 	ds_colormap = fixedcolormap;
+	ds_shade = R_ShadeForColormap(fixedcolormap);
+	ds_sparseshade = R_SparseForColormap(fixedcolormap);
+    }
     else
     {
 	index = distance >> LIGHTZSHIFT;
@@ -167,6 +172,8 @@ R_MapPlane
 	    index = MAXLIGHTZ-1;
 
 	ds_colormap = planezlight[index];
+	ds_shade = R_ShadeForLevel31(plane_shade_base8 - r_z_dist8[index]);
+	ds_sparseshade = R_SparseForLevel31(plane_shade_base8 - r_z_dist8[index]);
     }
 	
     ds_y = y;
@@ -402,6 +409,8 @@ void R_DrawPlanes (void)
 	    // Because of this hack, sky is not affected
 	    //  by INVUL inverse mapping.
 	    dc_colormap = colormaps;
+	    dc_shade = shadetab[255];
+	    dc_sparseshade = sparseshadetab[255];
 	    dc_texturemid = skytexturemid;
 	    for (x=pl->minx ; x <= pl->maxx ; x++)
 	    {
@@ -436,6 +445,7 @@ void R_DrawPlanes (void)
 	    light = 0;
 
 	planezlight = zlight[light];
+	plane_shade_base8 = 15360 - 64 * (pl->lightlevel + extralight * 16);
 
 	pl->top[pl->maxx+1] = 0xff;
 	pl->top[pl->minx-1] = 0xff;

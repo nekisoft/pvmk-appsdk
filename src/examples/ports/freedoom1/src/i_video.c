@@ -112,6 +112,16 @@ void I_StartTic (void)
 void I_UpdateNoBlit (void) { }
 
 uint16_t defaultpal[256];
+
+//Shading by direct colour math rather than by Doom's colormaps. Doom stores 34 pre-dimmed
+//256-entry colormaps and picks one; the light steps are coarse (16 sector-light steps, 32
+//maps), so dark walls and floors band. Here every brightness level from 0 to 255 gets its
+//own row, computed by scaling the palette at startup. Two things follow: the light level
+//can be continuous, and the inner loop becomes one load (the row already holds the final
+//RGB565 word) instead of defaultpal[colormap[texel]], two dependent loads.
+uint16_t shadetab[256][256] __attribute__((aligned(64)));
+uint32_t sparseshadetab[256][256] __attribute__((aligned(64)));
+uint8_t r_palrgb[768];
 uint32_t sparsepal[256];
 uint16_t fbs[3][SCREENHEIGHT][SCREENWIDTH] __attribute__((aligned(256)));
 int fb_next;
@@ -153,6 +163,8 @@ void I_ReadScreen (vpx_t* scr)
 
 void I_SetPalette (byte* palette)
 {
+	const byte *palbase = palette;
+
 	//Doom gives us the palette entries as 1 byte each of R, G, and B.
 	//Pack into a 16-bit word for RGB565 display.
 	for(int cc = 0; cc < 256; cc++)
@@ -172,6 +184,13 @@ void I_SetPalette (byte* palette)
 		
 		palette += 3;
 	}
+
+	//Keep the palette itself: the shading rows are built from Doom's own colormaps once
+	//those are loaded, so that the brightness curve is Doom's and only the steps are new.
+	for(int cc = 0; cc < 768; cc++)
+		r_palrgb[cc] = palbase[cc];
+
+	R_BuildShadeTables();
 }
 
 

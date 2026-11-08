@@ -86,6 +86,11 @@ extern lighttable_t*	fixedcolormap;
 // There a 0-31, i.e. 32 LUT in the COLORMAP lump.
 #define NUMCOLORMAPS		32
 
+//Distance dimming for walls and flats, in 8.8 colormap-index units, filled by the light-table
+//setup so a continuous light value can become a shading row with no division per column.
+extern int r_wall_dist8[MAXLIGHTSCALE];
+extern int r_z_dist8[MAXLIGHTZ];
+
 
 // Blocky/low detail mode.
 //B remove this?

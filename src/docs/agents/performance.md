@@ -144,3 +144,42 @@ compiler flag touches the real costs, which are `D_DrawSpans8` (23% of Quake) an
 floating-point alias path (about 20%). Adding `-fomit-frame-pointer` to `-O3` measured
 identical instructions and cycles, because the compiler already omits the frame pointer
 for this target; it is not worth a build.
+
+## Doom: shading by direct colour instead of colormaps
+
+Doom dims by choosing one of 32 pre-dimmed 256-entry colormaps per column or span, and its
+sector light is quantised to 16 steps before that. Two levels of quantisation means dark
+walls and floors band. The port now keeps Doom's colormaps but stops quantising: at startup
+`R_BuildShadeTables()` builds 256 shading rows by taking the colour of each texel under two
+adjacent colormaps and interpolating them in RGB, and the renderer indexes those rows with a
+continuous light level (`15360 - 64*light` in 8.8 colormap units, minus a precomputed distance
+term). At whole colormap levels the result is exactly Doom's colour; between levels it is the
+interpolation Doom never had.
+
+The inner loop gets faster as a side effect: `defaultpal[colormap[texel]]` was two dependent
+loads, `dc_shade[texel]` is one. The bilerp paths use the same rows in their 6-6-6 layout.
+
+Measured on the attract demo, window 4000..10000 modelled ms, same build otherwise (`-O3`,
+`-DPVMK_AUTODEMO`):
+
+```
+before   2.906M instructions   5.503M modelled cycles per frame   210 frames in 6s
+after    2.806M instructions   5.090M modelled cycles per frame   211 frames in 6s
+```
+
+That is 3.4% fewer instructions and 7.5% fewer cycles - the saving is one load per pixel, so
+it scales with how much of the screen is walls and flats. With Doom's own timedemo path
+(`-DPVMK_TIMEDEMO`, which runs demo1 with `singletics` and prints at the end):
+
+```
+before   1531 gametics in 1418 realtics
+after    1531 gametics in 1404 realtics
+```
+
+only about 1% end to end, because a tic of game logic, sound mixing and setup is a large part
+of the total; the per-frame renderer saving is the number that matters for frame rate.
+
+`-DPVMK_TIMEDEMO` is Doom's `-timedemo` without a command line: it sets `timingdemo` and
+`singletics`, plays demo1, and reports gametics against emulated milliseconds. It exits
+through `I_Error` when the demo ends, which on the console means the kernel restarts the
+program - the line is printed first, so capture stdout.

@@ -81,7 +81,11 @@ byte		translations[3][256];
 // Source is the top of the column to scale.
 //
 unsigned int            dc_lerpcol; //betopp - percentage, in 16 bits, from left to right column (for bilerp)
-lighttable_t*		dc_colormap; 
+lighttable_t*		dc_colormap;
+uint16_t*		dc_shade = shadetab[255];
+uint16_t*		ds_shade = shadetab[255];
+uint32_t*		dc_sparseshade = sparseshadetab[255];
+uint32_t*		ds_sparseshade = sparseshadetab[255]; 
 int			dc_x; 
 int			dc_yl; 
 int			dc_yh; 
@@ -152,7 +156,7 @@ void R_DrawColumn (void)
 		{
 			// Re-map color indices from wall texture column
 			//  using a lighting/special effects LUT.
-			*dest = defaultpal[dc_colormap[dc_source[(frac>>FRACBITS)&mask]]];	    
+			*dest = dc_shade[dc_source[(frac>>FRACBITS)&mask]];	    
 			dest += SCREENWIDTH; 
 			frac += fracstep;
 
@@ -168,10 +172,10 @@ void R_DrawColumn (void)
 			//  using a lighting/special effects LUT.
 		
 
-			uint32_t a = sparsepal[dc_colormap[dc_source [(frac>>FRACBITS)&mask]]];
-			uint32_t b = sparsepal[dc_colormap[dc_source2[(frac>>FRACBITS)&mask]]];
-			uint32_t c = sparsepal[dc_colormap[dc_source [((frac>>FRACBITS)+1)&mask]]];
-			uint32_t d = sparsepal[dc_colormap[dc_source2[((frac>>FRACBITS)+1)&mask]]];
+			uint32_t a = dc_sparseshade[dc_source [(frac>>FRACBITS)&mask]];
+			uint32_t b = dc_sparseshade[dc_source2[(frac>>FRACBITS)&mask]];
+			uint32_t c = dc_sparseshade[dc_source [((frac>>FRACBITS)+1)&mask]];
+			uint32_t d = dc_sparseshade[dc_source2[((frac>>FRACBITS)+1)&mask]];
 
 			uint32_t colblend = (frac & 0xFFFF) >> 14; //2-bit result
 			uint32_t rowblend = (dc_lerpcol) >> 14; //2-bit result
@@ -244,7 +248,7 @@ void R_DrawColumnLow (void)
     do 
     {
 	// Hack. Does not work corretly.
-	*dest2 = *dest = defaultpal[dc_colormap[dc_source[(frac>>FRACBITS)&127]]];
+	*dest2 = *dest = dc_shade[dc_source[(frac>>FRACBITS)&127]];
 	dest += SCREENWIDTH;
 	dest2 += SCREENWIDTH;
 	frac += fracstep; 
@@ -440,7 +444,7 @@ void R_DrawTranslatedColumn (void)
 	//  used with PLAY sprites.
 	// Thus the "green" ramp of the player 0 sprite
 	//  is mapped to gray, red, black/indigo. 
-	*dest = defaultpal[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
+	*dest = dc_shade[dc_translation[dc_source[frac>>FRACBITS]]];
 	dest += SCREENWIDTH;
 	
 	frac += fracstep; 
@@ -502,7 +506,8 @@ int			ds_y;
 int			ds_x1; 
 int			ds_x2;
 
-lighttable_t*		ds_colormap; 
+lighttable_t*		ds_colormap;
+//(ds_shade and ds_sparseshade are defined with the dc_ ones above) 
 
 fixed_t			ds_xfrac; 
 fixed_t			ds_yfrac; 
@@ -568,7 +573,7 @@ void R_DrawSpan (void)
 
 			// Lookup pixel from flat texture tile,
 			//  re-index using light/colormap.
-			*dest++ = defaultpal[ds_colormap[ds_source[spot]]];
+			*dest++ = ds_shade[ds_source[spot]];
 
 			// Next step in u,v.
 			xfrac += ds_xstep; 
@@ -585,10 +590,10 @@ void R_DrawSpan (void)
 			// Current texture index in u,v.
 			spot = ((yfrac>>(16-6))&(mask64)) + ((xfrac>>16)&mask);
 
-			uint32_t a = sparsepal[ds_colormap[ds_source[(spot+ 0)%4096]]];
-			uint32_t b = sparsepal[ds_colormap[ds_source[(spot+ 1)%4096]]];
-			uint32_t c = sparsepal[ds_colormap[ds_source[(spot+64)%4096]]];
-			uint32_t d = sparsepal[ds_colormap[ds_source[(spot+65)%4096]]]; 
+			uint32_t a = ds_sparseshade[ds_source[(spot+ 0)%4096]];
+			uint32_t b = ds_sparseshade[ds_source[(spot+ 1)%4096]];
+			uint32_t c = ds_sparseshade[ds_source[(spot+64)%4096]];
+			uint32_t d = ds_sparseshade[ds_source[(spot+65)%4096]]; 
 
 			uint32_t colblend = (yfrac & 0xFFFF) >> 14; //2-bit result
 			uint32_t rowblend = (xfrac & 0xFFFF) >> 14; //2-bit result
@@ -727,8 +732,8 @@ void R_DrawSpanLow (void)
 	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
 	// Lowres/blocky mode does it twice,
 	//  while scale is adjusted appropriately.
-	*dest++ = defaultpal[ds_colormap[ds_source[spot]]]; 
-	*dest++ = defaultpal[ds_colormap[ds_source[spot]]];
+	*dest++ = ds_shade[ds_source[spot]]; 
+	*dest++ = ds_shade[ds_source[spot]];
 	
 	xfrac += ds_xstep; 
 	yfrac += ds_ystep; 

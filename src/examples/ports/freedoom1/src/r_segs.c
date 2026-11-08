@@ -33,6 +33,10 @@
 #include "r_local.h"
 #include "r_sky.h"
 
+//Continuous light base for the segment being rendered. R_StoreWallRange works it out and
+//R_RenderSegLoop consumes it column by column; the masked-segment path below keeps a local.
+static int		r_shade_base8 = 15360;
+
 
 // OPTIMIZE: closed two sided lines as single sided
 
@@ -115,10 +119,20 @@ R_RenderMaskedSegRange
 	
     lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
 
+    //Continuous light for the shading rows: the same value as lightnum, but not shifted
+    //down to 16 coarse steps. 15360 - 64*light is 4*(15 - light/16) in 8.8 units.
+    int shade_base8 = 15360 - 64 * (frontsector->lightlevel + extralight * 16);
+
     if (curline->v1->y == curline->v2->y)
+    {
 	lightnum--;
+	shade_base8 += 64;
+    }
     else if (curline->v1->x == curline->v2->x)
+    {
 	lightnum++;
+	shade_base8 -= 64;
+    }
 
     if (lightnum < 0)
 	walllights = scalelight[0];
@@ -150,7 +164,11 @@ R_RenderMaskedSegRange
     dc_texturemid += curline->sidedef->rowoffset;
 			
     if (fixedcolormap)
+    {
 	dc_colormap = fixedcolormap;
+	dc_shade = R_ShadeForColormap(fixedcolormap);
+	dc_sparseshade = R_SparseForColormap(fixedcolormap);
+    }
     
     // draw the columns
     for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
@@ -166,6 +184,7 @@ R_RenderMaskedSegRange
 		    index = MAXLIGHTSCALE-1;
 
 		dc_colormap = walllights[index];
+		dc_shade = R_ShadeForLevel31(r_shade_base8 - r_wall_dist8[index]);
 	    }
 			
 	    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
@@ -267,6 +286,8 @@ void R_RenderSegLoop (void)
 		index = MAXLIGHTSCALE-1;
 
 	    dc_colormap = walllights[index];
+	    dc_shade = R_ShadeForLevel31(r_shade_base8 - r_wall_dist8[index]);
+	    dc_sparseshade = R_SparseForLevel31(r_shade_base8 - r_wall_dist8[index]);
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}
@@ -643,11 +664,18 @@ R_StoreWallRange
 	if (!fixedcolormap)
 	{
 	    lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+	    r_shade_base8 = 15360 - 64 * (frontsector->lightlevel + extralight * 16);
 
 	    if (curline->v1->y == curline->v2->y)
+	    {
 		lightnum--;
+		r_shade_base8 += 64;
+	    }
 	    else if (curline->v1->x == curline->v2->x)
+	    {
 		lightnum++;
+		r_shade_base8 -= 64;
+	    }
 
 	    if (lightnum < 0)		
 		walllights = scalelight[0];
