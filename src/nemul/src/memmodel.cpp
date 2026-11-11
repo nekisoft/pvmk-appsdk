@@ -541,6 +541,12 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 	//A taken branch costs three cycles in total, not three on top of its own issue
 	//slot: TRM table 8-2 gives 3 cycles for B, BL, BX, BLX in all cases. The previous
 	//version charged four, which made every short loop a cycle per iteration too slow.
+	//Taken branches cost three cycles: TRM table 8-2 gives 3 for B, BL, BX, BLX in all
+	//cases, and measurement agrees - the integer loop (one taken bne per iteration) is
+	//12.007 against 12.000, and a call-and-return loop is 14.075 against 14.005.
+	//Charging four instead fixes soft floating point (-11.4% to -4.7%) and breaks four
+	//other workloads, including the call loop at +22%. The extra cost in the floating
+	//point routines is specific to that code and is not a uniform branch penalty.
 	if(next_pc != pc + 4u)
 	{
 		stats.branch_cycles += 3;
