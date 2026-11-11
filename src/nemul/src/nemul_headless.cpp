@@ -926,6 +926,24 @@ int main(int argc, char **argv)
 					(unsigned long long)ms.interlock_cycles);
 				if(getenv("NEMUL_TIMING_HIST") != NULL)
 					dump_hist();
+
+				//Full histogram to a file, for a profiler to sum by function.
+				if(getenv("NEMUL_TIMING_HIST_FILE") != NULL)
+				{
+					FILE *hf = fopen(getenv("NEMUL_TIMING_HIST_FILE"), "w");
+					if(hf != NULL)
+					{
+						for(uint32_t i = 0; i < mem_model_hist_size(); i++)
+						{
+							uint32_t pc; uint64_t cy, ct;
+							mem_model_hist(i, &pc, &cy, &ct);
+							if(ct)
+								fprintf(hf, "%08X %llu %llu\n", pc,
+									(unsigned long long)cy, (unsigned long long)ct);
+						}
+						fclose(hf);
+					}
+				}
 				printf("model: issue %llu, fills %llu, stalls %llu of %llu cycles\n",
 					(unsigned long long)ms.issue_cycles, (unsigned long long)ms.fill_cycles,
 					(unsigned long long)ms.stall_cycles,

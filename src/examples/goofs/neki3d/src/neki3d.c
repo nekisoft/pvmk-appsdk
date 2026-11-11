@@ -10,6 +10,10 @@
 #include <stdio.h>
 
 #include "common.h"
+
+#ifndef SUBDIV_LEVEL
+#define SUBDIV_LEVEL 1
+#endif
 #include "ply.h"
 #include "mvp.h"
 #include "tex.h"
@@ -92,7 +96,10 @@ int app_main(int argc, const char **argv)
 			mvp_xform(vb, vb);
 			mvp_xform(vc, vc);
 			
-			subdiv_tri(1,
+			//Subdivision level, as a quality knob: each level splits every triangle into
+			//four, and the profile says the span clipping that follows is quadratic in
+			//the number of triangles. Set to 0 to compare.
+			subdiv_tri(SUBDIV_LEVEL,
 				va, model->verts + ia + 6,
 				vb, model->verts + ib + 6,
 				vc, model->verts + ic + 6);

@@ -38,6 +38,11 @@ CFLAGS += -Wall -Werror -Wextra
 CFLAGS += -O2 -g
 CFLAGS += -fstack-usage
 
+#Quality knob for performance experiments: 1 subdivides each triangle into four.
+ifneq ($(SUBDIV),)
+CFLAGS += -DSUBDIV_LEVEL=$(SUBDIV)
+endif
+
 #Flags to use when linking
 LINKFLAGS += 
 

@@ -91,6 +91,9 @@ static mem_model_stats_t stats;
 #define HIST_BINS 65536u
 static uint64_t hist_cycles[HIST_BINS];
 static uint64_t hist_counts[HIST_BINS];
+//The PC of the instruction being modelled, so a cache fill can be charged to the
+//instruction that caused it rather than being unattributed in the profile.
+static uint32_t cur_pc = 0;
 
 //Write buffer. The processor does not wait for a dirty line to reach DRAM: it hands
 //the line to a small buffer that drains in the background, and only stalls when the
@@ -333,6 +336,7 @@ void mem_model_fetch(uint32_t va)
 		uint32_t f = dram_fill(mva);
 		cycles += f;
 		stats.fill_cycles += f;
+		hist_cycles[(cur_pc >> 2) & (HIST_BINS - 1u)] += f;
 	}
 }
 
@@ -354,6 +358,7 @@ void mem_model_load(uint32_t va, uint32_t bytes)
 		uint32_t f = dram_fill(mva);
 		cycles += f;
 		stats.fill_cycles += f;
+		hist_cycles[(cur_pc >> 2) & (HIST_BINS - 1u)] += f;
 	}
 }
 
@@ -376,7 +381,9 @@ static void wb_bus(uint32_t cost)
 	//Slack the buffer can hide, in cycles of bus time.
 	if(wb_free_at > cycles + WB_SLACK)
 	{
-		stats.stall_cycles += (wb_free_at - WB_SLACK) - cycles;
+		uint32_t wait = (uint32_t)((wb_free_at - WB_SLACK) - cycles);
+		stats.stall_cycles += wait;
+		hist_cycles[(cur_pc >> 2) & (HIST_BINS - 1u)] += wait;
 		cycles = wb_free_at - WB_SLACK;
 	}
 }
@@ -608,6 +615,7 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 	//those loops have a genuinely free slot between a load and its use. The evidence
 	//does not support a general distance-two stall.
 
+	cur_pc = pc;
 	cycles += cost;
 	stats.instructions++;
 	hist_cycles[(pc >> 2) & (HIST_BINS - 1u)] += cost;
