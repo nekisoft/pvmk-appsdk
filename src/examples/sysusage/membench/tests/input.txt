@@ -1,0 +1,16 @@
+# input.txt - scripted pads for the template's smoke test
+# frame  buttons
+# The player starts at (160,120); the first target is at (106,80), so hold up+left
+# until it is reached, then wander. A run that touches a target prints COLLECT.
+10       a
+14       -
+20       up,left
+70       -
+80       right
+120      -
+140      right,down
+200      -
+220      left
+260      -
+280      a
+284      -

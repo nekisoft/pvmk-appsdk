@@ -85,6 +85,21 @@ static uint64_t cycles;
 static uint32_t cur_pid = 0;
 static uint32_t scanout_bytes = 0;
 static mem_model_stats_t stats;
+
+//Write buffer. The processor does not wait for a dirty line to reach DRAM: it hands
+//the line to a small buffer that drains in the background, and only stalls when the
+//buffer is full. Measured on the board by running the same store loop over a 64x64
+//patch (fits in the cache, 13.20 cycles per pixel) and over the full 320x240 screen
+//(does not fit, 13.09): no difference, so those writes cost nothing at all. The same
+//comparison on a tight store loop gives 8.70 cached against 8.85 uncached, where the
+//stores come faster than the buffer can drain and the CPU does stall. A model that
+//charged every writeback to the CPU would be 40% pessimistic on the first case.
+static void wb_write_back(void);
+
+static const uint32_t WB_LINES = 4;
+static uint64_t wb_done_at[WB_LINES];
+static uint32_t wb_head = 0;
+static uint32_t wb_count = 0;
 static double bus_stretch = 1.0;
 
 void mem_model_set_scanout(uint32_t bytes_per_frame)
@@ -211,7 +226,7 @@ static cache_line_t *cache_victim(cache_t *c, uint32_t mva)
 		if(victim->written != 0xFFu)
 			cycles += dram_fill(victim->base);
 		stats.writebacks++;
-		cycles += (uint32_t)((double)WRITEBACK * bus_stretch);
+		wb_write_back();
 	}
 	return victim;
 }
@@ -245,6 +260,9 @@ void mem_model_reset(void)
 	scanout_bytes = 0;
 	bus_stretch = 1.0;
 	memset(&stats, 0, sizeof(stats));
+	memset(wb_done_at, 0, sizeof(wb_done_at));
+	wb_head = 0;
+	wb_count = 0;
 }
 
 void mem_model_process(uint32_t pid)
@@ -290,6 +308,35 @@ void mem_model_load(uint32_t va, uint32_t bytes)
 	line = cache_victim(&dcache, mva);
 	fill_line(&dcache, mva, line);
 	cycles += dram_fill(mva);
+}
+
+//Hands a dirty line to the write buffer. The CPU carries on unless the buffer is
+//full, in which case it waits for the oldest line to finish draining: that is the
+//difference between a program whose stores trickle out (costs nothing) and one that
+//moves memory in bulk (costs the measured write bandwidth).
+static void wb_write_back(void)
+{
+	uint32_t cost = (uint32_t)((double)WRITEBACK * bus_stretch);
+
+	if(wb_count == WB_LINES)
+	{
+		uint32_t oldest = wb_head;
+		if(wb_done_at[oldest] > cycles)
+			cycles = wb_done_at[oldest];
+		wb_head = (wb_head + 1u) % WB_LINES;
+		wb_count--;
+	}
+
+	uint32_t slot = (wb_head + wb_count) % WB_LINES;
+	uint64_t start = cycles;
+	if(wb_count > 0)
+	{
+		uint32_t prev = (wb_head + wb_count - 1u) % WB_LINES;
+		if(wb_done_at[prev] > start)
+			start = wb_done_at[prev];
+	}
+	wb_done_at[slot] = start + cost;
+	wb_count++;
 }
 
 void mem_model_store(uint32_t va, uint32_t bytes)
