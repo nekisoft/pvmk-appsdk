@@ -25,6 +25,7 @@ uint32_t work_mandelbrot(volatile uint16_t *fb, uint32_t w, uint32_t h, uint32_t
 uint32_t work_int_math(uint32_t iters, uint32_t seed);
 float work_float_math(uint32_t iters, float seed);
 uint32_t work_fill_word(volatile uint32_t *fb, uint32_t words, uint32_t colour);
+uint32_t work_call(uint32_t iters, uint32_t *sink);
 
 //The same counts the board's work_suite uses, so the two runs do identical work.
 #define WORK_FILL_REPS 20u
@@ -70,6 +71,8 @@ int app_main(int argc, const char **argv)
 	//Word stores over the same 8KByte patch, against WORKLOAD 8's halfword stores.
 	for(uint32_t i = 0; i < 100u; i++)
 		checksum += work_fill_word((volatile uint32_t *)&fb[0][0], 64u * 64u / 2u, i);
+#elif WORKLOAD == 10
+	checksum = work_call(200000u, (uint32_t *)&fb[0][0]);
 #elif WORKLOAD == 6
 	{
 		union { float f; uint32_t u; } cv;

@@ -28,6 +28,36 @@ uint32_t work_screen_fill(volatile uint16_t *fb, uint32_t pixels, uint16_t colou
 	return pixels;
 }
 
+//Call and return overhead. The TRM prices B, BL and BX at three cycles each, which
+//makes a call plus return six on top of the callee's body; software floating point is
+//two library calls per iteration and the model reads 11% fast on it, so this measures
+//whether the table covers a real call.
+__attribute__((noinline)) static uint32_t call_leaf(uint32_t x)
+{
+	x += 1; x += 1; x += 1; x += 1;
+	return x;
+}
+
+uint32_t work_call(uint32_t iters, uint32_t *sink)
+{
+	uint32_t acc = 0;
+	for(uint32_t i = 0; i < iters; i++)
+		acc += call_leaf(i);
+	*sink = acc;
+	return acc;
+}
+
+//Read the screen back, adding every pixel. Used to see whether a buffer that was
+//just written is resident in the data cache: if the write allocated in the cache the
+//read is nearly free, and if it did not the read goes to DRAM.
+uint32_t work_read_sum(volatile uint16_t *fb, uint32_t pixels)
+{
+	uint32_t sum = 0;
+	for(uint32_t i = 0; i < pixels; i++)
+		sum += fb[i];
+	return sum;
+}
+
 //The same fill with 32-bit stores, four pixels at a time. Compared with
 //work_screen_fill over the same number of bytes it separates the cost of a halfword
 //store from the cost of the loop: the ARM9's halfword store is not the same

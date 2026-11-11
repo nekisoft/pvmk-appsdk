@@ -56,6 +56,13 @@ struct mem_model_stats_t
 	uint64_t writebacks;
 	uint64_t row_misses;
 	uint64_t fills;
+	uint64_t instructions;
+	uint64_t issue_cycles;
+	uint64_t fill_cycles;
+	uint64_t stall_cycles;
+	uint64_t branch_cycles;
+	uint64_t interlock_cycles;
+	uint64_t taken_branches;
 };
 void mem_model_stats(struct mem_model_stats_t *out);
 

@@ -95,14 +95,22 @@ static mem_model_stats_t stats;
 //stores come faster than the buffer can drain and the CPU does stall. A model that
 //charged every writeback to the CPU would be 40% pessimistic on the first case.
 static void wb_store(void);
+static void wb_bus(uint32_t cost);
 
-//Bus time one store occupies. Measured: streaming writes cost 63 cycles per 32-byte
-//line, which is eight word stores, and a fill of halfword stores costs 139 per line,
-//which is sixteen - the same per store either way, so it is the transaction and not
-//the width that costs.
-static const uint32_t STORE_BUS = 8;
-//16 data words behind 4 addresses, in cycles of bus time.
-static const uint32_t WB_SLACK = 16 * 8;
+//Bus time one store occupies, measured directly: a loop storing one word with 0, 1, 2
+//and 3 other instructions in it costs 8.97, 8.96, 8.79 and 8.72 cycles per store -
+//flat, because the stores are what limit the loop - and only starts tracking the
+//instruction count at 5 fillers (10.30 for 10 instructions) and 7 (12.09 for 12).
+//So the drain is about 9 cycles per store and the buffer hides only about two stores
+//of jitter. That also gives 9 cycles per halfword store, which is what the fill loops
+//measure.
+static const uint32_t STORE_BUS = 9;
+//Slack the buffer can hide, in cycles of bus time. The store curve says a tight store
+//loop is limited by the drain and a loop with ten cycles between stores is not, which
+//is about two stores of slack. It also has to be at least one whole line writeback or
+//a single eviction stalls the CPU, which is what the scroll benchmark caught: 55
+//cycles of write-back against 18 of slack made every eviction stall and read 11% slow.
+static const uint32_t WB_SLACK = 64;
 static uint64_t wb_free_at = 0;
 static double bus_stretch = 1.0;
 
@@ -135,6 +143,20 @@ static cache_line_t dcache_lines[(DCACHE_BYTES / LINE_BYTES / WAYS) * WAYS];
 static uint32_t last_result_reg;
 static int last_was_result;
 static uint32_t last_result_kind;
+
+
+//History of the registers loads have produced, so a load whose address comes from an
+//earlier load can be charged for it. Measured with a pointer chase carrying 0, 1, 2,
+//3 and 5 filler instructions: 8.79, 9.77, 10.77, 11.78 and 13.77 cycles per hop, i.e.
+//the fillers cost exactly one cycle each and a constant 3.8 cycles per hop sits on
+//top of the instruction count however far apart the loads are. Charging four cycles
+//when a load addresses itself from an earlier load reproduces that curve and also
+//brings the cached pointer chase from 8 to 12.75 cycles per hop against 12.5 measured.
+#define LOAD_HIST 8
+static uint32_t load_hist_reg[LOAD_HIST];
+static uint32_t load_hist_is[LOAD_HIST];
+static uint32_t load_hist_pos;
+static const uint32_t LOAD_ADDR_PENALTY = 4;
 
 static void cache_init(cache_t *c, uint32_t bytes, cache_line_t *storage, uint32_t index_shift)
 {
@@ -230,8 +252,11 @@ static cache_line_t *cache_victim(cache_t *c, uint32_t mva)
 		//buffer, which is eight words behind a single address, so it costs the line
 		//write and not the full fill. Only lines that were read in and then written
 		//(write hits) reach here: stores that miss never allocate.
+		//The evicted line goes out through the DCache write-back buffer, which is the
+		//same buffered path as a store and not a synchronous stall. Charging it
+		//directly made every read-then-write loop (scrolling, blitting) 18% slow.
 		stats.writebacks++;
-		cycles += (uint32_t)((double)WRITEBACK * bus_stretch);
+		wb_bus((uint32_t)((double)WRITEBACK * bus_stretch));
 	}
 	return victim;
 }
@@ -263,6 +288,8 @@ void mem_model_reset(void)
 	last_result_reg = 0x10;
 	last_was_result = 0;
 	last_result_kind = 1;
+	memset(load_hist_is, 0, sizeof(load_hist_is));
+	load_hist_pos = 0;
 	scanout_bytes = 0;
 	bus_stretch = 1.0;
 	memset(&stats, 0, sizeof(stats));
@@ -294,7 +321,11 @@ void mem_model_fetch(uint32_t va)
 	//per line and this charges about 101; see the note in the test. The rule that
 	//would fix that case (charge lone fetches as row misses) overcharges ordinary
 	//cached code by 23%, which is the case that actually happens, so it stays.
-	cycles += dram_fill(mva);
+	{
+		uint32_t f = dram_fill(mva);
+		cycles += f;
+		stats.fill_cycles += f;
+	}
 }
 
 void mem_model_load(uint32_t va, uint32_t bytes)
@@ -311,7 +342,11 @@ void mem_model_load(uint32_t va, uint32_t bytes)
 	stats.dcache_read_misses++;
 	line = cache_victim(&dcache, mva);
 	fill_line(&dcache, mva, line);
-	cycles += dram_fill(mva);
+	{
+		uint32_t f = dram_fill(mva);
+		cycles += f;
+		stats.fill_cycles += f;
+	}
 }
 
 //A store that misses the cache goes into the write buffer and out to DRAM; it does
@@ -325,15 +360,22 @@ void mem_model_load(uint32_t va, uint32_t bytes)
 //exceeds what the buffer can hold. Measured consequence: a tight fill stalls and pays
 //the full store cost (8.85 cycles per halfword store, 8 of which are bus), while a
 //loop that stores once per 13 cycles pays nothing at all.
-static void wb_store(void)
+static void wb_bus(uint32_t cost)
 {
-	uint32_t cost = (uint32_t)((double)STORE_BUS * bus_stretch);
 	uint64_t start = (wb_free_at > cycles) ? wb_free_at : cycles;
 	wb_free_at = start + cost;
 
 	//Slack the buffer can hide, in cycles of bus time.
 	if(wb_free_at > cycles + WB_SLACK)
+	{
+		stats.stall_cycles += (wb_free_at - WB_SLACK) - cycles;
 		cycles = wb_free_at - WB_SLACK;
+	}
+}
+
+static void wb_store(void)
+{
+	wb_bus((uint32_t)((double)STORE_BUS * bus_stretch));
 }
 
 void mem_model_store(uint32_t va, uint32_t bytes)
@@ -377,6 +419,15 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 		//BX / BLX
 		cost = 1;
 	}
+	else if((ir & 0x0F8000F0u) == 0x00800090u)
+	{
+		//Long multiply: SMULL, UMULL, SMLAL, UMLAL. TRM table 8-2 gives 3 cycles, 4
+		//when the following instruction uses the RdHi result. Software floating point
+		//on this chip is built out of these, so they matter more than they look.
+		cost = 3;
+		is_load = 1;
+		load_rd = (ir >> 16) & 0xF;
+	}
 	else if((ir & 0x0FC000F0u) == 0x00000090u)
 	{
 		//MUL / MLA: the TRM gives two cycles, and three when the following
@@ -388,16 +439,35 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 	}
 	else if(op2 == 4)
 	{
-		//LDM / STM: measured 4 cycles for four registers, i.e. one per register.
+		//LDM / STM: measured 4 cycles for four registers, i.e. one per register, which
+		//is what the TRM gives (LDM n = n cycles). Loading the PC is the expensive case
+		//and it is in every function return: TRM table 8-2 prices "LDM n+4" when the
+		//list includes the PC, so `pop {r4, pc}` is six cycles, not two. Not charging
+		//that made soft floating point, which is two library calls per iteration, read
+		//13% fast.
 		uint32_t n = 0;
 		for(uint32_t b = 0; b < 16u; b++)
 			if(ir & (1u << b))
 				n++;
-		cost = n ? n : 1;
+		if(!n)
+			n = 1;
+		int loads = (ir >> 20) & 1;
+		if(loads && (ir & 0x8000u))
+			cost = (n == 1) ? 5u : (n + 4u);
+		else
+			cost = n;
 	}
-	else if(op2 == 3)
+	else if((ir & 0x0FBF0FFFu) == 0x010F0000u)
 	{
-		//LDR / STR
+		//MRS: two cycles (TRM table 8-2).
+		cost = 2;
+	}
+	else if(op2 == 2)
+	{
+		//LDR / STR. Bits 27:25 = 010 for the single data transfer encoding: this is a
+		//word load or store, and an earlier version of this model had the field as 011
+		//here, which is the media encoding, so every real load fell through and was
+		//charged as a plain ALU operation with no interlock at all.
 		int load = (ir >> 20) & 1;
 		if(load)
 		{
@@ -411,17 +481,59 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 			is_load = narrow ? 2 : 1;
 			load_rd = (ir >> 12) & 0xF;
 		}
+
+		//A scaled register offset costs an extra cycle (TRM table 8-2: "LDR 2 cycles,
+		//not loading PC and shifted offset", likewise STR). The shift field is bits
+		//11:7; bit 25 set means the offset is a register at all.
+		if(((ir >> 25) & 1) && ((ir >> 7) & 0x1F))
+			cost = 2;
+		else
+			cost = 1;
+	}
+	else if(op2 == 3 || (op2 == 0 && ((ir >> 4) & 9u) == 9u))
+	{
+		//Media: LDRH/STRH/LDRSB/LDRSH/LDRD/STRD/SWP. These hide in two encodings -
+		//bits 27:25 = 011, and bits 27:25 = 000 with bits 7:4 = 1x11, which overlaps
+		//the data-processing space. Missing the second form is how a halfword store
+		//ended up being charged as a data operation with a register-controlled shift.
+		//The multiply forms have bits 7:4 = 1001 and were taken above.
+		int load = (ir >> 20) & 1;
+		if(load && ((ir >> 6) & 1))
+		{
+			//A halfword or signed load: two-cycle interlock if its result is used
+			//straight away.
+			is_load = 2;
+			load_rd = (ir >> 12) & 0xF;
+		}
 		cost = 1;
 	}
 	else
 	{
-		//Data processing / MSR / MRS
-		cost = 1;
+		//Data processing / MSR / MRS. A shift whose amount comes from a register costs
+		//a second cycle (TRM table 8-2: "Data Op 2 cycles, with register controlled
+		//shift"). Software floating point normalises with those constantly, and the
+		//model read 15% fast on it before this was charged.
+		int reg_shift = ((ir >> 4) & 1) && !((ir >> 25) & 1);
+		cost = reg_shift ? 2 : 1;
 	}
 
-	//Sources, for the load-use interlock: a data-processing instruction reads rn
-	//and rm; a load or store reads its base and offset register.
-	srcs = (1u << ((ir >> 16) & 0xF)) | (1u << ((ir >> 0) & 0xF));
+	//Sources, for the interlock. The base register is always bits 19:16, but bits 3:0
+	//are a register only when the instruction actually takes a register operand: in a
+	//data-processing instruction bit 25 set means the operand is an immediate, and in a
+	//load or store bit 25 set means the offset is a register. Reading the immediate as
+	//a register invents a dependency on whichever register the constant happens to
+	//name, which cost an extra cycle on every instruction with a small immediate.
+	int rm_is_reg;
+	if(op2 == 2 || op2 == 3)
+		rm_is_reg = (ir >> 25) & 1;         //register offset form
+	else if(op2 == 0 || op2 == 1)
+		rm_is_reg = !((ir >> 25) & 1);      //immediate form has no rm
+	else
+		rm_is_reg = 0;
+
+	srcs = (1u << ((ir >> 16) & 0xF));
+	if(rm_is_reg)
+		srcs |= (1u << ((ir >> 0) & 0xF));
 
 	//A taken branch costs three extra cycles: subs plus a taken bne measured four
 	//cycles in total, and a taken b alone measured four against one for the add
@@ -430,17 +542,58 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 	//slot: TRM table 8-2 gives 3 cycles for B, BL, BX, BLX in all cases. The previous
 	//version charged four, which made every short loop a cycle per iteration too slow.
 	if(next_pc != pc + 4u)
+	{
+		stats.branch_cycles += 3;
+		stats.taken_branches++;
 		cost = 3;
+	}
+
+	//A load whose base register was produced by an earlier load pays the address
+	//dependency: the data is not available in time to issue the next load, and the
+	//measured cost of that is four cycles regardless of how many instructions separate
+	//them. This replaces the one-cycle interlock for that case rather than adding to
+	//it, since the measurement includes the interlock.
+	int addr_from_load = 0;
+	if(is_load && !(last_was_result && last_result_reg == ((ir >> 16) & 0xF)))
+	{
+		for(uint32_t h = 0; h < LOAD_HIST; h++)
+		{
+			if(load_hist_is[h] && load_hist_reg[h] == ((ir >> 16) & 0xF))
+			{
+				addr_from_load = 1;
+				break;
+			}
+		}
+	}
+	if(addr_from_load)
+	{
+		cost += LOAD_ADDR_PENALTY;
+		stats.interlock_cycles += LOAD_ADDR_PENALTY;
+	}
 
 	//Interlock: an instruction whose first operand is the result of the immediately
 	//preceding load or multiply costs an extra cycle, two when the load was a byte or
 	//halfword (TRM table 8-2: "LDR 2 cycles ... following instruction uses loaded
 	//word", "3 cycles ... loaded byte, halfword or unaligned word used by following
 	//instruction").
-	if(last_was_result && (srcs & (1u << last_result_reg)))
+	else if(last_was_result && (srcs & (1u << last_result_reg)))
+	{
 		cost += last_result_kind;
+		stats.interlock_cycles += last_result_kind;
+	}
+	//A distance-two dependency was tried here and rejected: it moved soft floating point
+	//by one point and cost the screen gradient 7.7% and integer arithmetic 8.3%, because
+	//those loops have a genuinely free slot between a load and its use. The evidence
+	//does not support a general distance-two stall.
 
 	cycles += cost;
+	stats.instructions++;
+	stats.issue_cycles += cost;
+
+	//Remember what this instruction produced, for the address-dependency check above.
+	load_hist_reg[load_hist_pos % LOAD_HIST] = load_rd;
+	load_hist_is[load_hist_pos % LOAD_HIST] = (uint32_t)(is_load != 0);
+	load_hist_pos++;
 
 	last_was_result = is_load;
 	last_result_reg = load_rd;

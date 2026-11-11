@@ -13,7 +13,7 @@ FRAMES=${FRAMES:-40}
 
 cd "$(dirname "$0")"
 
-for w in 0 1 2 3 4 5 6 7 8 9; do
+for w in 0 1 2 3 4 5 6 7 8 9 10; do
 	PVMKSDK=$SDK gmake -s clean >/dev/null 2>&1 || true
 	PVMKSDK=$SDK gmake -s WORKLOAD=$w >/dev/null 2>&1
 	out=$($NEMUL --disk img/game.iso --nne bin/boot.nne --frames "$FRAMES" 2>/dev/null)

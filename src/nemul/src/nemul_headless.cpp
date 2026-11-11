@@ -876,6 +876,17 @@ int main(int argc, char **argv)
 				//believed: how many fills at what row-miss rate produced that time.
 				mem_model_stats_t ms;
 				mem_model_stats(&ms);
+				printf("model: of issue, branches %llu in %llu taken, interlocks %llu\n",
+					(unsigned long long)ms.branch_cycles,
+					(unsigned long long)ms.taken_branches,
+					(unsigned long long)ms.interlock_cycles);
+				printf("model: issue %llu, fills %llu, stalls %llu of %llu cycles\n",
+					(unsigned long long)ms.issue_cycles, (unsigned long long)ms.fill_cycles,
+					(unsigned long long)ms.stall_cycles,
+					(unsigned long long)mem_model_cycles());
+				printf("model: %.2f cycles per instruction over %llu instructions\n",
+					ms.instructions ? (double)mem_model_cycles() / (double)ms.instructions : 0.0,
+					(unsigned long long)ms.instructions);
 				printf("model: %llu fills (%llu row misses), %llu writebacks, "
 				       "%llu I-misses, %llu D-read misses, %llu D-write misses\n",
 					(unsigned long long)ms.fills, (unsigned long long)ms.row_misses,
