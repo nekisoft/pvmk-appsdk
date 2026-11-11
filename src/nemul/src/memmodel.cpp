@@ -9,6 +9,8 @@
 
 #include "memmodel.h"
 
+#include <string.h>
+
 #ifdef NEMUL_TIMING
 
 //--------------------------------------------------------------------------------
@@ -82,6 +84,7 @@ static cache_t dcache;
 static uint64_t cycles;
 static uint32_t cur_pid = 0;
 static uint32_t scanout_bytes = 0;
+static mem_model_stats_t stats;
 static double bus_stretch = 1.0;
 
 void mem_model_set_scanout(uint32_t bytes_per_frame)
@@ -150,9 +153,12 @@ static uint32_t dram_fill(uint32_t line_base)
 	if(!open_valid[bank] || open_row[bank] != row)
 	{
 		cost = FILL_ROW_MISS;
+		stats.row_misses++;
 		open_row[bank] = row;
 		open_valid[bank] = 1;
 	}
+
+	stats.fills++;
 
 	//While the display engine is scanning, it holds part of the bus and this fill
 	//takes proportionally longer.
@@ -204,6 +210,7 @@ static cache_line_t *cache_victim(cache_t *c, uint32_t mva)
 		//writes (63 cycles per line) are cheaper than read-modify-write patterns.
 		if(victim->written != 0xFFu)
 			cycles += dram_fill(victim->base);
+		stats.writebacks++;
 		cycles += (uint32_t)((double)WRITEBACK * bus_stretch);
 	}
 	return victim;
@@ -237,6 +244,7 @@ void mem_model_reset(void)
 	last_was_load = 0;
 	scanout_bytes = 0;
 	bus_stretch = 1.0;
+	memset(&stats, 0, sizeof(stats));
 }
 
 void mem_model_process(uint32_t pid)
@@ -256,6 +264,7 @@ void mem_model_fetch(uint32_t va)
 		line->used = icache.age++;
 		return;
 	}
+	stats.icache_misses++;
 	line = cache_victim(&icache, mva);
 	fill_line(&icache, mva, line);
 	//Fills use the same row model as data. That reproduces everything except a code
@@ -277,6 +286,7 @@ void mem_model_load(uint32_t va, uint32_t bytes)
 		line->used = dcache.age++;
 		return;
 	}
+	stats.dcache_read_misses++;
 	line = cache_victim(&dcache, mva);
 	fill_line(&dcache, mva, line);
 	cycles += dram_fill(mva);
@@ -291,6 +301,7 @@ void mem_model_store(uint32_t va, uint32_t bytes)
 	{
 		//Write-allocate without reading: the line is only read back if it is
 		//evicted before every word has been written.
+		stats.dcache_write_misses++;
 		line = cache_victim(&dcache, mva);
 		fill_line(&dcache, mva, line);
 		line->dirty = 1;
@@ -391,6 +402,11 @@ uint64_t mem_model_cycles(void)
 void mem_model_add_cycles(uint64_t c)
 {
 	cycles += c;
+}
+
+void mem_model_stats(struct mem_model_stats_t *out)
+{
+	*out = stats;
 }
 
 uint64_t mem_model_cycles_to_us(uint64_t c)

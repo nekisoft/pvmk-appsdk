@@ -871,6 +871,17 @@ int main(int argc, char **argv)
 					(double)total_us / (double)frames,
 					(unsigned long long)model_frame_us_max,
 					100.0 * (double)total_us / ((double)frames * 16667.0));
+
+				//The breakdown, so the figure above can be checked rather than
+				//believed: how many fills at what row-miss rate produced that time.
+				mem_model_stats_t ms;
+				mem_model_stats(&ms);
+				printf("model: %llu fills (%llu row misses), %llu writebacks, "
+				       "%llu I-misses, %llu D-read misses, %llu D-write misses\n",
+					(unsigned long long)ms.fills, (unsigned long long)ms.row_misses,
+					(unsigned long long)ms.writebacks, (unsigned long long)ms.icache_misses,
+					(unsigned long long)ms.dcache_read_misses,
+					(unsigned long long)ms.dcache_write_misses);
 			}
 		}
 #endif

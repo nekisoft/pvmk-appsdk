@@ -45,6 +45,20 @@ void mem_model_add_cycles(uint64_t c);
 //fills get slower while it is scanning.
 void mem_model_set_scanout(uint32_t bytes_per_frame);
 
+//What the model actually did: cache misses, DRAM fills, writebacks and row misses.
+//Printed so a predicted time can be audited against what the program did, instead
+//of being a number nobody can check.
+struct mem_model_stats_t
+{
+	uint64_t icache_misses;
+	uint64_t dcache_read_misses;
+	uint64_t dcache_write_misses;
+	uint64_t writebacks;
+	uint64_t row_misses;
+	uint64_t fills;
+};
+void mem_model_stats(struct mem_model_stats_t *out);
+
 //Convert a cycle count to microseconds at the modelled clock.
 uint64_t mem_model_cycles_to_us(uint64_t cycles);
 
