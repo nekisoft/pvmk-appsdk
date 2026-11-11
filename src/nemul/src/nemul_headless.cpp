@@ -48,6 +48,7 @@
 #include <time.h>
 
 #include "process.h"
+#include "memmodel.h"
 #include "sysc.h"
 #include "rsp.h"
 #include "prefs.h"
@@ -812,6 +813,10 @@ int main(int argc, char **argv)
 					fault_pid, dbgstop_name(fault_why), (unsigned)fault_pc);
 			else
 				fprintf(jf, "  \"fault\": null,\n");
+#ifdef NEMUL_TIMING
+			fprintf(jf, "  \"model_cycles\": %llu,\n", (unsigned long long)mem_model_cycles());
+			fprintf(jf, "  \"model_us\": %llu,\n", (unsigned long long)mem_model_cycles_to_us(mem_model_cycles()));
+#endif
 			fprintf(jf, "  \"image\": \"%s\"\n", LoadedImage);
 			fprintf(jf, "}\n");
 			fclose(jf);
@@ -821,6 +826,13 @@ int main(int argc, char **argv)
 	if(!quiet)
 	{
 		printf("stopped after %ld ticks, %ld frames\n", (long)EmulTimerTicks, frames < 0 ? 0 : frames);
+#ifdef NEMUL_TIMING
+		//What the memory model says this run would have taken on the real machine,
+		//alongside the emulator's own instruction-count clock for comparison.
+		printf("model: %llu cycles, %llu us of F1C time\n",
+			(unsigned long long)mem_model_cycles(),
+			(unsigned long long)mem_model_cycles_to_us(mem_model_cycles()));
+#endif
 		for(int pp = 0; pp < PROCESS_MAX; pp++)
 		{
 			if(process_table[pp].state == PROCESS_STATE_NONE)

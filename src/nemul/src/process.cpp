@@ -13,6 +13,7 @@
 
 #include "process.h"
 #include "interp.h"
+#include "memmodel.h"
 #include "prof.h"
 #include "sysc.h"
 #include "rsp.h"
@@ -263,6 +264,11 @@ static void hist_dump(int idx, process_t *pptr)
 
 void process_reset(void)
 {
+#ifdef NEMUL_TIMING
+	//The machine is being reset: empty the caches, close the DRAM rows and start
+	//the cycle count from zero.
+	mem_model_reset();
+#endif
 	TINFO("%s", "Resetting process table...\n");
 	
 	//Free all the dynamically allocated parts of the process table
@@ -423,6 +429,12 @@ void process_step(void)
 	//The Nuvoton chip runs 300MHz so one millisecond is about 300K instructions (dev version)
 	//The Allwinner chip is a bit faster, 500MHz or so (consumer version prototype)
 	int procidx = (int)(pptr - process_table);
+
+#ifdef NEMUL_TIMING
+	//Select the address space for the timing model: the caches are VIVT, so the
+	//model keys on the same FCSE-modified address the hardware would.
+	mem_model_process((uint32_t)pptr->pid);
+#endif
 
 	interp_result_t result = INTERP_RESULT_OK;
 	for(int instr = 0; instr < 300 * 1000; instr++)

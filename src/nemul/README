@@ -244,6 +244,40 @@ probing for a card. Whatever it manages, the window keeps drawing: the simulatio
 it at its own speed and drops emulated time it cannot keep up with, rather than the window
 waiting for it.
 
+## Timing model (optional build)
+
+nemul normally counts instructions and nothing else: emulated time is
+instructions divided by 300M, which is a guess that treats a cache miss and an
+ADD as the same thing. `gmake TIMING=1 headless` (or `gmake TIMING=1 gui`) builds
+a second binary, in `bin/timing/`, that also models the memory system measured on
+the real F1C board:
+
+  - ARM926EJ-S caches: 32KByte I-cache, 16KByte D-cache, 4-way, 32-byte lines,
+    virtually indexed and virtually tagged, so they are keyed on the same
+    FCSE-modified address the hardware uses ((pid << 25) | va);
+  - the SiP DDR1: line fills cost 93 cycles when the DRAM row is already open and
+    175 when it is not, with four banks tracked independently; dirty lines are
+    written back for 55, and a line the CPU wrote completely is not read back
+    first (which is why streaming writes are cheaper than read-modify-write);
+  - per-instruction issue cost: one cycle for ALU operations, three for MUL, one
+    per register for LDM/STM, three extra for a taken branch, one extra for a
+    load-use interlock.
+
+The constants are not guesses: they come from `kernel/ports/f1c/bench` in the pvmk
+tree, which runs the same access patterns on the board over JTAG. `gmake
+memmodel-test` checks the model against those measurements and fails if the model
+stops reproducing them.
+
+The run prints `model: <cycles>, <us> of F1C time` at the end and puts
+`model_cycles`/`model_us` in the `--json` summary. Note that this is *CPU* time:
+a program waiting for a vertical blank spends most of its wall time outside the
+model, so compare it against the frame budget (16.7ms) rather than against the
+length of the run.
+
+The ordinary build contains none of this - memmodel.cpp compiles to an empty
+object and every hook is an inline no-op, so the fast emulator is exactly as fast
+as it was (measured: 0.51s against 0.77s for 120 frames of the template example).
+
 ## Layout
 
     src/nemul.cpp          main loop, window, menu bar, status line, crash box, screenshot

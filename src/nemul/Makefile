@@ -29,6 +29,16 @@ CPPFLAGS += -DBUILDUSER=\"$(BUILDUSER)\"
 CPPFLAGS += -D__TIME_UNIX__=$(UNIXTIME)
 CPPFLAGS += -Wno-inconsistent-missing-override
 
+#Timing model build: "gmake TIMING=1" compiles memmodel.cpp in and links the
+#interpreter against it, into separate objects and separate binaries, so the
+#ordinary build keeps exactly the code it had and neither one disturbs the other.
+#The model is a measurement tool for when a number is wanted, not the default.
+ifeq ($(TIMING),1)
+CPPFLAGS += -DNEMUL_TIMING
+OBJDIR := obj/timing
+BINDIR := bin/timing
+endif
+
 #The graphical front end needs SDL2 and nothing else: Dear ImGui is vendored in
 #third_party/imgui and draws through SDL_Renderer, so there is no OpenGL, no native widget
 #toolkit and no per-platform window code. Find SDL2 with pkg-config, then sdl2-config, and
@@ -112,6 +122,9 @@ CPPFLAGS_HEADLESS += -DBUILDVERSION=\"$(BUILDVERSION)\"
 CPPFLAGS_HEADLESS += -DBUILDDATE=\"$(BUILDDATE)\"
 CPPFLAGS_HEADLESS += -DBUILDUSER=\"$(BUILDUSER)\"
 CPPFLAGS_HEADLESS += -D__TIME_UNIX__=$(UNIXTIME)
+ifeq ($(TIMING),1)
+CPPFLAGS_HEADLESS += -DNEMUL_TIMING
+endif
 
 $(BINDIR)/nemul-headless.elf : $(HLESS_CPPOBJ)
 	mkdir -p $(@D)
@@ -134,6 +147,15 @@ headless : $(BINDIR)/nemul-headless.elf
 		rm -f $(BINDIR)/nemul-headless.elf; \
 		$(MAKE) --no-print-directory $(BINDIR)/nemul-headless.elf; \
 	fi
+
+#Calibration test for the timing model: it drives the model with the same access
+#patterns the hardware benchmarks used and fails if the results do not match the
+#numbers measured on the board. Runs on the host, needs no emulator and no SDL.
+memmodel-test : $(SRCDIR)/memmodel.cpp testing/memmodel_test.cpp $(SRCDIR)/memmodel.h
+	mkdir -p $(BINDIR)
+	$(CPP) -std=c++20 -Wall -Wextra -O2 -DNEMUL_TIMING -I$(SRCDIR) \
+		$(SRCDIR)/memmodel.cpp testing/memmodel_test.cpp -o $(BINDIR)/memmodel-test
+	$(BINDIR)/memmodel-test
 
 clean : .
 	rm -rf $(OBJDIR)

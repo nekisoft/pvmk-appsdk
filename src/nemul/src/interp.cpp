@@ -12,6 +12,7 @@
 #include "trace.h"
 
 #include "interp.h"
+#include "memmodel.h"
 
 //ARM flag register contents
 #define FLAG_V (1u << 28)
@@ -23,6 +24,9 @@
 
 static interp_result_t interp_store_d(uint32_t *mem, uint32_t memsz, uint32_t addr, uint64_t data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_store(addr, 8);
+#endif
 	if(addr & 7)
 	{
 		TWARNING("Misaligned doubleword store of %16.16lX to addr %8.8X\n", data, addr);
@@ -42,6 +46,9 @@ static interp_result_t interp_store_d(uint32_t *mem, uint32_t memsz, uint32_t ad
 
 static interp_result_t interp_store_w(uint32_t *mem, uint32_t memsz, uint32_t addr, uint32_t data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_store(addr, 4);
+#endif
 	if(addr & 3)
 	{
 		TWARNING("Misaligned word store of %8.8X to addr %8.8X\n", data, addr);
@@ -60,6 +67,9 @@ static interp_result_t interp_store_w(uint32_t *mem, uint32_t memsz, uint32_t ad
 
 static interp_result_t interp_store_h(uint32_t *mem, uint32_t memsz, uint32_t addr, uint16_t data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_store(addr, 2);
+#endif
 	if(addr % 1)
 	{
 		TWARNING("Misaligned halfword store of %4.4X to addr %8.8X\n", data, addr);
@@ -91,6 +101,9 @@ static interp_result_t interp_store_h(uint32_t *mem, uint32_t memsz, uint32_t ad
 
 static interp_result_t interp_store_b(uint32_t *mem, uint32_t memsz, uint32_t addr, uint8_t data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_store(addr, 1);
+#endif
 	if(addr + 1 > memsz || addr < 0x1000)
 	{
 		TWARNING("Out-of-bounds byte store to %8.8X\n", addr);
@@ -122,6 +135,9 @@ static interp_result_t interp_store_b(uint32_t *mem, uint32_t memsz, uint32_t ad
 
 static interp_result_t interp_load_d(const uint32_t *mem, uint32_t memsz, uint32_t addr, uint64_t *data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_load(addr, 8);
+#endif
 	if(addr & 7)
 	{
 		TWARNING("Misaligned doubleword load from addr %8.8X\n", addr);
@@ -141,6 +157,9 @@ static interp_result_t interp_load_d(const uint32_t *mem, uint32_t memsz, uint32
 
 static interp_result_t interp_load_w(const uint32_t *mem, uint32_t memsz, uint32_t addr, uint32_t *data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_load(addr, 4);
+#endif
 	if(addr & 3)
 	{
 		TWARNING("Misaligned word load from addr %8.8X\n", addr);
@@ -159,6 +178,9 @@ static interp_result_t interp_load_w(const uint32_t *mem, uint32_t memsz, uint32
 
 static interp_result_t interp_load_h(const uint32_t *mem, uint32_t memsz, uint32_t addr, uint32_t *data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_load(addr, 2);
+#endif
 	if(addr & 1)
 	{
 		TWARNING("Misaligned halfword load from addr %8.8X\n", addr);
@@ -185,6 +207,9 @@ static interp_result_t interp_load_h(const uint32_t *mem, uint32_t memsz, uint32
 
 static interp_result_t interp_load_b(const uint32_t *mem, uint32_t memsz, uint32_t addr, uint32_t *data)
 {
+#ifdef NEMUL_TIMING
+	mem_model_load(addr, 1);
+#endif
 	if(addr + 1 > memsz || addr < 0x1000)
 	{
 		TWARNING("Out-of-bounds byte load from %8.8X\n", addr);
@@ -424,6 +449,11 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 	
 	//Fetch next instruction
 	const uint32_t ir = (force_ir) ? (force_ir) : (mem[regs[15] / 4]);
+#ifdef NEMUL_TIMING
+	//A forced instruction is the debugger stepping, not a fetch the machine made.
+	if(!force_ir)
+		mem_model_fetch(regs[15]);
+#endif
 	if(force_ir)
 		TWARNING("%s", "(IR FORCED) ");
 	
@@ -1592,10 +1622,25 @@ static interp_result_t interp_step_inner(uint32_t *regs, uint32_t *cpsr, uint32_
 interp_result_t interp_step(uint32_t *regs, uint32_t *cpsr, uint32_t *mem, size_t memsz)
 {
 	//Dumb stuff about what "PC" actually reads as during an instruction
+#ifdef NEMUL_TIMING
+	const uint32_t pc_before = regs[15];
+#endif
 	regs[15] += 4;
 	interp_result_t r = interp_step_inner(regs, cpsr, mem, memsz, 0);
 	regs[15] -= 4;
-		
+
+#ifdef NEMUL_TIMING
+	//Issue cost, and the branch penalty from whether the PC actually moved.
+	//Reading the instruction again is cheap next to the model's own work and keeps
+	//the interpreter's hot path free of out-parameters.
+	{
+		uint32_t ir = 0;
+		if(pc_before + 4 <= memsz && pc_before >= 0x1000)
+			ir = mem[pc_before / 4];
+		mem_model_issue(pc_before, regs[15], ir);
+	}
+#endif
+
 	return r;
 }
 
