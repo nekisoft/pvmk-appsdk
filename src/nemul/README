@@ -261,15 +261,25 @@ the real F1C board:
     first (which is why streaming writes are cheaper than read-modify-write);
   - per-instruction issue cost: one cycle for ALU operations, three for MUL, one
     per register for LDM/STM, three extra for a taken branch, one extra for a
-    load-use interlock.
+    load-use interlock;
+  - display-engine contention: while the engine is scanning, it holds a share of
+    the bus and every fill is stretched by 1/(1-f), where f is the bytes it scans
+    per second over a 305MByte/s bus. Measured cost of a streaming read with each
+    mode on: 5.1% at 320x240, 12.3% at 640x480; the model gives 5.0% and 11.9%.
+    Note the half-width mode is charged 320*480*2 bytes per frame, not 320*240*2,
+    because the driver leaves vertical halving off and the engine scans the full
+    480 lines anyway - that was measured, not assumed.
 
 The constants are not guesses: they come from `kernel/ports/f1c/bench` in the pvmk
 tree, which runs the same access patterns on the board over JTAG. `gmake
 memmodel-test` checks the model against those measurements and fails if the model
 stops reproducing them.
 
-The run prints `model: <cycles>, <us> of F1C time` at the end and puts
-`model_cycles`/`model_us` in the `--json` summary. Note that this is *CPU* time:
+The run prints `model: <cycles>, <us> of F1C time` at the end, plus
+`model: <us> per frame average, <us> worst, <n>% of a 60Hz frame` - the percentage
+is the one to read, since anything under 100% means the program finishes its work
+before the frame deadline and anything over means it cannot keep 60fps. It also
+puts `model_cycles`/`model_us` in the `--json` summary. Note that this is *CPU* time:
 a program waiting for a vertical blank spends most of its wall time outside the
 model, so compare it against the frame budget (16.7ms) rather than against the
 length of the run.
