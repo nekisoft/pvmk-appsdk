@@ -94,12 +94,16 @@ static mem_model_stats_t stats;
 //comparison on a tight store loop gives 8.70 cached against 8.85 uncached, where the
 //stores come faster than the buffer can drain and the CPU does stall. A model that
 //charged every writeback to the CPU would be 40% pessimistic on the first case.
-static void wb_write_back(void);
+static void wb_store(void);
 
-static const uint32_t WB_LINES = 4;
-static uint64_t wb_done_at[WB_LINES];
-static uint32_t wb_head = 0;
-static uint32_t wb_count = 0;
+//Bus time one store occupies. Measured: streaming writes cost 63 cycles per 32-byte
+//line, which is eight word stores, and a fill of halfword stores costs 139 per line,
+//which is sixteen - the same per store either way, so it is the transaction and not
+//the width that costs.
+static const uint32_t STORE_BUS = 8;
+//16 data words behind 4 addresses, in cycles of bus time.
+static const uint32_t WB_SLACK = 16 * 8;
+static uint64_t wb_free_at = 0;
 static double bus_stretch = 1.0;
 
 void mem_model_set_scanout(uint32_t bytes_per_frame)
@@ -125,10 +129,12 @@ static uint8_t open_valid[BANKS];
 static cache_line_t icache_lines[(ICACHE_BYTES / LINE_BYTES / WAYS) * WAYS];
 static cache_line_t dcache_lines[(DCACHE_BYTES / LINE_BYTES / WAYS) * WAYS];
 
-//State for the load-use interlock: the destination register of the immediately
-//preceding instruction if it was a load.
-static uint32_t last_load_reg;
-static int last_was_load;
+//State for the interlock: the destination register of the immediately preceding
+//instruction if it produced one (load or multiply), and how many cycles a use of it
+//costs.
+static uint32_t last_result_reg;
+static int last_was_result;
+static uint32_t last_result_kind;
 
 static void cache_init(cache_t *c, uint32_t bytes, cache_line_t *storage, uint32_t index_shift)
 {
@@ -220,13 +226,12 @@ static cache_line_t *cache_victim(cache_t *c, uint32_t mva)
 	cache_line_t *victim = &set_lines[best];
 	if(victim->valid && victim->dirty)
 	{
-		//A partially written line has to be read back before it can be written
-		//out; a line the CPU filled completely does not, which is why streaming
-		//writes (63 cycles per line) are cheaper than read-modify-write patterns.
-		if(victim->written != 0xFFu)
-			cycles += dram_fill(victim->base);
+		//A dirty line evicted from the cache goes out through the DCache write-back
+		//buffer, which is eight words behind a single address, so it costs the line
+		//write and not the full fill. Only lines that were read in and then written
+		//(write hits) reach here: stores that miss never allocate.
 		stats.writebacks++;
-		wb_write_back();
+		cycles += (uint32_t)((double)WRITEBACK * bus_stretch);
 	}
 	return victim;
 }
@@ -255,14 +260,13 @@ void mem_model_reset(void)
 		open_row[b] = 0;
 		open_valid[b] = 0;
 	}
-	last_load_reg = 0x10;
-	last_was_load = 0;
+	last_result_reg = 0x10;
+	last_was_result = 0;
+	last_result_kind = 1;
 	scanout_bytes = 0;
 	bus_stretch = 1.0;
 	memset(&stats, 0, sizeof(stats));
-	memset(wb_done_at, 0, sizeof(wb_done_at));
-	wb_head = 0;
-	wb_count = 0;
+	wb_free_at = 0;
 }
 
 void mem_model_process(uint32_t pid)
@@ -310,58 +314,46 @@ void mem_model_load(uint32_t va, uint32_t bytes)
 	cycles += dram_fill(mva);
 }
 
-//Hands a dirty line to the write buffer. The CPU carries on unless the buffer is
-//full, in which case it waits for the oldest line to finish draining: that is the
-//difference between a program whose stores trickle out (costs nothing) and one that
-//moves memory in bulk (costs the measured write bandwidth).
-static void wb_write_back(void)
+//A store that misses the cache goes into the write buffer and out to DRAM; it does
+//not allocate a line. ARM926EJ-S TRM (r0p5, DDI0198D) table 4-4: for a write-back
+//region a write hit goes to the DCache only, and a write miss is a "buffered store
+//to external memory". There is no write-allocate, which is why a fill loop over a
+//buffer that would fit in the cache costs the same as one over the whole screen.
+//
+//The buffer is 16 data words behind four addresses. Modelled as bus time: each store
+//occupies the bus for STORE_BUS cycles, and the CPU only waits when the backlog
+//exceeds what the buffer can hold. Measured consequence: a tight fill stalls and pays
+//the full store cost (8.85 cycles per halfword store, 8 of which are bus), while a
+//loop that stores once per 13 cycles pays nothing at all.
+static void wb_store(void)
 {
-	uint32_t cost = (uint32_t)((double)WRITEBACK * bus_stretch);
+	uint32_t cost = (uint32_t)((double)STORE_BUS * bus_stretch);
+	uint64_t start = (wb_free_at > cycles) ? wb_free_at : cycles;
+	wb_free_at = start + cost;
 
-	if(wb_count == WB_LINES)
-	{
-		uint32_t oldest = wb_head;
-		if(wb_done_at[oldest] > cycles)
-			cycles = wb_done_at[oldest];
-		wb_head = (wb_head + 1u) % WB_LINES;
-		wb_count--;
-	}
-
-	uint32_t slot = (wb_head + wb_count) % WB_LINES;
-	uint64_t start = cycles;
-	if(wb_count > 0)
-	{
-		uint32_t prev = (wb_head + wb_count - 1u) % WB_LINES;
-		if(wb_done_at[prev] > start)
-			start = wb_done_at[prev];
-	}
-	wb_done_at[slot] = start + cost;
-	wb_count++;
+	//Slack the buffer can hide, in cycles of bus time.
+	if(wb_free_at > cycles + WB_SLACK)
+		cycles = wb_free_at - WB_SLACK;
 }
 
 void mem_model_store(uint32_t va, uint32_t bytes)
 {
 	uint32_t mva = to_mva(va);
 	uint32_t way;
+	(void)bytes;
 	cache_line_t *line = cache_find(&dcache, mva, &way);
 	if(!line)
 	{
-		//Write-allocate without reading: the line is only read back if it is
-		//evicted before every word has been written.
+		//Write miss: buffered store, no line allocated (TRM table 4-4).
 		stats.dcache_write_misses++;
-		line = cache_victim(&dcache, mva);
-		fill_line(&dcache, mva, line);
-		line->dirty = 1;
+		wb_store();
+		return;
 	}
+
+	//Write hit: the line is in the cache, so the store costs only its issue cycle and
+	//the line is dirtied for a later write-back.
 	line->used = dcache.age++;
 	line->dirty = 1;
-
-	//Record which words are written, for the partial-line eviction case. A
-	//halfword or byte store marks the words it touches.
-	uint32_t first = (mva & (LINE_BYTES - 1u)) / 4u;
-	uint32_t count = (bytes + 3u) / 4u;
-	for(uint32_t w = first; w < first + count && w < 8u; w++)
-		line->written |= (uint8_t)(1u << w);
 }
 
 void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
@@ -387,8 +379,12 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 	}
 	else if((ir & 0x0FC000F0u) == 0x00000090u)
 	{
-		//MUL / MLA family: measured 2.75 cycles for back-to-back dependent muls.
-		cost = 3;
+		//MUL / MLA: the TRM gives two cycles, and three when the following
+		//instruction uses the result in its first operand (handled as the
+		//interlock below, like a load).
+		cost = 2;
+		is_load = 1;
+		load_rd = (ir >> 16) & 0xF;
 	}
 	else if(op2 == 4)
 	{
@@ -406,8 +402,13 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 		if(load)
 		{
 			//Post-indexed and register-offset loads write the base back too; the
-			//interlock only cares about the destination of the data.
-			is_load = 1;
+			//interlock only cares about the destination of the data. A byte or
+			//halfword load used by the next instruction interlocks for two cycles
+			//where a word load interlocks for one (TRM table 8-2), so the width
+			//matters: bit 22 is the byte form, bits 6:5 select the halfword and
+			//signed forms.
+			int narrow = ((ir >> 22) & 1) || (((ir >> 5) & 3) != 0);
+			is_load = narrow ? 2 : 1;
 			load_rd = (ir >> 12) & 0xF;
 		}
 		cost = 1;
@@ -425,20 +426,26 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 	//A taken branch costs three extra cycles: subs plus a taken bne measured four
 	//cycles in total, and a taken b alone measured four against one for the add
 	//before it.
+	//A taken branch costs three cycles in total, not three on top of its own issue
+	//slot: TRM table 8-2 gives 3 cycles for B, BL, BX, BLX in all cases. The previous
+	//version charged four, which made every short loop a cycle per iteration too slow.
 	if(next_pc != pc + 4u)
-		cost += 3;
+		cost = 3;
 
-	//Load-use interlock: a load followed immediately by an instruction that reads
-	//the loaded register costs one extra cycle (an ldr+add pair measured three
-	//cycles where one plus one would fit; a stream of independent loads measures
-	//one per load).
-	if(last_was_load && (srcs & (1u << last_load_reg)))
-		cost += 1;
+	//Interlock: an instruction whose first operand is the result of the immediately
+	//preceding load or multiply costs an extra cycle, two when the load was a byte or
+	//halfword (TRM table 8-2: "LDR 2 cycles ... following instruction uses loaded
+	//word", "3 cycles ... loaded byte, halfword or unaligned word used by following
+	//instruction").
+	if(last_was_result && (srcs & (1u << last_result_reg)))
+		cost += last_result_kind;
 
 	cycles += cost;
 
-	last_was_load = is_load;
-	last_load_reg = load_rd;
+	last_was_result = is_load;
+	last_result_reg = load_rd;
+	//+1 for a word result (load or multiply), +2 for a byte or halfword load.
+	last_result_kind = (is_load == 2) ? 2 : 1;
 }
 
 uint64_t mem_model_cycles(void)
