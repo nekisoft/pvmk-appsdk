@@ -86,6 +86,12 @@ static uint32_t cur_pid = 0;
 static uint32_t scanout_bytes = 0;
 static mem_model_stats_t stats;
 
+//One bin per word of the low 256KByte of address space: the application's code lives
+//there, and a whole image would cost more memory than it is worth.
+#define HIST_BINS 65536u
+static uint64_t hist_cycles[HIST_BINS];
+static uint64_t hist_counts[HIST_BINS];
+
 //Write buffer. The processor does not wait for a dirty line to reach DRAM: it hands
 //the line to a small buffer that drains in the background, and only stalls when the
 //buffer is full. Measured on the board by running the same store loop over a 64x64
@@ -293,6 +299,8 @@ void mem_model_reset(void)
 	scanout_bytes = 0;
 	bus_stretch = 1.0;
 	memset(&stats, 0, sizeof(stats));
+	memset(hist_cycles, 0, sizeof(hist_cycles));
+	memset(hist_counts, 0, sizeof(hist_counts));
 	wb_free_at = 0;
 }
 
@@ -404,7 +412,13 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 	//what the hardware does: a 64-add loop measures 1.03 cycles per add whether
 	//the adds are independent or form a dependency chain.
 	uint32_t cost = 1;
+	//is_load: 0 = not a producer, 1 = word result, 2 = byte/halfword result; drives the
+	//interlock. is_addr_load: a genuine load, which is what the address-dependency
+	//history is about. A multiply produces a result but does not fetch from memory, so
+	//conflating the two made a dependent multiply chain pay the address penalty and
+	//charged the long-multiply workload 6 or 7 cycles per instruction against 2 or 3.
 	int is_load = 0;
+	int is_addr_load = 0;
 	uint32_t load_rd = 0x10;
 	uint32_t srcs = 0;
 
@@ -471,6 +485,7 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 		int load = (ir >> 20) & 1;
 		if(load)
 		{
+			is_addr_load = 1;
 			//Post-indexed and register-offset loads write the base back too; the
 			//interlock only cares about the destination of the data. A byte or
 			//halfword load used by the next instruction interlocks for two cycles
@@ -500,6 +515,7 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 		int load = (ir >> 20) & 1;
 		if(load && ((ir >> 6) & 1))
 		{
+			is_addr_load = 1;
 			//A halfword or signed load: two-cycle interlock if its result is used
 			//straight away.
 			is_load = 2;
@@ -594,11 +610,13 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir)
 
 	cycles += cost;
 	stats.instructions++;
+	hist_cycles[(pc >> 2) & (HIST_BINS - 1u)] += cost;
+	hist_counts[(pc >> 2) & (HIST_BINS - 1u)]++;
 	stats.issue_cycles += cost;
 
 	//Remember what this instruction produced, for the address-dependency check above.
 	load_hist_reg[load_hist_pos % LOAD_HIST] = load_rd;
-	load_hist_is[load_hist_pos % LOAD_HIST] = (uint32_t)(is_load != 0);
+	load_hist_is[load_hist_pos % LOAD_HIST] = (uint32_t)is_addr_load;
 	load_hist_pos++;
 
 	last_was_result = is_load;
@@ -615,6 +633,25 @@ uint64_t mem_model_cycles(void)
 void mem_model_add_cycles(uint64_t c)
 {
 	cycles += c;
+}
+
+uint32_t mem_model_hist_size(void)
+{
+	return HIST_BINS;
+}
+
+void mem_model_hist(uint32_t i, uint32_t *pc, uint64_t *cycles_out, uint64_t *counts_out)
+{
+	if(i >= HIST_BINS)
+	{
+		*pc = 0;
+		*cycles_out = 0;
+		*counts_out = 0;
+		return;
+	}
+	*pc = i * 4u;
+	*cycles_out = hist_cycles[i];
+	*counts_out = hist_counts[i];
 }
 
 void mem_model_stats(struct mem_model_stats_t *out)

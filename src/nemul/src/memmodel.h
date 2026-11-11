@@ -66,6 +66,14 @@ struct mem_model_stats_t
 };
 void mem_model_stats(struct mem_model_stats_t *out);
 
+//Per-PC accounting, for finding where a predicted time goes. Cycles and instruction
+//counts are binned by PC so a hot loop can be read off and checked against the
+//instruction stream; the cost is two increments per instruction, so it is always on.
+// mem_model_hist_size() gives the number of bins (one per word of address space,
+// 64K words), mem_model_hist(i, &pc, &cycles, &counts) reads one.
+uint32_t mem_model_hist_size(void);
+void mem_model_hist(uint32_t i, uint32_t *pc, uint64_t *cycles, uint64_t *counts);
+
 //Convert a cycle count to microseconds at the modelled clock.
 uint64_t mem_model_cycles_to_us(uint64_t cycles);
 

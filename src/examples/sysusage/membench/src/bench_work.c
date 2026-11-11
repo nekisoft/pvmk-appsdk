@@ -47,6 +47,18 @@ uint32_t work_call(uint32_t iters, uint32_t *sink)
 	return acc;
 }
 
+//A dependent chain of 64-bit multiplies, which is what software floating point is
+//built from. The ARM9's multiplier is data-dependent: the TRM says it sums 16 bits of
+//the multiplier operand per cycle and may need extra cycles, and the model charges a
+//flat three. If the flat charge is wrong for large mantissas, this shows it.
+uint32_t work_longmul(uint32_t iters, uint32_t seed)
+{
+	unsigned long long acc = seed | 1u;
+	for(uint32_t i = 0; i < iters; i++)
+		acc = (acc * 0x9E3779B97F4A7C15ull) >> 32;
+	return (uint32_t)acc;
+}
+
 //Read the screen back, adding every pixel. Used to see whether a buffer that was
 //just written is resident in the data cache: if the write allocated in the cache the
 //read is nearly free, and if it did not the read goes to DRAM.

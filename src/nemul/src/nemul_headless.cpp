@@ -431,6 +431,50 @@ static uint64_t model_frame_us_max = 0;
 static uint64_t model_frame_us_first = 0;
 #endif
 
+#ifdef NEMUL_TIMING
+//Top bins of the model's per-PC accounting, so a hot loop can be read off and checked
+//against the instruction stream.
+static void dump_hist(void)
+{
+	uint32_t n = mem_model_hist_size();
+	uint32_t top[16];
+	for(uint32_t t = 0; t < 16; t++)
+		top[t] = n;
+
+	for(uint32_t i = 0; i < n; i++)
+	{
+		uint32_t pc; uint64_t cy, ct;
+		mem_model_hist(i, &pc, &cy, &ct);
+		if(!ct)
+			continue;
+		for(uint32_t t = 0; t < 16; t++)
+		{
+			uint64_t bcy = 0, bct = 0;
+			uint32_t bpc = 0;
+			if(top[t] != n)
+				mem_model_hist(top[t], &bpc, &bcy, &bct);
+			if(top[t] == n || cy > bcy)
+			{
+				for(uint32_t s = 15; s > t; s--)
+					top[s] = top[s - 1];
+				top[t] = i;
+				break;
+			}
+		}
+	}
+
+	printf("model: hottest PCs (cycles, count, cycles per instruction)\n");
+	for(uint32_t t = 0; t < 16 && top[t] != n; t++)
+	{
+		uint32_t pc; uint64_t cy, ct;
+		mem_model_hist(top[t], &pc, &cy, &ct);
+		printf("model:   %08X %12llu %10llu  %6.2f\n", pc,
+			(unsigned long long)cy, (unsigned long long)ct,
+			ct ? (double)cy / (double)ct : 0.0);
+	}
+}
+#endif
+
 int main(int argc, char **argv)
 {
 	//Line buffered: the guest's _sc_print writes straight to fd 1, and a fully buffered
@@ -880,6 +924,8 @@ int main(int argc, char **argv)
 					(unsigned long long)ms.branch_cycles,
 					(unsigned long long)ms.taken_branches,
 					(unsigned long long)ms.interlock_cycles);
+				if(getenv("NEMUL_TIMING_HIST") != NULL)
+					dump_hist();
 				printf("model: issue %llu, fills %llu, stalls %llu of %llu cycles\n",
 					(unsigned long long)ms.issue_cycles, (unsigned long long)ms.fill_cycles,
 					(unsigned long long)ms.stall_cycles,
