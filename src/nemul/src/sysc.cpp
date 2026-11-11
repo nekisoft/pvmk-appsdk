@@ -13,6 +13,7 @@
 
 
 #include "sysc.h"
+#include "memmodel.h"
 #include "prefs.h"
 #include "prof.h"
 #include "rsp.h"
@@ -51,6 +52,17 @@ const int sysc_fb_sizes[] =
 	0, //Text
 	640*480*2, //VGA RGB565
 	320*240*2, //240p RGB565
+};
+
+//Bytes the display engine reads out of DRAM per frame, which is not the same as the
+//framebuffer size: the driver leaves vertical halving off, so a 320x240 buffer is
+//scanned as a 320x480 layer and costs twice what its size suggests. Measured on the
+//board by running the memory benchmark with each mode on.
+[[maybe_unused]] const uint32_t sysc_fb_scan_bytes[] =
+{
+	0,              //Text: the engine scans no framebuffer
+	640 * 480 * 2,  //VGA RGB565
+	320 * 480 * 2,  //240p RGB565, scanned as 480 lines
 };
 
 void sysc_setdiskfd(int fd)
@@ -440,6 +452,10 @@ int pvmk_sc_gfx_flip(uint32_t mode, uint32_t buffer)
 	if(buffer + sysc_fb_sizes[mode] > sysc_pptr->size)
 		return -PVMK_EFAULT;
 	
+	//From here on the display engine is reading this buffer out of DRAM every frame,
+	//so the CPU's memory accesses share the bus with it.
+	mem_model_set_scanout(sysc_fb_scan_bytes[mode]);
+
 	//Set aside these parameters for next time we "enter vertical blanking" (update the emulator display)
 	sysc_fb_enq_pid = sysc_pptr->pid;
 	sysc_fb_enq_ptr = buffer;

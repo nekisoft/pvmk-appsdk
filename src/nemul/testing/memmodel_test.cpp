@@ -25,9 +25,10 @@ static void check(const char *what, double got, double want, double tol)
 //Streaming read of `bytes`, one word at a time, like bench_sum. `passes` passes
 //over the same buffer: one pass measures compulsory misses, a second pass on a
 //buffer that fits the cache measures hits.
-static double streaming_read(uint32_t bytes, uint32_t passes)
+static double streaming_read_scanout(uint32_t bytes, uint32_t passes, uint32_t scanout)
 {
 	mem_model_reset();
+	mem_model_set_scanout(scanout);
 	mem_model_process(1);
 	uint32_t n = bytes / 4u;
 	uint64_t t0 = 0;
@@ -43,6 +44,11 @@ static double streaming_read(uint32_t bytes, uint32_t passes)
 	}
 	uint64_t t1 = mem_model_cycles();
 	return (double)(t1 - t0) / (double)bytes;
+}
+
+static double streaming_read(uint32_t bytes, uint32_t passes)
+{
+	return streaming_read_scanout(bytes, passes, 0);
 }
 
 //One dependent load per 32-byte line over `bytes`, like the pointer chase.
@@ -90,6 +96,15 @@ static double icache_sled(uint32_t bytes, uint32_t times)
 	return (double)(t1 - t0) / (double)(times * (bytes / 4u));
 }
 
+static void check_ratio(const char *name, double got, double want, double tol)
+{
+	int ok = (got > want - tol) && (got < want + tol);
+	printf("%-46s %8.4f  (hardware %8.4f, tolerance +/-%.3f)  %s\n",
+	       name, got, want, tol, ok ? "ok" : "FAIL");
+	if(!ok)
+		failures++;
+}
+
 int main(void)
 {
 	printf("memory model calibration against measured hardware\n\n");
@@ -110,6 +125,23 @@ int main(void)
 
 	//Measured: NOP sled inside the I-cache runs at 1.17 cycles per instruction,
 	//and at 64KB (twice the I-cache) it runs at 20.
+	//Measured with the display engine running, same 8MByte streaming read: 3.161
+	//with a 320x240 buffer and 3.379 with 640x480, the engine stealing bus time in
+	//proportion to what it scans. The hardware scans a 480-line layer in the
+	//half-width mode too, so 320x240 means 320*480*2 bytes per frame, not 320*240*2.
+	//Compared as ratios against this model's own display-off run, because the
+	//hardware numbers come from one battery (3.008 / 3.161 / 3.379) where the
+	//absolute value sits a few percent from a different day's 3.17 baseline.
+	{
+		double off = streaming_read(8u * 1024u * 1024u, 1);
+		check_ratio("  ...with 320x240 output (ratio to off)",
+		            streaming_read_scanout(8u * 1024u * 1024u, 1, 320u * 480u * 2u) / off,
+		            3.161 / 3.008, 0.03);
+		check_ratio("  ...with 640x480 output (ratio to off)",
+		            streaming_read_scanout(8u * 1024u * 1024u, 1, 640u * 480u * 2u) / off,
+		            3.379 / 3.008, 0.03);
+	}
+
 	check("instruction fetch, 16KB sled (c/insn)", icache_sled(16384u, 50u), 1.17, 0.2);
 
 	//Known limitation, reported rather than asserted: for a code block twice the

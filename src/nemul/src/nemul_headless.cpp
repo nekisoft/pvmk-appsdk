@@ -422,6 +422,15 @@ static const char *headless_loaded_image(void)
 	return LoadedImage;
 }
 
+#ifdef NEMUL_TIMING
+//Per-frame accounting for the timing model: the running total is a cycle counter,
+//so the useful figure is the difference across a frame.
+static uint64_t model_prev_cycles = 0;
+static uint64_t model_frame_us_sum = 0;
+static uint64_t model_frame_us_max = 0;
+static uint64_t model_frame_us_first = 0;
+#endif
+
 int main(int argc, char **argv)
 {
 	//Line buffered: the guest's _sc_print writes straight to fd 1, and a fully buffered
@@ -686,6 +695,27 @@ int main(int argc, char **argv)
 			if(vsync_logging && vsyncs <= 5)
 				fprintf(stderr, "vsync %ld: buffer %p mode %d\n", vsyncs, (void*)fb, fbmode);
 
+#ifdef NEMUL_TIMING
+			//What the memory model says the CPU spent on this frame. This is the
+			//number to compare against the 16.7ms a 60Hz frame allows: a game at
+			//3ms here has plenty of room, one at 14ms does not.
+			{
+				uint64_t now = mem_model_cycles();
+				model_frame_us_sum += mem_model_cycles_to_us(now - model_prev_cycles);
+				if(frames > 0)
+				{
+					uint64_t this_us = mem_model_cycles_to_us(now - model_prev_cycles);
+					if(this_us > model_frame_us_max)
+						model_frame_us_max = this_us;
+				}
+				else
+				{
+					model_frame_us_first = mem_model_cycles_to_us(now);
+				}
+				model_prev_cycles = now;
+			}
+#endif
+
 			if(hashfp != NULL)
 				fprintf(hashfp, "FRAME %ld TICKS %ld MODE %d HASH %8.8X\n",
 					frames, (long)EmulTimerTicks, fbmode, fbfnv(fb, fbmode));
@@ -829,9 +859,20 @@ int main(int argc, char **argv)
 #ifdef NEMUL_TIMING
 		//What the memory model says this run would have taken on the real machine,
 		//alongside the emulator's own instruction-count clock for comparison.
-		printf("model: %llu cycles, %llu us of F1C time\n",
-			(unsigned long long)mem_model_cycles(),
-			(unsigned long long)mem_model_cycles_to_us(mem_model_cycles()));
+		{
+			uint64_t total_us = mem_model_cycles_to_us(mem_model_cycles());
+			printf("model: %llu cycles, %llu us of F1C time\n",
+				(unsigned long long)mem_model_cycles(), (unsigned long long)total_us);
+			if(frames > 0)
+			{
+				//The frame budget at 60Hz is 16667us. Anything under it means the
+				//program is waiting for the display rather than holding it up.
+				printf("model: %.0f us per frame average, %llu us worst, %.0f%% of a 60Hz frame\n",
+					(double)total_us / (double)frames,
+					(unsigned long long)model_frame_us_max,
+					100.0 * (double)total_us / ((double)frames * 16667.0));
+			}
+		}
 #endif
 		for(int pp = 0; pp < PROCESS_MAX; pp++)
 		{

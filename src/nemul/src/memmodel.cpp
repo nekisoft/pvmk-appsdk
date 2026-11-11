@@ -42,6 +42,14 @@ static const uint32_t FILL_ROW_MISS = 175;
 //reading the old contents first.
 static const uint32_t WRITEBACK = 55;
 
+//Display contention. Measured on the board by streaming reads with the display
+//engine on and off: 640x480 cost 12.3% on a streaming read and 9.0% on a miss,
+//320x240 cost 5.1% and 5.0%. The engine reads the framebuffer out of the same DDR,
+//so it is modelled as a share of the bus: f = bytes scanned per second / the bus
+//rate, and every fill is stretched by 1/(1-f). The bus rate is fitted to those two
+//points and lands near the 300MByte/s measured for streaming writes.
+static const double DRAM_BYTES_PER_SEC = 305.0e6;
+
 //DDR1 geometry, from the controller's own SCONR value (0x0001B38A): 16-bit bus,
 //10 column bits, 4 banks, 13 row bits. One row is 1024 columns * 2 bytes = 2KB.
 static const uint32_t ROW_BYTES = 2048;
@@ -72,7 +80,25 @@ static cache_t icache;
 static cache_t dcache;
 
 static uint64_t cycles;
-static uint32_t cur_pid;
+static uint32_t cur_pid = 0;
+static uint32_t scanout_bytes = 0;
+static double bus_stretch = 1.0;
+
+void mem_model_set_scanout(uint32_t bytes_per_frame)
+{
+	scanout_bytes = bytes_per_frame;
+	if(bytes_per_frame == 0)
+	{
+		bus_stretch = 1.0;
+		return;
+	}
+
+	double bytes_per_sec = (double)bytes_per_frame * 60.0;
+	double share = bytes_per_sec / DRAM_BYTES_PER_SEC;
+	if(share > 0.5)
+		share = 0.5;
+	bus_stretch = 1.0 / (1.0 - share);
+}
 
 //DRAM: which row is open in each bank (one row per bank can be open at a time)
 static uint32_t open_row[BANKS];
@@ -127,7 +153,10 @@ static uint32_t dram_fill(uint32_t line_base)
 		open_row[bank] = row;
 		open_valid[bank] = 1;
 	}
-	return cost;
+
+	//While the display engine is scanning, it holds part of the bus and this fill
+	//takes proportionally longer.
+	return (uint32_t)((double)cost * bus_stretch);
 }
 
 //Finds the line for this address, or NULL. Sets *way.
@@ -175,7 +204,7 @@ static cache_line_t *cache_victim(cache_t *c, uint32_t mva)
 		//writes (63 cycles per line) are cheaper than read-modify-write patterns.
 		if(victim->written != 0xFFu)
 			cycles += dram_fill(victim->base);
-		cycles += WRITEBACK;
+		cycles += (uint32_t)((double)WRITEBACK * bus_stretch);
 	}
 	return victim;
 }
@@ -206,6 +235,8 @@ void mem_model_reset(void)
 	}
 	last_load_reg = 0x10;
 	last_was_load = 0;
+	scanout_bytes = 0;
+	bus_stretch = 1.0;
 }
 
 void mem_model_process(uint32_t pid)

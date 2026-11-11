@@ -38,7 +38,12 @@ void mem_model_issue(uint32_t pc, uint32_t next_pc, uint32_t ir);
 //Cycles consumed so far, and a way to charge time the model cannot see
 //(system calls, the display engine's scanout, idle).
 uint64_t mem_model_cycles(void);
-void mem_model_add_cycles(uint64_t cycles);
+void mem_model_add_cycles(uint64_t c);
+
+//Tell the model how many bytes the display engine reads out of DRAM per frame. Zero
+//means the display is off. The engine competes for the same bus the CPU uses, so
+//fills get slower while it is scanning.
+void mem_model_set_scanout(uint32_t bytes_per_frame);
 
 //Convert a cycle count to microseconds at the modelled clock.
 uint64_t mem_model_cycles_to_us(uint64_t cycles);
@@ -53,6 +58,7 @@ uint64_t mem_model_cycles_to_us(uint64_t cycles);
 #define mem_model_issue(pc, next_pc, ir) ((void)0)
 #define mem_model_cycles() ((uint64_t)0)
 #define mem_model_add_cycles(c) ((void)0)
+#define mem_model_set_scanout(b) ((void)0)
 #define mem_model_cycles_to_us(c) ((uint64_t)0)
 
 #endif //NEMUL_TIMING
